@@ -16,7 +16,7 @@ export default async function handler(req, res) {
       reveal_phone_number:    true,
     };
 
-    const r = await fetch("https://api.apollo.io/v1/people/match", {
+    const r = await fetch("https://api.apollo.io/api/v1/people/match", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

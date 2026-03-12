@@ -62,7 +62,7 @@ export default async function handler(req, res) {
 
     // ── PERSON NAME SEARCH ──────────────────────────────────────────────────
     if (personName) {
-      const r = await post("https://api.apollo.io/v1/mixed_people/search", {
+      const r = await post("https://api.apollo.io/api/v1/mixed_people/api_search", {
         person_names: [personName],
         page: 1,
         per_page: 25,
@@ -92,14 +92,14 @@ export default async function handler(req, res) {
     const domain = DOMAINS[retailer.toLowerCase().trim()];
 
     if (domain) {
-      const r = await fetch(`https://api.apollo.io/v1/organizations/enrich?domain=${domain}`, { headers: HEADERS });
+      const r = await fetch(`https://api.apollo.io/api/v1/organizations/enrich?domain=${domain}`, { headers: HEADERS });
       const d = await r.json();
       console.log(`[enrich] domain=${domain} status=${r.status} id=${d?.organization?.id} err=${d?.error}`);
       orgId = d?.organization?.id || null;
     }
 
     if (!orgId) {
-      const r = await post("https://api.apollo.io/v1/mixed_companies/search",
+      const r = await post("https://api.apollo.io/api/v1/mixed_companies/search",
         { q_organization_name: retailer, page: 1, per_page: 5 });
       const d = await r.json();
       console.log(`[org search] status=${r.status} count=${d?.organizations?.length} err=${d?.error}`);
@@ -118,7 +118,7 @@ export default async function handler(req, res) {
     const start   = (cursor - 1) * BATCH + 1;
     const pages   = Array.from({ length: BATCH }, (_, i) => start + i);
     const results = await Promise.all(pages.map(async pg => {
-      const r = await post("https://api.apollo.io/v1/mixed_people/search", { ...body, page: pg, per_page: 100 });
+      const r = await post("https://api.apollo.io/api/v1/mixed_people/api_search", { ...body, page: pg, per_page: 100 });
       const d = await r.json();
       console.log(`[page ${pg}] status=${r.status} people=${d?.people?.length ?? 0} total=${d?.pagination?.total_entries ?? 0} err=${d?.error ?? "none"}`);
       return { people: d?.people || [], total: d?.pagination?.total_entries || 0, pages: d?.pagination?.total_pages || 1 };

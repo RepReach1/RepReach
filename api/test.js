@@ -8,14 +8,14 @@ export default async function handler(req, res) {
 
   // Test 1: Search key — org lookup
   try {
-    const r = await fetch("https://api.apollo.io/v1/organizations/enrich?domain=walmart.com", { headers: sh });
+    const r = await fetch("https://api.apollo.io/api/v1/organizations/enrich?domain=walmart.com", { headers: sh });
     const d = await r.json();
     results.orgEnrich = { status: r.status, orgId: d?.organization?.id || null, error: d?.error || null };
   } catch(e) { results.orgEnrich = { error: e.message }; }
 
   // Test 2: Search key — people search
   try {
-    const r = await fetch("https://api.apollo.io/v1/mixed_people/search", {
+    const r = await fetch("https://api.apollo.io/api/v1/mixed_people/api_search", {
       method: "POST", headers: sh,
       body: JSON.stringify({ organization_names: ["Walmart"], person_titles: ["buyer"], page: 1, per_page: 3 })
     });
@@ -25,7 +25,7 @@ export default async function handler(req, res) {
 
   // Test 3: Enrich key — people match
   try {
-    const r = await fetch("https://api.apollo.io/v1/people/match", {
+    const r = await fetch("https://api.apollo.io/api/v1/people/match", {
       method: "POST", headers: eh,
       body: JSON.stringify({ first_name: "John", last_name: "Smith", organization_name: "Walmart", reveal_personal_emails: true })
     });

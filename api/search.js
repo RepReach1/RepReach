@@ -5,7 +5,7 @@ export default async function handler(req, res) {
   if (!retailer && !personName) return res.status(400).json({ error: "Missing retailer or personName" });
 
   // search.js uses the SEARCH key (APOLLO_API_KEY), NOT the enrich key
-  const KEY     = process.env.APOLLO_API_KEY || "NaiSzPpxILq0OSyylU1Cxg";
+  const KEY     = process.env.APOLLO_API_KEY || "xHkG62bA8-6XFutAKMgrFQ";
   const BATCH   = 5;
   const HEADERS = { "Content-Type": "application/json", "Cache-Control": "no-cache", "X-Api-Key": KEY };
 

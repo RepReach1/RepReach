@@ -90,6 +90,7 @@ export default function App() {
   const [view,       setView]       = useState("people");
   const [departments, setDepartments] = useState({});
   const [loadingDepts, setLoadingDepts] = useState(false);
+  const [searchError, setSearchError] = useState(null);
 
   // fetchDepartments must be defined first — used by runSearch, runPersonSearch, loadMore
   const fetchDepartments = useCallback(async (leadList) => {
@@ -116,7 +117,7 @@ export default function App() {
     if (!company.trim() || company.trim().length < 2) {
       setLeads([]); setHasSearched(false); setNextCursor(null); return;
     }
-    setSearching(true);
+    setSearching(true); setSearchError(null);
     setLeads([]); setNextCursor(null); setDepartments({});
     try {
       const res = await fetch("/api/search", {
@@ -125,6 +126,7 @@ export default function App() {
         body: JSON.stringify({ retailer: company, titleKeyword: titles || null, cursor: 1 }),
       });
       const data = await res.json();
+      if (!res.ok) throw new Error(data.error || `Server error ${res.status}`);
       const r = data.leads || [];
       setLeads(r);
       setTotalAvailable(data.apolloTotal || r.length);
@@ -132,13 +134,13 @@ export default function App() {
       setHasSearched(true);
       setActiveLead(null);
       if (r.length) setTimeout(() => fetchDepartments(r), 100);
-    } catch(e) { setLeads([]); setHasSearched(true); }
+    } catch(e) { setLeads([]); setHasSearched(true); setSearchError(e.message); }
     setSearching(false);
   }, [fetchDepartments]);
 
   const runPersonSearch = useCallback(async (name) => {
     if (!name.trim() || name.trim().length < 3) return;
-    setSearching(true);
+    setSearching(true); setSearchError(null);
     setLeads([]); setNextCursor(null); setDepartments({});
     try {
       const res = await fetch("/api/search", {
@@ -147,6 +149,7 @@ export default function App() {
         body: JSON.stringify({ personName: name.trim(), cursor: 1 }),
       });
       const data = await res.json();
+      if (!res.ok) throw new Error(data.error || `Server error ${res.status}`);
       const r = data.leads || [];
       setLeads(r);
       setTotalAvailable(data.apolloTotal || r.length);
@@ -154,7 +157,7 @@ export default function App() {
       setHasSearched(true);
       setActiveLead(null);
       if (r.length) setTimeout(() => fetchDepartments(r), 100);
-    } catch(e) { setLeads([]); setHasSearched(true); }
+    } catch(e) { setLeads([]); setHasSearched(true); setSearchError(e.message); }
     setSearching(false);
   }, [fetchDepartments]);
 
@@ -670,7 +673,7 @@ ONLY JSON: {"subject":"...","body":"..."}`
               {view === "people" ? (<>
                 <div className="toolbar">
                   {searching ? (
-                    <><span className="spin"/><span style={{color:"#334155",marginLeft:8,fontWeight:600}}>
+                    <><span className="spin"/><span style={{color:"var(--text2)",marginLeft:8,fontWeight:600}}>
                       {searchMode==="person" ? <>Searching for <span style={{color:"#00c9a7"}}>{companyInput}</span>...</> : <>Finding buyers at <span style={{color:"#00c9a7"}}>{companyInput}</span>...</>}
                     </span></>
                   ) : hasSearched ? (
@@ -683,7 +686,7 @@ ONLY JSON: {"subject":"...","body":"..."}`
                       )}
                     </>
                   ) : (
-                    <span style={{color:"#334155",fontWeight:600}}>Search a retailer to find buyers instantly</span>
+                    <span style={{color:"var(--text2)",fontWeight:600}}>Search a retailer to find buyers instantly</span>
                   )}
                 </div>
 
@@ -702,7 +705,14 @@ ONLY JSON: {"subject":"...","body":"..."}`
                   <div className="empty">
                     <span className="spin-lg spin" style={{marginBottom:18}} />
                     <h3>Hitting Apollo...</h3>
-                    <p style={{color:"#334155"}}>Pulling every buyer at <span style={{color:"#00c9a7",fontWeight:700}}>{companyInput}</span></p>
+                    <p style={{color:"var(--text2)"}}>Pulling every buyer at <span style={{color:"#00c9a7",fontWeight:700}}>{companyInput}</span></p>
+                  </div>
+                ) : searchError ? (
+                  <div className="empty">
+                    <div className="empty-icon">⚠️</div>
+                    <h3>Search failed</h3>
+                    <p style={{color:"#f87171"}}>{searchError}</p>
+                    <p style={{marginTop:8}}>Check your Apollo API key or try again.</p>
                   </div>
                 ) : leads.length === 0 ? (
                   <div className="empty">
@@ -752,11 +762,11 @@ ONLY JSON: {"subject":"...","body":"..."}`
                               </td>
                               <td><span className="ptitle">{lead.title}</span></td>
                               <td><span className="pco">{lead.retailer}</span></td>
-                              <td style={{color:"#334155",fontSize:12}}>{lead.location||"—"}</td>
+                              <td style={{color:"var(--text2)",fontSize:12}}>{lead.location||"—"}</td>
                               <td>
                                 {departments[lead.id]
                                   ? <span style={{display:"inline-flex",alignItems:"center",gap:4,padding:"3px 9px",background:"rgba(0,201,167,.07)",border:"1px solid rgba(0,201,167,.15)",borderRadius:5,fontSize:11,fontWeight:700,color:"#00c9a7",whiteSpace:"nowrap"}}>{departments[lead.id]}</span>
-                                  : loadingDepts ? <span style={{fontSize:11,color:"#1e2d3d"}}>···</span> : <span style={{color:"#1e2d3d",fontSize:12}}>—</span>
+                                  : loadingDepts ? <span style={{fontSize:11,color:"var(--text3)"}}>···</span> : <span style={{color:"var(--text3)",fontSize:12}}>—</span>
                                 }
                               </td>
                               <td onClick={e=>e.stopPropagation()}>
@@ -791,11 +801,11 @@ ONLY JSON: {"subject":"...","body":"..."}`
                     </table>
                   </div>
                   {nextCursor && (
-                    <div style={{padding:"16px 20px",borderTop:"1px solid #0d1f2d",display:"flex",alignItems:"center",gap:14}}>
+                    <div style={{padding:"16px 20px",borderTop:"1px solid var(--border)",display:"flex",alignItems:"center",gap:14}}>
                       <button className="btn btn-teal" disabled={loadingMore} onClick={loadMore} style={{justifyContent:"center"}}>
                         {loadingMore ? <><span className="spin"/>Loading next 1,000...</> : "⚡ Load More Contacts"}
                       </button>
-                      <span style={{fontSize:12,color:"#334155"}}>{leads.length.toLocaleString()} loaded · {(totalAvailable - leads.length).toLocaleString()} more in Apollo</span>
+                      <span style={{fontSize:12,color:"var(--text2)"}}>{leads.length.toLocaleString()} loaded · {(totalAvailable - leads.length).toLocaleString()} more in Apollo</span>
                     </div>
                   )}
                   </div>
@@ -805,7 +815,7 @@ ONLY JSON: {"subject":"...","body":"..."}`
                 <div style={{padding:"16px 20px",overflow:"auto",flex:1}}>
                   <div style={{marginBottom:16}}>
                     <div style={{fontFamily:"'Syne',sans-serif",fontWeight:800,fontSize:16,color:"#f1f5f9",marginBottom:3,letterSpacing:"-.2px"}}>Outreach Tracker</div>
-                    <div style={{fontSize:12,color:"#334155"}}>{leads.length} contacts · {companyInput||"no search"}</div>
+                    <div style={{fontSize:12,color:"var(--text2)"}}>{leads.length} contacts · {companyInput||"no search"}</div>
                   </div>
                   {leads.length === 0
                     ? <div className="empty"><div className="empty-icon">📋</div><h3>No contacts yet</h3><p>Search a retailer in People view first.</p></div>

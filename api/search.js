@@ -1,8 +1,8 @@
 export default async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
 
-  const { retailer, cursor = 1 } = req.body;
-  if (!retailer) return res.status(400).json({ error: "Missing retailer" });
+  const { retailer, cursor = 1, personName } = req.body;
+  if (!retailer && !personName) return res.status(400).json({ error: "Missing retailer or personName" });
 
   const KEY       = process.env.APOLLO_ENRICH_KEY || "RDwOP69rbo3M2KQ1iJNLhQ";
   const BATCH     = 5;
@@ -42,6 +42,51 @@ export default async function handler(req, res) {
     fetch(url, { method:"POST", headers:HEADERS, body:JSON.stringify(body) });
 
   try {
+    // ── Person name search (cross-company) ──────────────────────────────
+    if (personName) {
+      const start = (cursor - 1) * BATCH + 1;
+      const pages = Array.from({length: BATCH}, (_, i) => start + i);
+      const results = await Promise.all(pages.map(async pg => {
+        const r = await post("https://api.apollo.io/v1/mixed_people/search", {
+          q_keywords: personName,
+          page: pg,
+          per_page: 100,
+        });
+        const d = await r.json();
+        console.log(`[person page ${pg}] status=${r.status} people=${d?.people?.length??0} err=${d?.error??'none'}`);
+        return { people: d?.people || [], total: d?.pagination?.total_entries || 0, pages: d?.pagination?.total_pages || 1 };
+      }));
+
+      const apolloTotal = results[0]?.total || 0;
+      const totalPages  = Math.min(results[0]?.pages || 1, 500);
+      const seen        = new Set();
+      const people      = results.flatMap(r => r.people).filter(p => {
+        if (!p.first_name) return false;
+        const k = `${p.first_name}${p.last_name||""}`.toLowerCase().replace(/\s/g, "");
+        if (seen.has(k)) return false; seen.add(k); return true;
+      });
+
+      const leads = people.map((p, i) => ({
+        id:          `apollo_person_${cursor}_${i}_${(p.id||"").slice(-6)}`,
+        apolloId:    p.id || null,
+        firstName:   p.first_name  || "",
+        lastName:    p.last_name   || "",
+        title:       p.title       || "",
+        seniority:   p.seniority   || "",
+        departments: p.departments || [],
+        retailer:    p.organization_name || "",
+        email:       p.email       || null,
+        phone:       p.phone_numbers?.[0]?.sanitized_number || null,
+        location:    [p.city, p.state].filter(Boolean).join(", ") || "",
+        country:     p.country     || null,
+        linkedin:    p.linkedin_url || null,
+      }));
+
+      const nextCursor = start + BATCH <= totalPages ? cursor + 1 : null;
+      console.log(`[person done] ${leads.length} leads, apolloTotal=${apolloTotal}`);
+      return res.status(200).json({ leads, total: leads.length, apolloTotal, cursor, nextCursor });
+    }
+
     // 1. Resolve org ID
     let orgId = null;
     const domain = DOMAINS[retailer.toLowerCase().trim()];

@@ -48,15 +48,6 @@ const TITLE_OPTIONS = [
 
 const QUICK_COMPANIES = ["Walmart","Sam's Club","Kroger","Target","Costco","Home Depot","CVS","Tractor Supply","Amazon","Lowe's","Publix","Walgreens","Best Buy","Dollar General","Albertsons"];
 
-const ALL_COMPANIES = [
-  "Walmart","Sam's Club","Kroger","Target","Costco","Home Depot","CVS","Tractor Supply",
-  "Amazon","Lowe's","Publix","Walgreens","Best Buy","Dollar General","Dollar Tree",
-  "Albertsons","Aldi","Trader Joe's","Whole Foods","Meijer","HEB","Sprouts","Wegmans",
-  "Rite Aid","TJ Maxx","Ross","Marshalls","7-Eleven","Family Dollar","Safeway","Giant",
-  "Stop & Shop","Food Lion","Winn-Dixie","Hy-Vee","BJ's Wholesale","Sam's Club",
-  "Costco","PetSmart","Petco","Dick's Sporting Goods","Academy Sports","REI",
-  "Bed Bath & Beyond","Five Below","Tuesday Morning","Big Lots",
-];
 
 export default function App() {
   const [isSubscribed, setIsSubscribed] = useState(false);
@@ -80,7 +71,8 @@ export default function App() {
   const [loadingMore,    setLoadingMore]    = useState(false);
   const [searchMode,     setSearchMode]     = useState("company"); // "company" | "person"
 
-  const searchTimer = useRef(null);
+  const searchTimer  = useRef(null);
+  const suggestTimer = useRef(null);
   const [suggestions, setSuggestions] = useState([]);
 
   const [activeLead, setActiveLead] = useState(null);
@@ -233,14 +225,22 @@ export default function App() {
     const mode = detectSearchMode(val);
     setSearchMode(mode);
 
-    // Compute autocomplete suggestions for company mode
+    // Live suggestions from Apollo for company mode
+    clearTimeout(suggestTimer.current);
     if (val.trim().length >= 2 && mode === "company") {
-      const lower = val.trim().toLowerCase();
-      const matches = ALL_COMPANIES.filter(c => {
-        const cl = c.toLowerCase();
-        return cl.startsWith(lower) || cl.split(/[\s']+/).some(w => w.startsWith(lower));
-      });
-      setSuggestions([...new Set(matches)].slice(0, 6));
+      suggestTimer.current = setTimeout(async () => {
+        try {
+          const res = await fetch("/api/suggest", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ query: val.trim() }),
+          });
+          const data = await res.json();
+          setSuggestions(data.companies || []);
+        } catch (e) {
+          setSuggestions([]);
+        }
+      }, 150);
     } else {
       setSuggestions([]);
     }
@@ -249,7 +249,7 @@ export default function App() {
     searchTimer.current = setTimeout(() => {
       if (mode === "person") runPersonSearch(val);
       else runSearch(val, selectedTitles.length ? selectedTitles.join(" ") : null);
-    }, 200);
+    }, 400);
   };
 
   const pickSuggestion = (company) => {

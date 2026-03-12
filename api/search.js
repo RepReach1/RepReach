@@ -1,12 +1,13 @@
 export default async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
 
-  const { retailer, cursor = 1 } = req.body;
-  if (!retailer) return res.status(400).json({ error: "Missing retailer" });
+  const { retailer, personName, cursor = 1 } = req.body;
+  if (!retailer && !personName) return res.status(400).json({ error: "Missing retailer or personName" });
 
-  const KEY       = process.env.APOLLO_ENRICH_KEY || "RDwOP69rbo3M2KQ1iJNLhQ";
-  const BATCH     = 5;
-  const HEADERS   = { "Content-Type": "application/json", "Cache-Control": "no-cache", "X-Api-Key": KEY };
+  // search.js uses the SEARCH key (APOLLO_API_KEY), NOT the enrich key
+  const KEY     = process.env.APOLLO_API_KEY || "NaiSzPpxILq0OSyylU1Cxg";
+  const BATCH   = 5;
+  const HEADERS = { "Content-Type": "application/json", "Cache-Control": "no-cache", "X-Api-Key": KEY };
 
   const DOMAINS = {
     "walmart":"walmart.com","sam's club":"samsclub.com","sams club":"samsclub.com",
@@ -39,10 +40,54 @@ export default async function handler(req, res) {
   ];
 
   const post = (url, body) =>
-    fetch(url, { method:"POST", headers:HEADERS, body:JSON.stringify(body) });
+    fetch(url, { method: "POST", headers: HEADERS, body: JSON.stringify(body) });
+
+  const mapPerson = (p, prefix, i) => ({
+    id:          `apollo_${prefix}_${i}_${(p.id || "").slice(-6)}`,
+    apolloId:    p.id || null,
+    firstName:   p.first_name  || "",
+    lastName:    p.last_name   || "",
+    title:       p.title       || "",
+    seniority:   p.seniority   || "",
+    departments: p.departments || [],
+    retailer:    p.organization_name || (retailer || ""),
+    email:       p.email       || null,
+    phone:       p.phone_numbers?.[0]?.sanitized_number || null,
+    location:    [p.city, p.state].filter(Boolean).join(", ") || "",
+    country:     p.country     || null,
+    linkedin:    p.linkedin_url || null,
+  });
 
   try {
-    // 1. Resolve org ID
+
+    // ── PERSON NAME SEARCH ──────────────────────────────────────────────────
+    if (personName) {
+      const r = await post("https://api.apollo.io/v1/mixed_people/search", {
+        person_names: [personName],
+        page: 1,
+        per_page: 25,
+      });
+      const d = await r.json();
+      console.log(`[person search] status=${r.status} people=${d?.people?.length ?? 0} err=${d?.error ?? "none"}`);
+
+      if (!r.ok) {
+        console.error("[person search] API error:", d?.error || r.status);
+        return res.status(500).json({ error: d?.error || "Apollo API error", leads: [] });
+      }
+
+      const people = (d?.people || []).filter(p => p.first_name);
+      const leads  = people.map((p, i) => mapPerson(p, "pn", i));
+      console.log(`[person search done] ${leads.length} leads`);
+      return res.status(200).json({
+        leads,
+        total:       leads.length,
+        apolloTotal: d?.pagination?.total_entries || leads.length,
+        cursor:      1,
+        nextCursor:  null,
+      });
+    }
+
+    // ── RETAILER / COMPANY SEARCH ───────────────────────────────────────────
     let orgId = null;
     const domain = DOMAINS[retailer.toLowerCase().trim()];
 
@@ -55,28 +100,28 @@ export default async function handler(req, res) {
 
     if (!orgId) {
       const r = await post("https://api.apollo.io/v1/mixed_companies/search",
-        { q_organization_name: retailer, page:1, per_page:5 });
+        { q_organization_name: retailer, page: 1, per_page: 5 });
       const d = await r.json();
       console.log(`[org search] status=${r.status} count=${d?.organizations?.length} err=${d?.error}`);
       const orgs = d?.organizations || d?.accounts || [];
-      const best = orgs.find(o => o.name?.toLowerCase()===retailer.toLowerCase()) || orgs[0];
+      const best = orgs.find(o => o.name?.toLowerCase() === retailer.toLowerCase()) || orgs[0];
       if (best?.id) { orgId = best.id; console.log(`[org] picked "${best.name}" ${best.id}`); }
     }
 
     const body = orgId
-      ? { organization_ids:[orgId], person_titles:TITLES }
-      : { organization_names:[retailer], person_titles:TITLES };
+      ? { organization_ids: [orgId], person_titles: TITLES }
+      : { organization_names: [retailer], person_titles: TITLES };
 
-    console.log(`[search] orgId=${orgId} cursor=${cursor} body=${JSON.stringify(body).slice(0,120)}`);
+    console.log(`[search] orgId=${orgId} cursor=${cursor} body=${JSON.stringify(body).slice(0, 120)}`);
 
-    // 2. Fetch 5 pages in parallel — correct endpoint: mixed_people/search
-    const start = (cursor - 1) * BATCH + 1;
-    const pages = Array.from({length:BATCH}, (_,i) => start+i);
+    // Fetch BATCH pages in parallel
+    const start   = (cursor - 1) * BATCH + 1;
+    const pages   = Array.from({ length: BATCH }, (_, i) => start + i);
     const results = await Promise.all(pages.map(async pg => {
-      const r = await post("https://api.apollo.io/v1/mixed_people/search", {...body, page:pg, per_page:100});
+      const r = await post("https://api.apollo.io/v1/mixed_people/search", { ...body, page: pg, per_page: 100 });
       const d = await r.json();
-      console.log(`[page ${pg}] status=${r.status} people=${d?.people?.length??0} total=${d?.pagination?.total_entries??0} err=${d?.error??'none'}`);
-      return { people:d?.people||[], total:d?.pagination?.total_entries||0, pages:d?.pagination?.total_pages||1 };
+      console.log(`[page ${pg}] status=${r.status} people=${d?.people?.length ?? 0} total=${d?.pagination?.total_entries ?? 0} err=${d?.error ?? "none"}`);
+      return { people: d?.people || [], total: d?.pagination?.total_entries || 0, pages: d?.pagination?.total_pages || 1 };
     }));
 
     const apolloTotal = results[0]?.total || 0;
@@ -84,45 +129,34 @@ export default async function handler(req, res) {
     let   people      = results.flatMap(r => r.people).filter(p => p.first_name);
     console.log(`[raw] ${people.length} people before filter`);
 
-    // 3. Dedupe
+    // Dedupe by full name
     const seen = new Set();
     people = people.filter(p => {
-      const k = `${p.first_name}${p.last_name||""}`.toLowerCase().replace(/\s/g,"");
+      const k = `${p.first_name}${p.last_name || ""}`.toLowerCase().replace(/\s/g, "");
       if (seen.has(k)) return false; seen.add(k); return true;
     });
 
-    // 4. Hard keyword filter
+    // Soft keyword filter — log filtered titles but don't drop everyone
     const pre = people.length;
-    people = people.filter(p => KEYWORDS.some(kw => (p.title||"").toLowerCase().includes(kw)));
-    console.log(`[filter] ${pre} -> ${people.length} after keyword filter`);
+    const matched = people.filter(p => KEYWORDS.some(kw => (p.title || "").toLowerCase().includes(kw)));
+    console.log(`[filter] ${pre} -> ${matched.length} after keyword filter`);
 
-    if (people.length === 0 && pre > 0) {
-      const sample = results.flatMap(r=>r.people).slice(0,8).map(p=>p.title).filter(Boolean);
-      console.log(`[debug] sample titles that got filtered:`, sample);
+    // Use filtered results if we got any; fall back to all results so we never return 0 when Apollo returned data
+    const filtered = matched.length > 0 ? matched : people;
+
+    if (matched.length === 0 && pre > 0) {
+      const sample = results.flatMap(r => r.people).slice(0, 8).map(p => p.title).filter(Boolean);
+      console.log(`[debug] no titles matched keywords — sample titles:`, sample);
     }
 
-    const leads = people.map((p,i) => ({
-      id:          `apollo_${cursor}_${i}_${(p.id||"").slice(-6)}`,
-      apolloId:    p.id || null,
-      firstName:   p.first_name  || "",
-      lastName:    p.last_name   || "",
-      title:       p.title       || "",
-      seniority:   p.seniority   || "",
-      departments: p.departments || [],
-      retailer:    p.organization_name || retailer,
-      email:       p.email       || null,
-      phone:       p.phone_numbers?.[0]?.sanitized_number || null,
-      location:    [p.city, p.state].filter(Boolean).join(", ") || "",
-      country:     p.country     || null,
-      linkedin:    p.linkedin_url || null,
-    }));
+    const leads = filtered.map((p, i) => mapPerson(p, cursor.toString(), i));
 
     const nextCursor = start + BATCH <= totalPages ? cursor + 1 : null;
     console.log(`[done] ${leads.length} leads, apolloTotal=${apolloTotal}`);
-    return res.status(200).json({ leads, total:leads.length, apolloTotal, cursor, nextCursor });
+    return res.status(200).json({ leads, total: leads.length, apolloTotal, cursor, nextCursor });
 
-  } catch(e) {
+  } catch (e) {
     console.error("[fatal]", e.message);
-    return res.status(500).json({ error:e.message, leads:[] });
+    return res.status(500).json({ error: e.message, leads: [] });
   }
 }

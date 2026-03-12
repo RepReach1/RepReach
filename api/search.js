@@ -50,7 +50,7 @@ export default async function handler(req, res) {
     title:       p.title       || "",
     seniority:   p.seniority   || "",
     departments: p.departments || [],
-    retailer:    p.organization_name || (retailer || ""),
+    retailer:    p.organization_name || p.organization?.name || (retailer || ""),
     email:       p.email       || null,
     phone:       p.phone_numbers?.[0]?.sanitized_number || null,
     location:    [p.city, p.state].filter(Boolean).join(", ") || "",

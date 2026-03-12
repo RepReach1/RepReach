@@ -48,6 +48,16 @@ const TITLE_OPTIONS = [
 
 const QUICK_COMPANIES = ["Walmart","Sam's Club","Kroger","Target","Costco","Home Depot","CVS","Tractor Supply","Amazon","Lowe's","Publix","Walgreens","Best Buy","Dollar General","Albertsons"];
 
+const ALL_COMPANIES = [
+  "Walmart","Sam's Club","Kroger","Target","Costco","Home Depot","CVS","Tractor Supply",
+  "Amazon","Lowe's","Publix","Walgreens","Best Buy","Dollar General","Dollar Tree",
+  "Albertsons","Aldi","Trader Joe's","Whole Foods","Meijer","HEB","Sprouts","Wegmans",
+  "Rite Aid","TJ Maxx","Ross","Marshalls","7-Eleven","Family Dollar","Safeway","Giant",
+  "Stop & Shop","Food Lion","Winn-Dixie","Hy-Vee","BJ's Wholesale","Sam's Club",
+  "Costco","PetSmart","Petco","Dick's Sporting Goods","Academy Sports","REI",
+  "Bed Bath & Beyond","Five Below","Tuesday Morning","Big Lots",
+];
+
 export default function App() {
   const [isSubscribed, setIsSubscribed] = useState(false);
   const [showPaywall,  setShowPaywall]  = useState(false);
@@ -71,6 +81,7 @@ export default function App() {
   const [searchMode,     setSearchMode]     = useState("company"); // "company" | "person"
 
   const searchTimer = useRef(null);
+  const [suggestions, setSuggestions] = useState([]);
 
   const [activeLead, setActiveLead] = useState(null);
   const [selected,   setSelected]   = useState(new Set());
@@ -221,11 +232,32 @@ export default function App() {
     setCompanyInput(val);
     const mode = detectSearchMode(val);
     setSearchMode(mode);
+
+    // Compute autocomplete suggestions for company mode
+    if (val.trim().length >= 2 && mode === "company") {
+      const lower = val.trim().toLowerCase();
+      const matches = ALL_COMPANIES.filter(c => {
+        const cl = c.toLowerCase();
+        return cl.startsWith(lower) || cl.split(/[\s']+/).some(w => w.startsWith(lower));
+      });
+      setSuggestions([...new Set(matches)].slice(0, 6));
+    } else {
+      setSuggestions([]);
+    }
+
     clearTimeout(searchTimer.current);
     searchTimer.current = setTimeout(() => {
       if (mode === "person") runPersonSearch(val);
       else runSearch(val, selectedTitles.length ? selectedTitles.join(" ") : null);
-    }, 500);
+    }, 200);
+  };
+
+  const pickSuggestion = (company) => {
+    setSuggestions([]);
+    setCompanyInput(company);
+    setSearchMode("company");
+    clearTimeout(searchTimer.current);
+    runSearch(company, selectedTitles.length ? selectedTitles.join(" ") : null);
   };
 
   const toggleTitle = (t) => {
@@ -371,6 +403,12 @@ ONLY JSON: {"subject":"...","body":"..."}`
         .ts-wrap input::placeholder{color:var(--text3)}
         .ts-wrap input:focus{border-color:var(--teal2);box-shadow:0 0 0 3px rgba(0,229,192,.08)}
         .ts-icon{position:absolute;left:11px;top:50%;transform:translateY(-50%);color:var(--text3);font-size:14px;pointer-events:none}
+        .suggestions{position:absolute;top:calc(100% + 5px);left:0;right:0;background:var(--bg2);border:1px solid var(--border2);border-radius:10px;box-shadow:0 12px 40px rgba(0,0,0,.6);z-index:200;overflow:hidden}
+        .sug-item{padding:10px 14px;font-size:13px;font-weight:500;color:var(--text2);cursor:pointer;display:flex;align-items:center;gap:9px;transition:.1s;border-bottom:1px solid rgba(26,31,58,.5)}
+        .sug-item:last-child{border-bottom:none}
+        .sug-item:hover{background:var(--teal-dim);color:var(--teal)}
+        .sug-item:hover .sug-icon{color:var(--teal)}
+        .sug-icon{font-size:13px;color:var(--text3);flex-shrink:0}
         .topbar-right{margin-left:auto;display:flex;align-items:center;gap:8px}
 
         /* ─── SETTINGS ROW ─── */
@@ -639,7 +677,18 @@ ONLY JSON: {"subject":"...","body":"..."}`
               <span className="ts-icon">⚡</span>
               <input autoFocus value={companyInput}
                 onChange={e => handleCompanyInput(e.target.value)}
+                onBlur={() => setTimeout(() => setSuggestions([]), 150)}
                 placeholder="Search any retailer — or type a person's name..." />
+              {suggestions.length > 0 && (
+                <div className="suggestions">
+                  {suggestions.map(s => (
+                    <div key={s} className="sug-item" onMouseDown={() => pickSuggestion(s)}>
+                      <span className="sug-icon">🏪</span>
+                      {s}
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
             <div className="topbar-right">
               {isSubscribed

@@ -32,11 +32,6 @@ export default async function handler(req, res) {
     "merchandise planner","inventory manager","assortment manager",
   ];
 
-  const KEYWORDS = [
-    "buyer","merchant","category","purchasing","procurement","sourcing",
-    "merchandise","buying","assortment","dmm","gmm","chief merchant",
-    "planner","allocation","director of","vp of","head of",
-  ];
 
   const post = (url, body) =>
     fetch(url, { method:"POST", headers:HEADERS, body:JSON.stringify(body) });
@@ -91,15 +86,8 @@ export default async function handler(req, res) {
       if (seen.has(k)) return false; seen.add(k); return true;
     });
 
-    // 4. Hard keyword filter
-    const pre = people.length;
-    people = people.filter(p => KEYWORDS.some(kw => (p.title||"").toLowerCase().includes(kw)));
-    console.log(`[filter] ${pre} -> ${people.length} after keyword filter`);
+    console.log(`[filter] ${people.length} people after dedupe (no keyword filter)`);
 
-    if (people.length === 0 && pre > 0) {
-      const sample = results.flatMap(r=>r.people).slice(0,8).map(p=>p.title).filter(Boolean);
-      console.log(`[debug] sample titles that got filtered:`, sample);
-    }
 
     const leads = people.map((p,i) => ({
       id:          `apollo_${cursor}_${i}_${(p.id||"").slice(-6)}`,

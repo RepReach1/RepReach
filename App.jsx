@@ -211,11 +211,30 @@ export default function App() {
       });
       const data = await res.json();
       setEnriched(prev => ({ ...prev, [lead.id]: data }));
-      // Also update the lead in the leads array with the revealed info
-      setLeads(prev => prev.map(l => l.id === lead.id
-        ? { ...l, email: data.email || l.email, phone: data.phone || l.phone }
-        : l
-      ));
+
+      // Merge all revealed fields into a single updater function
+      const merge = (base) => ({
+        ...base,
+        email:           data.email           || base.email,
+        emailStatus:     data.emailStatus      || base.emailStatus,
+        personalEmails:  data.personalEmails?.length ? data.personalEmails : (base.personalEmails || []),
+        phone:           data.phone            || base.phone,
+        allPhones:       data.allPhones?.length ? data.allPhones : (base.allPhones || []),
+        linkedin:        data.linkedin         || base.linkedin,
+        twitter:         data.twitter          || base.twitter,
+        seniority:       data.seniority        || base.seniority,
+        location:        (data.city && data.state) ? `${data.city}, ${data.state}` : base.location,
+        country:         data.country          || base.country,
+        companySize:     data.companySize      || base.companySize,
+        companyRevenue:  data.companyRevenue   || base.companyRevenue,
+        companyIndustry: data.companyIndustry  || base.companyIndustry,
+        companyWebsite:  data.companyWebsite   || base.companyWebsite,
+        companyPhone:    data.companyPhone     || base.companyPhone,
+      });
+
+      // Update both the leads table AND the open detail panel
+      setLeads(prev => prev.map(l => l.id === lead.id ? merge(l) : l));
+      setActiveLead(prev => prev?.id === lead.id ? merge(prev) : prev);
     } catch(e) { console.error("Enrich failed:", e); }
     setEnriching(prev => { const n = new Set(prev); n.delete(lead.id); return n; });
   }, [isSubscribed]);

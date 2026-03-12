@@ -305,24 +305,30 @@ ONLY JSON: {"subject":"...","body":"..."}`
         @import url('https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,700;12..96,800&family=Inter:wght@400;500;600;700&display=swap');
 
         :root {
-          --bg:      #07080f;
-          --bg2:     #0c0e19;
-          --bg3:     #11152a;
-          --border:  #1a1f3a;
-          --border2: #242942;
-          --teal:    #00e5c0;
-          --teal2:   #00c9a7;
-          --teal-dim:rgba(0,229,192,.08);
-          --teal-glow:rgba(0,229,192,.25);
-          --text:    #f0f2ff;
-          --text2:   #8b91b8;
-          --text3:   #3d4468;
-          --amber:   #f5a623;
+          --bg:          #050714;
+          --bg2:         #080a1c;
+          --bg3:         #0d1030;
+          --border:      #181d3e;
+          --border2:     #232860;
+          --teal:        #00f0d0;
+          --teal2:       #00d4b8;
+          --teal-dim:    rgba(0,240,208,.07);
+          --teal-glow:   rgba(0,240,208,.25);
+          --violet:      #7c3aed;
+          --violet2:     #a78bfa;
+          --violet-dim:  rgba(124,58,237,.08);
+          --violet-glow: rgba(124,58,237,.3);
+          --text:        #eef0ff;
+          --text2:       #7a80b2;
+          --text3:       #353c68;
+          --amber:       #f59e0b;
         }
 
         *{box-sizing:border-box;margin:0;padding:0}
         html,body{height:100%}
         body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);font-size:13px;overflow:hidden}
+        body::before{content:'';position:fixed;inset:0;background-image:radial-gradient(circle at 15% 40%,rgba(124,58,237,.08) 0%,transparent 50%),radial-gradient(circle at 85% 15%,rgba(0,240,208,.06) 0%,transparent 45%),radial-gradient(circle at 50% 90%,rgba(0,240,208,.04) 0%,transparent 40%);pointer-events:none;z-index:0}
+        .shell{position:relative;z-index:1}
         input,select,textarea,button{font-family:'Inter',sans-serif;font-size:13px}
 
         ::-webkit-scrollbar{width:3px;height:3px}
@@ -334,30 +340,31 @@ ONLY JSON: {"subject":"...","body":"..."}`
         .shell{display:flex;height:100vh;overflow:hidden}
 
         /* ─── SIDEBAR ─── */
-        .sidebar{width:230px;background:var(--bg2);border-right:1px solid var(--border);display:flex;flex-direction:column;flex-shrink:0;overflow-y:auto}
+        .sidebar{width:230px;background:linear-gradient(180deg,rgba(10,10,28,1) 0%,rgba(8,10,26,1) 100%);border-right:1px solid rgba(124,58,237,.18);display:flex;flex-direction:column;flex-shrink:0;overflow-y:auto;position:relative}
+        .sidebar::after{content:'';position:absolute;top:0;right:0;width:1px;height:100%;background:linear-gradient(180deg,var(--violet) 0%,var(--teal) 50%,transparent 100%);opacity:.18;pointer-events:none}
 
-        .sb-logo{padding:16px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px}
-        .sb-logo-icon{width:32px;height:32px;background:linear-gradient(135deg,var(--teal),var(--teal2));border-radius:9px;display:flex;align-items:center;justify-content:center;font-family:'Bricolage Grotesque',sans-serif;font-weight:800;font-size:14px;color:#07080f;flex-shrink:0;box-shadow:0 0 16px var(--teal-glow)}
+        .sb-logo{padding:16px 18px;border-bottom:1px solid rgba(124,58,237,.12);display:flex;align-items:center;gap:10px}
+        .sb-logo-icon{width:32px;height:32px;background:linear-gradient(135deg,var(--teal),var(--violet2));border-radius:9px;display:flex;align-items:center;justify-content:center;font-family:'Bricolage Grotesque',sans-serif;font-weight:800;font-size:14px;color:#030612;flex-shrink:0;box-shadow:0 0 20px rgba(0,240,208,.3),0 0 40px rgba(124,58,237,.15)}
         .sb-logo-text{font-family:'Bricolage Grotesque',sans-serif;font-weight:800;font-size:17px;color:var(--text);letter-spacing:-.4px}
-        .sb-logo-text em{font-style:normal;color:var(--teal)}
+        .sb-logo-text em{font-style:normal;background:linear-gradient(90deg,var(--teal),var(--violet2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
 
-        .sb-nav{padding:8px;border-bottom:1px solid var(--border)}
-        .sb-item{display:flex;align-items:center;gap:9px;padding:9px 11px;border-radius:9px;font-size:12px;font-weight:600;color:var(--text3);cursor:pointer;transition:.15s;margin-bottom:1px;letter-spacing:.01em}
-        .sb-item:hover{background:var(--bg3);color:var(--text2)}
-        .sb-item.on{background:var(--teal-dim);color:var(--teal);border:1px solid rgba(0,229,192,.14)}
+        .sb-nav{padding:8px;border-bottom:1px solid rgba(124,58,237,.1)}
+        .sb-item{display:flex;align-items:center;gap:9px;padding:9px 11px;border-radius:9px;font-size:12px;font-weight:600;color:var(--text3);cursor:pointer;transition:.2s;margin-bottom:1px;letter-spacing:.01em;border:1px solid transparent}
+        .sb-item:hover{background:rgba(255,255,255,.03);color:var(--text2);border-color:var(--border)}
+        .sb-item.on{background:linear-gradient(90deg,rgba(0,240,208,.09),rgba(124,58,237,.07));color:var(--teal);border-color:rgba(0,240,208,.2);box-shadow:0 2px 16px rgba(0,240,208,.07),inset 0 1px 0 rgba(255,255,255,.03)}
         .sb-item-icon{font-size:14px;width:18px;text-align:center;flex-shrink:0}
 
-        .sb-sec{border-bottom:1px solid var(--border);padding:14px}
+        .sb-sec{border-bottom:1px solid rgba(255,255,255,.04);padding:14px}
         .sb-sec-hd{font-size:9px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:9px;display:flex;align-items:center;justify-content:space-between}
         .sb-sec-clear{font-size:10px;color:var(--teal);font-weight:700;cursor:pointer;background:none;border:none}
-        .sb-in{width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:8px 11px;font-size:12px;color:var(--text);outline:none;margin-bottom:9px;transition:.15s}
+        .sb-in{width:100%;background:rgba(255,255,255,.03);border:1px solid var(--border);border-radius:8px;padding:8px 11px;font-size:12px;color:var(--text);outline:none;margin-bottom:9px;transition:.2s}
         .sb-in::placeholder{color:var(--text3)}
-        .sb-in:focus{border-color:var(--teal2);box-shadow:0 0 0 3px rgba(0,229,192,.07)}
-        .sb-tag{display:inline-flex;align-items:center;gap:4px;padding:4px 10px;background:var(--teal-dim);border:1px solid rgba(0,229,192,.16);border-radius:6px;font-size:11px;color:var(--teal);margin:2px;cursor:pointer;transition:.1s;font-weight:600;letter-spacing:.01em}
-        .sb-tag:hover{background:rgba(0,229,192,.14)}
+        .sb-in:focus{border-color:rgba(0,240,208,.4);box-shadow:0 0 0 3px rgba(0,240,208,.07),0 0 16px rgba(0,240,208,.04)}
+        .sb-tag{display:inline-flex;align-items:center;gap:4px;padding:4px 10px;background:var(--teal-dim);border:1px solid rgba(0,240,208,.16);border-radius:6px;font-size:11px;color:var(--teal);margin:2px;cursor:pointer;transition:.15s;font-weight:600;letter-spacing:.01em}
+        .sb-tag:hover{background:rgba(0,240,208,.13);border-color:rgba(0,240,208,.3);box-shadow:0 0 8px rgba(0,240,208,.12)}
         .sb-tag-x{color:var(--teal2);font-size:12px;font-weight:800}
         .sb-check{display:flex;align-items:center;gap:8px;padding:6px 7px;border-radius:7px;cursor:pointer;transition:.1s}
-        .sb-check:hover{background:var(--bg3)}
+        .sb-check:hover{background:rgba(255,255,255,.03)}
         .sb-check label{font-size:12px;color:var(--text2);cursor:pointer;flex:1}
         .sb-check input[type=checkbox]{width:14px;height:14px;accent-color:var(--teal);cursor:pointer;flex-shrink:0}
 
@@ -365,21 +372,21 @@ ONLY JSON: {"subject":"...","body":"..."}`
         .right{flex:1;display:flex;flex-direction:column;overflow:hidden}
 
         /* ─── TOPBAR ─── */
-        .topbar{height:52px;background:var(--bg2);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 18px;gap:12px;flex-shrink:0}
+        .topbar{height:52px;background:rgba(8,10,28,.88);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-bottom:1px solid rgba(124,58,237,.12);display:flex;align-items:center;padding:0 18px;gap:12px;flex-shrink:0;position:relative;z-index:10}
         .ts-wrap{flex:1;max-width:440px;position:relative}
-        .ts-wrap input{width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:9px;padding:9px 13px 9px 36px;font-size:13px;color:var(--text);outline:none;transition:.15s;font-weight:500}
+        .ts-wrap input{width:100%;background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:10px;padding:9px 13px 9px 36px;font-size:13px;color:var(--text);outline:none;transition:.2s;font-weight:500}
         .ts-wrap input::placeholder{color:var(--text3)}
-        .ts-wrap input:focus{border-color:var(--teal2);box-shadow:0 0 0 3px rgba(0,229,192,.08)}
+        .ts-wrap input:focus{border-color:rgba(124,58,237,.5);box-shadow:0 0 0 3px rgba(124,58,237,.1),0 0 20px rgba(0,240,208,.06)}
         .ts-icon{position:absolute;left:11px;top:50%;transform:translateY(-50%);color:var(--text3);font-size:14px;pointer-events:none}
         .topbar-right{margin-left:auto;display:flex;align-items:center;gap:8px}
 
         /* ─── SETTINGS ROW ─── */
-        .sr{background:var(--bg2);border-bottom:1px solid var(--border);padding:7px 18px;display:flex;align-items:center;gap:14px;flex-wrap:wrap;flex-shrink:0}
+        .sr{background:rgba(8,10,26,.7);backdrop-filter:blur(10px);border-bottom:1px solid rgba(255,255,255,.04);padding:7px 18px;display:flex;align-items:center;gap:14px;flex-wrap:wrap;flex-shrink:0}
         .sf{display:flex;flex-direction:column;gap:2px}
         .sf label{font-size:9px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.9px}
-        .sf input,.sf select{background:var(--bg3);border:1px solid var(--border);border-radius:7px;padding:5px 10px;font-size:12px;color:var(--text);outline:none;min-width:100px;transition:.15s;font-weight:500}
+        .sf input,.sf select{background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:7px;padding:5px 10px;font-size:12px;color:var(--text);outline:none;min-width:100px;transition:.2s;font-weight:500}
         .sf input::placeholder{color:var(--text3)}
-        .sf input:focus,.sf select:focus{border-color:var(--teal2)}
+        .sf input:focus,.sf select:focus{border-color:rgba(124,58,237,.45);box-shadow:0 0 0 3px rgba(124,58,237,.08)}
         .sf select option{background:var(--bg2)}
 
         /* ─── CONTENT ─── */
@@ -387,143 +394,152 @@ ONLY JSON: {"subject":"...","body":"..."}`
         .main{flex:1;overflow-y:auto;display:flex;flex-direction:column}
 
         /* ─── TOOLBAR ─── */
-        .toolbar{padding:10px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;background:var(--bg2);flex-shrink:0}
-        .rc{font-size:14px;font-weight:700;color:var(--text);font-family:'Bricolage Grotesque',sans-serif;letter-spacing:-.2px}
+        .toolbar{padding:10px 18px;border-bottom:1px solid rgba(255,255,255,.04);display:flex;align-items:center;gap:10px;background:rgba(8,10,26,.7);backdrop-filter:blur(10px);flex-shrink:0}
+        .rc{font-size:14px;font-weight:800;font-family:'Bricolage Grotesque',sans-serif;letter-spacing:-.3px;background:linear-gradient(90deg,var(--text),var(--teal));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
         .rs{font-size:12px;color:var(--text3)}
 
         /* ─── PEOPLE TABLE ─── */
         .tbl-wrap{flex:1;overflow:auto}
         table.pt{width:100%;border-collapse:collapse;min-width:820px}
         table.pt thead{position:sticky;top:0;z-index:10}
-        table.pt th{background:var(--bg2);border-bottom:1px solid var(--border);padding:10px 14px;text-align:left;font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.8px;white-space:nowrap}
-        table.pt td{padding:10px 14px;border-bottom:1px solid rgba(26,31,58,.6);vertical-align:middle;transition:.1s}
-        table.pt tr:hover td{background:rgba(12,14,25,.8)}
-        table.pt tr.sel td{background:var(--teal-dim)}
-        table.pt tr.act td{background:rgba(0,229,192,.06);border-left:2px solid var(--teal)}
+        table.pt th{background:rgba(8,10,26,.95);backdrop-filter:blur(10px);border-bottom:1px solid rgba(255,255,255,.05);padding:10px 14px;text-align:left;font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.8px;white-space:nowrap}
+        table.pt td{padding:10px 14px;border-bottom:1px solid rgba(24,29,62,.5);vertical-align:middle;transition:.15s}
+        table.pt tr:hover td{background:rgba(0,240,208,.025)}
+        table.pt tr.sel td{background:rgba(0,240,208,.05)}
+        table.pt tr.act td{background:rgba(0,240,208,.04)}
+        table.pt tr.act td:first-child{border-left:2px solid var(--teal);box-shadow:inset 4px 0 16px rgba(0,240,208,.1)}
 
         /* Avatar */
-        .av{width:31px;height:31px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:11px;color:#fff;flex-shrink:0;font-family:'Bricolage Grotesque',sans-serif}
+        .av{width:31px;height:31px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:11px;color:#fff;flex-shrink:0;font-family:'Bricolage Grotesque',sans-serif;box-shadow:0 0 0 1px rgba(255,255,255,.08)}
 
         /* Name */
         .pname{font-weight:600;font-size:13px;color:var(--text);white-space:nowrap;letter-spacing:-.1px}
-        .pli{color:var(--text3);font-size:10px;font-weight:700;cursor:pointer;margin-left:5px;padding:1px 6px;border-radius:4px;background:var(--bg3);border:1px solid var(--border);text-decoration:none;transition:.1s;letter-spacing:.02em}
-        .pli:hover{border-color:var(--teal2);color:var(--teal)}
+        .pli{color:var(--text3);font-size:10px;font-weight:700;cursor:pointer;margin-left:5px;padding:1px 6px;border-radius:4px;background:var(--bg3);border:1px solid var(--border);text-decoration:none;transition:.15s;letter-spacing:.02em}
+        .pli:hover{border-color:rgba(0,240,208,.4);color:var(--teal);box-shadow:0 0 6px rgba(0,240,208,.15)}
         .ptitle{color:var(--text3);font-size:12px;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
         .pco{color:var(--teal);font-size:12px;font-weight:600;white-space:nowrap;letter-spacing:-.1px}
 
         /* Contact buttons */
-        .cbtn{display:inline-flex;align-items:center;gap:5px;padding:4px 11px;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;border:none;white-space:nowrap;transition:.12s;font-family:'Inter',sans-serif;letter-spacing:.01em}
-        .cb-locked{background:var(--bg3);color:var(--text3);border:1px solid var(--border)}
-        .cb-locked:hover{border-color:var(--amber);color:var(--amber)}
-        .cb-email{background:var(--teal-dim);color:var(--teal);border:1px solid rgba(0,229,192,.18)}
-        .cb-email:hover{background:rgba(0,229,192,.14)}
-        .cb-gen{background:rgba(245,166,35,.08);color:var(--amber);border:1px solid rgba(245,166,35,.2)}
-        .cb-gen:hover{background:rgba(245,166,35,.14)}
-        .cb-phone{background:var(--bg3);color:var(--text2);border:1px solid var(--border)}
-        .cb-phone:hover{border-color:#38bdf8;color:#38bdf8}
+        .cbtn{display:inline-flex;align-items:center;gap:5px;padding:4px 11px;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;border:none;white-space:nowrap;transition:.15s;font-family:'Inter',sans-serif;letter-spacing:.01em}
+        .cb-locked{background:rgba(255,255,255,.04);color:var(--text3);border:1px solid var(--border)}
+        .cb-locked:hover{border-color:rgba(245,158,11,.4);color:var(--amber);box-shadow:0 0 8px rgba(245,158,11,.1)}
+        .cb-email{background:var(--teal-dim);color:var(--teal);border:1px solid rgba(0,240,208,.18)}
+        .cb-email:hover{background:rgba(0,240,208,.12);box-shadow:0 0 12px rgba(0,240,208,.15)}
+        .cb-gen{background:rgba(245,158,11,.08);color:var(--amber);border:1px solid rgba(245,158,11,.2)}
+        .cb-gen:hover{background:rgba(245,158,11,.14);box-shadow:0 0 10px rgba(245,158,11,.15)}
+        .cb-phone{background:rgba(255,255,255,.04);color:var(--text2);border:1px solid var(--border)}
+        .cb-phone:hover{border-color:rgba(56,189,248,.4);color:#38bdf8;box-shadow:0 0 10px rgba(56,189,248,.12)}
 
         /* Status pill */
-        .spill{display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:20px;font-size:10px;font-weight:700;cursor:pointer;border:none;font-family:'Inter',sans-serif;white-space:nowrap;letter-spacing:.02em}
+        .spill{display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:20px;font-size:10px;font-weight:700;cursor:pointer;border:none;font-family:'Inter',sans-serif;white-space:nowrap;letter-spacing:.02em;transition:.15s}
+        .spill:hover{filter:brightness(1.2);transform:scale(1.03)}
 
         /* ─── DETAIL PANEL ─── */
-        .detail{width:400px;background:var(--bg2);border-left:1px solid var(--border);overflow-y:auto;flex-shrink:0;display:flex;flex-direction:column}
-        .dp-head{padding:20px;border-bottom:1px solid var(--border);display:flex;align-items:flex-start;gap:13px}
-        .dp-av{width:48px;height:48px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:16px;color:#fff;flex-shrink:0;font-family:'Bricolage Grotesque',sans-serif}
-        .dp-name{font-family:'Bricolage Grotesque',sans-serif;font-size:16px;font-weight:800;color:var(--text);margin-bottom:2px;letter-spacing:-.3px;line-height:1.2}
-        .dp-role{font-size:12px;color:var(--text2);margin-bottom:2px;font-weight:500}
-        .dp-co{font-size:12px;color:var(--teal);font-weight:700;letter-spacing:-.1px}
-        .dp-x{background:none;border:none;color:var(--text3);font-size:20px;cursor:pointer;margin-left:auto;flex-shrink:0;line-height:1}
+        .detail{width:400px;background:var(--bg2);border-left:1px solid rgba(124,58,237,.15);overflow-y:auto;flex-shrink:0;display:flex;flex-direction:column}
+        .dp-head{padding:20px;border-bottom:1px solid rgba(0,240,208,.1);display:flex;align-items:flex-start;gap:13px;background:linear-gradient(135deg,rgba(0,240,208,.05) 0%,rgba(124,58,237,.07) 100%);position:relative;overflow:hidden}
+        .dp-head::before{content:'';position:absolute;top:-50px;right:-50px;width:150px;height:150px;background:radial-gradient(circle,rgba(124,58,237,.2) 0%,transparent 70%);pointer-events:none}
+        .dp-head::after{content:'';position:absolute;bottom:-30px;left:-30px;width:100px;height:100px;background:radial-gradient(circle,rgba(0,240,208,.12) 0%,transparent 70%);pointer-events:none}
+        .dp-av{width:48px;height:48px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:16px;color:#fff;flex-shrink:0;font-family:'Bricolage Grotesque',sans-serif;box-shadow:0 0 20px rgba(0,0,0,.4),0 0 0 2px rgba(255,255,255,.08);position:relative;z-index:1}
+        .dp-name{font-family:'Bricolage Grotesque',sans-serif;font-size:16px;font-weight:800;color:var(--text);margin-bottom:2px;letter-spacing:-.3px;line-height:1.2;position:relative;z-index:1}
+        .dp-role{font-size:12px;color:var(--text2);margin-bottom:2px;font-weight:500;position:relative;z-index:1}
+        .dp-co{font-size:12px;color:var(--teal);font-weight:700;letter-spacing:-.1px;position:relative;z-index:1}
+        .dp-x{background:none;border:none;color:var(--text3);font-size:20px;cursor:pointer;margin-left:auto;flex-shrink:0;line-height:1;position:relative;z-index:1;transition:.15s}
         .dp-x:hover{color:var(--text)}
 
-        .dp-sec{padding:14px 20px;border-bottom:1px solid var(--border)}
+        .dp-sec{padding:14px 20px;border-bottom:1px solid rgba(255,255,255,.04)}
         .dp-sec-title{font-size:9px;font-weight:800;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:10px;font-family:'Bricolage Grotesque',sans-serif}
         .dp-row{display:flex;align-items:center;gap:8px;padding:4px 0;font-size:12px}
         .dp-icon{color:var(--text3);width:16px;text-align:center;font-size:13px;flex-shrink:0}
         .dp-val{flex:1;color:var(--text2);word-break:break-all;font-weight:500}
         .dp-val a{color:var(--teal);text-decoration:none}
         .dp-val a:hover{text-decoration:underline}
-        .dp-copy{font-size:10px;font-weight:700;color:var(--teal);cursor:pointer;background:var(--teal-dim);border:none;border-radius:5px;padding:3px 9px;flex-shrink:0;transition:.1s;letter-spacing:.02em}
-        .dp-copy:hover{background:rgba(0,229,192,.16)}
+        .dp-copy{font-size:10px;font-weight:700;color:var(--teal);cursor:pointer;background:var(--teal-dim);border:1px solid rgba(0,240,208,.15);border-radius:5px;padding:3px 9px;flex-shrink:0;transition:.15s;letter-spacing:.02em}
+        .dp-copy:hover{background:rgba(0,240,208,.14);box-shadow:0 0 8px rgba(0,240,208,.15)}
 
         /* Email panel */
-        .etabs{display:flex;border-bottom:1px solid var(--border);flex-shrink:0}
+        .etabs{display:flex;border-bottom:1px solid rgba(255,255,255,.04);flex-shrink:0;background:rgba(8,10,26,.5)}
         .etab{padding:12px 16px;font-size:12px;font-weight:600;cursor:pointer;border:none;background:transparent;color:var(--text3);border-bottom:2px solid transparent;margin-bottom:-1px;transition:.15s;white-space:nowrap;letter-spacing:.02em}
         .etab.on{color:var(--teal);border-bottom-color:var(--teal)}
         .etab:hover:not(.on){color:var(--text2)}
 
         .email-area{padding:16px 20px;flex:1;overflow-y:auto}
-        .ebox{background:var(--bg3);border:1px solid var(--border);border-radius:9px;padding:14px;margin-bottom:10px;transition:.15s}
-        .ebox:hover{border-color:var(--border2)}
+        .ebox{background:rgba(13,16,48,.8);border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:10px;transition:.2s;position:relative;overflow:hidden}
+        .ebox::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(0,240,208,.3),transparent);pointer-events:none}
+        .ebox:hover{border-color:rgba(0,240,208,.2);box-shadow:0 4px 24px rgba(0,0,0,.4),0 0 20px rgba(0,240,208,.04)}
         .elabel{font-size:9px;font-weight:800;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:7px;font-family:'Bricolage Grotesque',sans-serif}
         .ebody{font-size:12px;line-height:1.8;color:var(--text2);white-space:pre-wrap;font-weight:400}
-        .vbtn{padding:5px 14px;border-radius:7px;font-size:11px;font-weight:700;cursor:pointer;border:1px solid var(--border);background:transparent;color:var(--text3);transition:.12s;letter-spacing:.02em}
-        .vbtn.on{border-color:var(--teal2);color:var(--teal);background:var(--teal-dim)}
+        .vbtn{padding:5px 14px;border-radius:7px;font-size:11px;font-weight:700;cursor:pointer;border:1px solid var(--border);background:transparent;color:var(--text3);transition:.15s;letter-spacing:.02em}
+        .vbtn.on{border-color:rgba(0,240,208,.35);color:var(--teal);background:var(--teal-dim);box-shadow:0 0 10px rgba(0,240,208,.1)}
 
         /* Buttons */
-        .btn{padding:9px 20px;border-radius:9px;font-size:12px;font-weight:700;cursor:pointer;border:none;transition:.15s;display:inline-flex;align-items:center;gap:6px;font-family:'Inter',sans-serif;letter-spacing:.02em}
+        .btn{padding:9px 20px;border-radius:10px;font-size:12px;font-weight:700;cursor:pointer;border:none;transition:.2s;display:inline-flex;align-items:center;gap:6px;font-family:'Inter',sans-serif;letter-spacing:.02em}
         .btn:disabled{opacity:.35;cursor:not-allowed}
-        .btn-teal{background:linear-gradient(135deg,var(--teal),var(--teal2));color:#07080f;box-shadow:0 4px 16px var(--teal-glow)}
-        .btn-teal:hover:not(:disabled){box-shadow:0 4px 24px rgba(0,229,192,.35);transform:translateY(-1px)}
-        .btn-outline{background:transparent;color:var(--text2);border:1px solid var(--border)}
-        .btn-outline:hover:not(:disabled){border-color:var(--teal2);color:var(--teal)}
-        .btn-amber{background:linear-gradient(135deg,var(--amber),#fbbf24);color:#07080f;box-shadow:0 4px 16px rgba(245,166,35,.2)}
-        .btn-amber:hover:not(:disabled){box-shadow:0 4px 24px rgba(245,166,35,.35);transform:translateY(-1px)}
+        .btn-teal{background:linear-gradient(135deg,var(--teal),#00b5a0);color:#030612;box-shadow:0 4px 20px rgba(0,240,208,.3),0 0 0 1px rgba(0,240,208,.1);font-weight:800}
+        .btn-teal:hover:not(:disabled){box-shadow:0 6px 32px rgba(0,240,208,.45),0 0 0 1px rgba(0,240,208,.2);transform:translateY(-2px)}
+        .btn-outline{background:transparent;color:var(--text2);border:1px solid var(--border2)}
+        .btn-outline:hover:not(:disabled){border-color:rgba(0,240,208,.4);color:var(--teal);box-shadow:0 0 12px rgba(0,240,208,.08)}
+        .btn-amber{background:linear-gradient(135deg,var(--amber),#fbbf24);color:#030612;box-shadow:0 4px 20px rgba(245,158,11,.3),0 0 0 1px rgba(245,158,11,.1);font-weight:800}
+        .btn-amber:hover:not(:disabled){box-shadow:0 6px 32px rgba(245,158,11,.45),0 0 0 1px rgba(245,158,11,.2);transform:translateY(-2px)}
         .btn-sm{padding:5px 13px;font-size:11px;border-radius:7px}
 
         input[type=checkbox]{accent-color:var(--teal);cursor:pointer}
 
         @keyframes sp{to{transform:rotate(360deg)}}
-        .spin{width:13px;height:13px;border:2px solid rgba(0,229,192,.12);border-top-color:var(--teal);border-radius:50%;animation:sp .7s linear infinite;display:inline-block;flex-shrink:0}
+        .spin{width:13px;height:13px;border:2px solid rgba(0,240,208,.12);border-top-color:var(--teal);border-radius:50%;animation:sp .7s linear infinite;display:inline-block;flex-shrink:0}
         .spin-lg{width:32px;height:32px;border-width:3px}
         @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
         .pulsing{animation:pulse 1.4s ease-in-out infinite}
+        @keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}
+        @keyframes glow-pulse{0%,100%{filter:drop-shadow(0 0 8px rgba(0,240,208,.4))}50%{filter:drop-shadow(0 0 24px rgba(0,240,208,.8))}}
 
         /* ─── PAYWALL ─── */
-        .pw-overlay{position:fixed;inset:0;background:rgba(4,5,12,.88);backdrop-filter:blur(10px);z-index:999;display:flex;align-items:center;justify-content:center;padding:20px}
-        .pw-modal{background:var(--bg2);border:1px solid var(--border);border-radius:20px;max-width:440px;width:100%;overflow:hidden;box-shadow:0 32px 80px rgba(0,0,0,.7),0 0 0 1px rgba(0,229,192,.06);position:relative}
-        .pw-head{background:linear-gradient(135deg,var(--bg),#081a15);padding:32px;text-align:center;border-bottom:1px solid rgba(0,229,192,.1)}
-        .pw-glow{width:62px;height:62px;background:linear-gradient(135deg,var(--teal),var(--teal2));border-radius:18px;display:flex;align-items:center;justify-content:center;font-size:28px;margin:0 auto 18px;box-shadow:0 0 36px var(--teal-glow)}
-        .pw-head h2{font-family:'Bricolage Grotesque',sans-serif;font-size:24px;font-weight:800;color:var(--text);margin-bottom:8px;letter-spacing:-.4px}
-        .pw-head p{font-size:13px;color:var(--text2);line-height:1.65;max-width:300px;margin:0 auto;font-weight:500}
+        .pw-overlay{position:fixed;inset:0;background:rgba(3,4,14,.92);backdrop-filter:blur(16px);z-index:999;display:flex;align-items:center;justify-content:center;padding:20px}
+        .pw-modal{background:var(--bg2);border:1px solid rgba(124,58,237,.25);border-radius:20px;max-width:440px;width:100%;overflow:hidden;box-shadow:0 32px 80px rgba(0,0,0,.8),0 0 0 1px rgba(0,240,208,.06),0 0 80px rgba(124,58,237,.12);position:relative}
+        .pw-head{background:linear-gradient(135deg,rgba(13,8,40,1) 0%,rgba(8,12,32,1) 100%);padding:32px;text-align:center;border-bottom:1px solid rgba(0,240,208,.1);position:relative;overflow:hidden}
+        .pw-head::before{content:'';position:absolute;top:-60px;left:-60px;width:220px;height:220px;background:radial-gradient(circle,rgba(0,240,208,.12) 0%,transparent 70%);pointer-events:none}
+        .pw-head::after{content:'';position:absolute;bottom:-50px;right:-50px;width:180px;height:180px;background:radial-gradient(circle,rgba(124,58,237,.18) 0%,transparent 70%);pointer-events:none}
+        .pw-glow{width:62px;height:62px;background:linear-gradient(135deg,var(--teal),var(--violet2));border-radius:18px;display:flex;align-items:center;justify-content:center;font-size:28px;margin:0 auto 18px;box-shadow:0 0 40px rgba(0,240,208,.3),0 0 80px rgba(124,58,237,.2);position:relative;z-index:1}
+        .pw-head h2{font-family:'Bricolage Grotesque',sans-serif;font-size:24px;font-weight:800;background:linear-gradient(135deg,var(--text),var(--teal));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:8px;letter-spacing:-.4px;position:relative;z-index:1}
+        .pw-head p{font-size:13px;color:var(--text2);line-height:1.65;max-width:300px;margin:0 auto;font-weight:500;position:relative;z-index:1}
         .pw-body{padding:26px}
         .pw-price{text-align:center;margin-bottom:20px;padding-bottom:18px;border-bottom:1px solid var(--border)}
-        .pw-amt{font-family:'Bricolage Grotesque',sans-serif;font-size:48px;font-weight:800;color:var(--text);line-height:1;letter-spacing:-2px}
+        .pw-amt{font-family:'Bricolage Grotesque',sans-serif;font-size:48px;font-weight:800;line-height:1;letter-spacing:-2px;background:linear-gradient(135deg,var(--text),var(--teal));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
         .pw-per{font-size:13px;color:var(--text2);margin-top:4px;font-weight:500}
         .pw-disc{font-size:12px;color:var(--teal);font-weight:700;margin-top:5px;letter-spacing:.02em}
         .pw-feats{display:flex;flex-direction:column;gap:10px;margin-bottom:22px}
         .pw-feat{display:flex;align-items:center;gap:10px;font-size:13px;color:var(--text2);font-weight:500}
         .pw-feat:before{content:'→';color:var(--teal);font-weight:800;flex-shrink:0;font-size:15px}
-        .pw-x{position:absolute;top:14px;right:16px;background:none;border:none;color:var(--text3);font-size:22px;cursor:pointer;line-height:1}
+        .pw-x{position:absolute;top:14px;right:16px;background:none;border:none;color:var(--text3);font-size:22px;cursor:pointer;line-height:1;z-index:2}
         .pw-x:hover{color:var(--text)}
         .pw-divider{text-align:center;color:var(--text3);font-size:11px;margin:14px 0;font-weight:600;letter-spacing:.6px}
         .code-wrap{display:flex;gap:8px}
-        .code-in{flex:1;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:10px 13px;font-size:13px;color:var(--text);outline:none;font-weight:500}
+        .code-in{flex:1;background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:8px;padding:10px 13px;font-size:13px;color:var(--text);outline:none;font-weight:500}
         .code-in::placeholder{color:var(--text3)}
-        .code-in:focus{border-color:var(--teal2)}
+        .code-in:focus{border-color:rgba(0,240,208,.4);box-shadow:0 0 0 3px rgba(0,240,208,.07)}
         .err{font-size:11px;color:#f87171;margin-top:7px;font-weight:600}
 
         /* ─── EMPTY ─── */
         .empty{display:flex;flex-direction:column;align-items:center;justify-content:center;flex:1;padding:60px 24px;text-align:center}
-        .empty-icon{font-size:40px;margin-bottom:16px;opacity:.4}
-        .empty h3{font-family:'Bricolage Grotesque',sans-serif;font-size:18px;font-weight:800;color:var(--text);margin-bottom:7px;letter-spacing:-.3px}
+        .empty-icon{font-size:48px;margin-bottom:20px;display:block;animation:float 3s ease-in-out infinite,glow-pulse 3s ease-in-out infinite}
+        .empty h3{font-family:'Bricolage Grotesque',sans-serif;font-size:22px;font-weight:800;margin-bottom:7px;letter-spacing:-.4px;background:linear-gradient(135deg,var(--text),var(--teal));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
         .empty p{font-size:13px;color:var(--text3);line-height:1.7;max-width:290px;font-weight:500}
         .qpills{display:flex;flex-wrap:wrap;gap:7px;margin-top:22px;justify-content:center;max-width:420px}
-        .qp{padding:6px 15px;border-radius:20px;border:1px solid var(--border);background:var(--bg3);cursor:pointer;font-size:12px;font-weight:600;color:var(--text2);transition:.12s;letter-spacing:.01em}
-        .qp:hover{border-color:var(--teal2);color:var(--teal);background:var(--teal-dim)}
+        .qp{padding:6px 15px;border-radius:20px;border:1px solid var(--border);background:rgba(255,255,255,.03);cursor:pointer;font-size:12px;font-weight:600;color:var(--text2);transition:.2s;letter-spacing:.01em}
+        .qp:hover{border-color:rgba(0,240,208,.4);color:var(--teal);background:var(--teal-dim);box-shadow:0 0 16px rgba(0,240,208,.1),0 4px 12px rgba(0,0,0,.3);transform:translateY(-1px)}
 
         /* Tracker */
         table.trkr{width:100%;border-collapse:collapse}
-        table.trkr th{background:var(--bg2);border-bottom:1px solid var(--border);padding:10px 14px;text-align:left;font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.8px}
-        table.trkr td{padding:10px 14px;border-bottom:1px solid rgba(26,31,58,.5);font-size:12px;vertical-align:middle}
-        .n-in{width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:6px 9px;font-size:11px;resize:none;outline:none;color:var(--text2);font-weight:500}
+        table.trkr th{background:rgba(8,10,26,.95);border-bottom:1px solid rgba(255,255,255,.05);padding:10px 14px;text-align:left;font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.8px}
+        table.trkr td{padding:10px 14px;border-bottom:1px solid rgba(24,29,62,.45);font-size:12px;vertical-align:middle}
+        .n-in{width:100%;background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:6px;padding:6px 9px;font-size:11px;resize:none;outline:none;color:var(--text2);font-weight:500}
         .n-in::placeholder{color:var(--text3)}
-        .n-in:focus{border-color:var(--teal2)}
+        .n-in:focus{border-color:rgba(0,240,208,.35);box-shadow:0 0 0 2px rgba(0,240,208,.07)}
 
         /* Status grid */
         .st-grid{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:10px}
 
         /* Pro badge */
-        .pro-badge{font-size:11px;font-weight:700;color:var(--teal);padding:4px 13px;background:var(--teal-dim);border:1px solid rgba(0,229,192,.18);border-radius:20px;letter-spacing:.02em}
+        .pro-badge{font-size:11px;font-weight:700;color:var(--teal);padding:4px 13px;background:linear-gradient(135deg,rgba(0,240,208,.07),rgba(124,58,237,.07));border:1px solid rgba(0,240,208,.2);border-radius:20px;letter-spacing:.02em;box-shadow:0 0 12px rgba(0,240,208,.1)}
       `}</style>
 
       {/* ── PAYWALL ── */}
@@ -550,7 +566,7 @@ ONLY JSON: {"subject":"...","body":"..."}`
                 <div className="pw-feat">Up to 500 contacts per search</div>
               </div>
               <a href={PAYMENT_LINK} target="_blank" rel="noreferrer"
-                style={{display:"block",width:"100%",padding:"13px",borderRadius:9,background:"linear-gradient(135deg,#00c9a7,#00e5c0)",color:"#060b10",fontWeight:800,fontSize:14,textAlign:"center",textDecoration:"none",letterSpacing:".02em",boxShadow:"0 4px 20px rgba(0,201,167,.35)"}}>
+                style={{display:"block",width:"100%",padding:"13px",borderRadius:10,background:"linear-gradient(135deg,var(--teal),#00b5a0)",color:"#030612",fontWeight:800,fontSize:14,textAlign:"center",textDecoration:"none",letterSpacing:".02em",boxShadow:"0 4px 24px rgba(0,240,208,.35),0 0 0 1px rgba(0,240,208,.15)"}}>
                 Get Access — $1,500 First Month →
               </a>
               <div className="pw-divider">— or enter access code —</div>
@@ -661,7 +677,7 @@ ONLY JSON: {"subject":"...","body":"..."}`
                 <option value="data-driven">Data-Driven</option>
               </select>
             </div>
-            {searching && <span style={{marginLeft:"auto",fontSize:11,color:"#00c9a7",fontWeight:700}} className="pulsing">Searching Apollo...</span>}
+            {searching && <span style={{marginLeft:"auto",fontSize:11,color:"var(--teal)",fontWeight:700}} className="pulsing">Searching Apollo...</span>}
           </div>
 
           <div className="content">
@@ -670,20 +686,20 @@ ONLY JSON: {"subject":"...","body":"..."}`
               {view === "people" ? (<>
                 <div className="toolbar">
                   {searching ? (
-                    <><span className="spin"/><span style={{color:"#334155",marginLeft:8,fontWeight:600}}>
-                      {searchMode==="person" ? <>Searching for <span style={{color:"#00c9a7"}}>{companyInput}</span>...</> : <>Finding buyers at <span style={{color:"#00c9a7"}}>{companyInput}</span>...</>}
+                    <><span className="spin"/><span style={{color:"var(--text3)",marginLeft:8,fontWeight:600}}>
+                      {searchMode==="person" ? <>Searching for <span style={{color:"var(--teal)"}}>{companyInput}</span>...</> : <>Finding buyers at <span style={{color:"var(--teal)"}}>{companyInput}</span>...</>}
                     </span></>
                   ) : hasSearched ? (
                     <>
                       <span className="rc">{leads.length.toLocaleString()} buyers found</span>
                       {totalAvailable > leads.length && <span className="rs" style={{marginLeft:6}}>of {totalAvailable.toLocaleString()} in Apollo</span>}
-                      {selected.size > 0 && <span style={{marginLeft:12,color:"#00c9a7",fontWeight:700,fontSize:12}}>{selected.size} selected</span>}
+                      {selected.size > 0 && <span style={{marginLeft:12,color:"var(--teal)",fontWeight:700,fontSize:12}}>{selected.size} selected</span>}
                       {!isSubscribed && leads.length > 0 && (
                         <button className="btn btn-amber btn-sm" style={{marginLeft:"auto"}} onClick={() => setShowPaywall(true)}>⚡ Unlock All Contacts</button>
                       )}
                     </>
                   ) : (
-                    <span style={{color:"#334155",fontWeight:600}}>Search a retailer to find buyers instantly</span>
+                    <span style={{color:"var(--text3)",fontWeight:600}}>Search a retailer to find buyers instantly</span>
                   )}
                 </div>
 
@@ -702,7 +718,7 @@ ONLY JSON: {"subject":"...","body":"..."}`
                   <div className="empty">
                     <span className="spin-lg spin" style={{marginBottom:18}} />
                     <h3>Hitting Apollo...</h3>
-                    <p style={{color:"#334155"}}>Pulling every buyer at <span style={{color:"#00c9a7",fontWeight:700}}>{companyInput}</span></p>
+                    <p>Pulling every buyer at <span style={{color:"var(--teal)",fontWeight:700}}>{companyInput}</span></p>
                   </div>
                 ) : leads.length === 0 ? (
                   <div className="empty">
@@ -752,11 +768,11 @@ ONLY JSON: {"subject":"...","body":"..."}`
                               </td>
                               <td><span className="ptitle">{lead.title}</span></td>
                               <td><span className="pco">{lead.retailer}</span></td>
-                              <td style={{color:"#334155",fontSize:12}}>{lead.location||"—"}</td>
+                              <td style={{color:"var(--text3)",fontSize:12}}>{lead.location||"—"}</td>
                               <td>
                                 {departments[lead.id]
-                                  ? <span style={{display:"inline-flex",alignItems:"center",gap:4,padding:"3px 9px",background:"rgba(0,201,167,.07)",border:"1px solid rgba(0,201,167,.15)",borderRadius:5,fontSize:11,fontWeight:700,color:"#00c9a7",whiteSpace:"nowrap"}}>{departments[lead.id]}</span>
-                                  : loadingDepts ? <span style={{fontSize:11,color:"#1e2d3d"}}>···</span> : <span style={{color:"#1e2d3d",fontSize:12}}>—</span>
+                                  ? <span style={{display:"inline-flex",alignItems:"center",gap:4,padding:"3px 9px",background:"rgba(0,240,208,.07)",border:"1px solid rgba(0,240,208,.15)",borderRadius:5,fontSize:11,fontWeight:700,color:"var(--teal)",whiteSpace:"nowrap"}}>{departments[lead.id]}</span>
+                                  : loadingDepts ? <span style={{fontSize:11,color:"var(--text3)"}}>···</span> : <span style={{color:"var(--text3)",fontSize:12}}>—</span>
                                 }
                               </td>
                               <td onClick={e=>e.stopPropagation()}>
@@ -775,7 +791,7 @@ ONLY JSON: {"subject":"...","body":"..."}`
                                   : lead.phone
                                     ? <button className="cbtn cb-phone" onClick={()=>copy(lead.phone,"p_"+lead.id)}>📞 {copied==="p_"+lead.id?"Copied!":lead.phone}</button>
                                     : enriching.has(lead.id)
-                                      ? <span style={{color:"#334155",fontSize:11}}>···</span>
+                                      ? <span style={{color:"var(--text3)",fontSize:11}}>···</span>
                                       : <button className="cbtn cb-gen" style={{fontSize:10}} onClick={()=>enrichContact(lead)}>⚡ Reveal</button>
                                 }
                               </td>
@@ -791,11 +807,11 @@ ONLY JSON: {"subject":"...","body":"..."}`
                     </table>
                   </div>
                   {nextCursor && (
-                    <div style={{padding:"16px 20px",borderTop:"1px solid #0d1f2d",display:"flex",alignItems:"center",gap:14}}>
+                    <div style={{padding:"16px 20px",borderTop:"1px solid var(--border)",display:"flex",alignItems:"center",gap:14}}>
                       <button className="btn btn-teal" disabled={loadingMore} onClick={loadMore} style={{justifyContent:"center"}}>
                         {loadingMore ? <><span className="spin"/>Loading next 1,000...</> : "⚡ Load More Contacts"}
                       </button>
-                      <span style={{fontSize:12,color:"#334155"}}>{leads.length.toLocaleString()} loaded · {(totalAvailable - leads.length).toLocaleString()} more in Apollo</span>
+                      <span style={{fontSize:12,color:"var(--text3)"}}>{leads.length.toLocaleString()} loaded · {(totalAvailable - leads.length).toLocaleString()} more in Apollo</span>
                     </div>
                   )}
                   </div>
@@ -804,8 +820,8 @@ ONLY JSON: {"subject":"...","body":"..."}`
                 /* ── TRACKER ── */
                 <div style={{padding:"16px 20px",overflow:"auto",flex:1}}>
                   <div style={{marginBottom:16}}>
-                    <div style={{fontFamily:"'Syne',sans-serif",fontWeight:800,fontSize:16,color:"#f1f5f9",marginBottom:3,letterSpacing:"-.2px"}}>Outreach Tracker</div>
-                    <div style={{fontSize:12,color:"#334155"}}>{leads.length} contacts · {companyInput||"no search"}</div>
+                    <div style={{fontFamily:"'Bricolage Grotesque',sans-serif",fontWeight:800,fontSize:16,color:"var(--text)",marginBottom:3,letterSpacing:"-.2px"}}>Outreach Tracker</div>
+                    <div style={{fontSize:12,color:"var(--text3)"}}>{leads.length} contacts · {companyInput||"no search"}</div>
                   </div>
                   {leads.length === 0
                     ? <div className="empty"><div className="empty-icon">📋</div><h3>No contacts yet</h3><p>Search a retailer in People view first.</p></div>
@@ -814,9 +830,9 @@ ONLY JSON: {"subject":"...","body":"..."}`
                         <tbody>
                           {leads.map(lead => { const st=getStatus(lead.id); return (
                             <tr key={lead.id}>
-                              <td style={{color:"#f1f5f9",fontWeight:600}}>{lead.firstName} {lead.lastName}</td>
-                              <td style={{color:"#64748b",maxWidth:160,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{lead.title}</td>
-                              <td style={{color:"#00c9a7",fontWeight:600}}>{lead.retailer}</td>
+                              <td style={{color:"var(--text)",fontWeight:600}}>{lead.firstName} {lead.lastName}</td>
+                              <td style={{color:"var(--text3)",maxWidth:160,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{lead.title}</td>
+                              <td style={{color:"var(--teal)",fontWeight:600}}>{lead.retailer}</td>
                               <td><button className="spill" style={{background:st.color+"20",color:st.color}} onClick={()=>cycleStatus(lead.id)}>● {st.label}</button></td>
                               <td><textarea className="n-in" rows={2} placeholder="Notes..." value={notes[lead.id]||""} onChange={e=>setNotes(p=>({...p,[lead.id]:e.target.value}))} /></td>
                               <td><button className="btn btn-teal btn-sm" onClick={()=>{setView("people");openLead(lead);}}>⚡ Email</button></td>
@@ -839,7 +855,7 @@ ONLY JSON: {"subject":"...","body":"..."}`
                     <div className="dp-role">{activeLead.title}</div>
                     <div className="dp-co">{activeLead.retailer}</div>
                     {departments[activeLead.id] && (
-                      <span style={{display:"inline-flex",alignItems:"center",gap:4,padding:"3px 9px",background:"rgba(0,201,167,.08)",border:"1px solid rgba(0,201,167,.15)",borderRadius:5,fontSize:11,fontWeight:700,color:"#00c9a7",marginTop:5,width:"fit-content"}}>{departments[activeLead.id]}</span>
+                      <span style={{display:"inline-flex",alignItems:"center",gap:4,padding:"3px 9px",background:"rgba(0,240,208,.08)",border:"1px solid rgba(0,240,208,.15)",borderRadius:5,fontSize:11,fontWeight:700,color:"var(--teal)",marginTop:5,width:"fit-content"}}>{departments[activeLead.id]}</span>
                     )}
                   </div>
                   <button className="dp-x" onClick={()=>setActiveLead(null)}>×</button>
@@ -851,23 +867,23 @@ ONLY JSON: {"subject":"...","body":"..."}`
                   {activeLead.email
                     ? <div className="dp-row"><span className="dp-icon">✉</span><span className="dp-val">{activeLead.email}{activeLead.emailStatus && <span style={{marginLeft:5,fontSize:10,color:"#4ade80",fontWeight:700}}>{activeLead.emailStatus}</span>}</span><button className="dp-copy" onClick={()=>copy(activeLead.email,"de")}>{copied==="de"?"✓":"Copy"}</button></div>
                     : enriching.has(activeLead.id)
-                      ? <div className="dp-row"><span className="dp-icon">✉</span><span style={{color:"#00c9a7",fontSize:11,display:"flex",alignItems:"center",gap:6}}><span className="spin" style={{width:11,height:11}}/>Revealing...</span></div>
-                      : <div className="dp-row"><span className="dp-icon">✉</span><span style={{color:"#334155",fontSize:11,flex:1}}>Not revealed</span><button className="dp-copy" onClick={()=>enrichContact(activeLead)}>⚡ Reveal</button></div>
+                      ? <div className="dp-row"><span className="dp-icon">✉</span><span style={{color:"var(--teal)",fontSize:11,display:"flex",alignItems:"center",gap:6}}><span className="spin" style={{width:11,height:11}}/>Revealing...</span></div>
+                      : <div className="dp-row"><span className="dp-icon">✉</span><span style={{color:"var(--text3)",fontSize:11,flex:1}}>Not revealed</span><button className="dp-copy" onClick={()=>enrichContact(activeLead)}>⚡ Reveal</button></div>
                   }
                   {/* Personal emails */}
                   {(activeLead.personalEmails||[]).map((em,i) => (
-                    <div key={i} className="dp-row"><span className="dp-icon" style={{opacity:0}}>✉</span><span className="dp-val" style={{fontSize:11,color:"#64748b"}}>{em} <span style={{color:"#334155",fontSize:10}}>personal</span></span><button className="dp-copy" onClick={()=>copy(em,"pe"+i)}>{copied==="pe"+i?"✓":"Copy"}</button></div>
+                    <div key={i} className="dp-row"><span className="dp-icon" style={{opacity:0}}>✉</span><span className="dp-val" style={{fontSize:11,color:"var(--text2)"}}>{em} <span style={{color:"var(--text3)",fontSize:10}}>personal</span></span><button className="dp-copy" onClick={()=>copy(em,"pe"+i)}>{copied==="pe"+i?"✓":"Copy"}</button></div>
                   ))}
                   {/* Phone */}
                   {activeLead.phone
                     ? <div className="dp-row"><span className="dp-icon">📞</span><span className="dp-val">{activeLead.phone}</span><button className="dp-copy" onClick={()=>copy(activeLead.phone,"dp2")}>{copied==="dp2"?"✓":"Copy"}</button></div>
                     : enriching.has(activeLead.id)
-                      ? <div className="dp-row"><span className="dp-icon">📞</span><span style={{color:"#00c9a7",fontSize:11}}>Revealing...</span></div>
+                      ? <div className="dp-row"><span className="dp-icon">📞</span><span style={{color:"var(--teal)",fontSize:11}}>Revealing...</span></div>
                       : null
                   }
                   {/* Extra phones */}
                   {(activeLead.allPhones||[]).slice(1).map((ph,i) => (
-                    <div key={i} className="dp-row"><span className="dp-icon" style={{opacity:0}}>📞</span><span className="dp-val" style={{fontSize:11,color:"#64748b"}}>{ph.number} <span style={{color:"#334155",fontSize:10}}>{ph.type}</span></span></div>
+                    <div key={i} className="dp-row"><span className="dp-icon" style={{opacity:0}}>📞</span><span className="dp-val" style={{fontSize:11,color:"var(--text2)"}}>{ph.number} <span style={{color:"var(--text3)",fontSize:10}}>{ph.type}</span></span></div>
                   ))}
                   {/* Social */}
                   {activeLead.linkedin && <div className="dp-row"><span className="dp-icon">💼</span><span className="dp-val"><a href={"https://"+activeLead.linkedin.replace(/^https?:\/\//,"")} target="_blank" rel="noreferrer">LinkedIn ↗</a></span></div>}
@@ -918,7 +934,7 @@ ONLY JSON: {"subject":"...","body":"..."}`
                           <button className={`vbtn ${variant==="b"?"on":""}`} onClick={()=>setVariant("b")}>Version B</button>
                           <button className="btn btn-outline btn-sm" style={{marginLeft:"auto"}} disabled={!!genEmail} onClick={()=>genEmail_(activeLead)}>↺ Redo</button>
                         </div>
-                        <div className="ebox"><div className="elabel">Subject</div><div className="ebody" style={{fontWeight:700,color:"#f1f5f9"}}>{eData[variant]?.subject}</div></div>
+                        <div className="ebox"><div className="elabel">Subject</div><div className="ebody" style={{fontWeight:700,color:"var(--text)"}}>{eData[variant]?.subject}</div></div>
                         <div className="ebox"><div className="elabel">Body</div><div className="ebody">{eData[variant]?.body}</div></div>
                         <button className="btn btn-outline btn-sm" onClick={()=>copy(`Subject: ${eData[variant]?.subject}\n\n${eData[variant]?.body}`,"ec")}>{copied==="ec"?"✓ Copied!":"Copy Email"}</button>
                       </>
@@ -943,7 +959,7 @@ ONLY JSON: {"subject":"...","body":"..."}`
                         {genFU===activeLead.id?<><span className="spin"/>Generating...</>:"↩ Generate Follow-up"}
                       </button>
                     : <>
-                        <div className="ebox"><div className="elabel">Subject</div><div className="ebody" style={{fontWeight:700,color:"#f1f5f9"}}>{fuData.subject}</div></div>
+                        <div className="ebox"><div className="elabel">Subject</div><div className="ebody" style={{fontWeight:700,color:"var(--text)"}}>{fuData.subject}</div></div>
                         <div className="ebox"><div className="elabel">Body</div><div className="ebody">{fuData.body}</div></div>
                         <button className="btn btn-outline btn-sm" onClick={()=>copy(`Subject: ${fuData.subject}\n\n${fuData.body}`,"fc")}>{copied==="fc"?"✓ Copied!":"Copy"}</button>
                       </>

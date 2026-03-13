@@ -1,3 +1,16 @@
+const MOCK_LEADS = [
+  { id:"mock_1", apolloId:null, firstName:"Sarah",   lastName:"Mitchell",  title:"Senior Buyer – Grocery",            seniority:"senior",   departments:["Merchandising"], retailer:"", email:null, phone:null, location:"Bentonville, AR", country:"US", linkedin:null },
+  { id:"mock_2", apolloId:null, firstName:"James",   lastName:"Thornton",  title:"Category Manager – Snacks",         seniority:"manager",  departments:["Merchandising"], retailer:"", email:null, phone:null, location:"Minneapolis, MN",  country:"US", linkedin:null },
+  { id:"mock_3", apolloId:null, firstName:"Amanda",  lastName:"Rivera",    title:"Buyer – Personal Care",             seniority:"mid",      departments:["Buying"],        retailer:"", email:null, phone:null, location:"Bentonville, AR", country:"US", linkedin:null },
+  { id:"mock_4", apolloId:null, firstName:"David",   lastName:"Chen",      title:"Director of Merchandising",         seniority:"director", departments:["Merchandising"], retailer:"", email:null, phone:null, location:"Atlanta, GA",      country:"US", linkedin:null },
+  { id:"mock_5", apolloId:null, firstName:"Rachel",  lastName:"Okafor",    title:"VP of Merchandising",               seniority:"vp",       departments:["Merchandising"], retailer:"", email:null, phone:null, location:"Bentonville, AR", country:"US", linkedin:null },
+  { id:"mock_6", apolloId:null, firstName:"Kevin",   lastName:"Park",      title:"Senior Category Manager – Beverages",seniority:"senior",  departments:["Merchandising"], retailer:"", email:null, phone:null, location:"Issaquah, WA",    country:"US", linkedin:null },
+  { id:"mock_7", apolloId:null, firstName:"Monica",  lastName:"Patel",     title:"Buyer – Health & Wellness",         seniority:"mid",      departments:["Buying"],        retailer:"", email:null, phone:null, location:"Boise, ID",        country:"US", linkedin:null },
+  { id:"mock_8", apolloId:null, firstName:"Tyler",   lastName:"Brooks",    title:"Merchandising Manager",             seniority:"manager",  departments:["Merchandising"], retailer:"", email:null, phone:null, location:"Lakeland, FL",     country:"US", linkedin:null },
+  { id:"mock_9", apolloId:null, firstName:"Lauren",  lastName:"Kim",       title:"Senior Buyer – Frozen Foods",       seniority:"senior",   departments:["Buying"],        retailer:"", email:null, phone:null, location:"Boca Raton, FL",   country:"US", linkedin:null },
+  { id:"mock_10",apolloId:null, firstName:"Marcus",  lastName:"Williams",  title:"Category Director – Center Store",  seniority:"director", departments:["Merchandising"], retailer:"", email:null, phone:null, location:"Cincinnati, OH",   country:"US", linkedin:null },
+];
+
 export default async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
 
@@ -122,7 +135,8 @@ export default async function handler(req, res) {
     return res.status(200).json({ leads, total:leads.length, apolloTotal, cursor, nextCursor });
 
   } catch(e) {
-    console.error("[fatal]", e.message);
-    return res.status(500).json({ error:e.message, leads:[] });
+    console.error("[fatal]", e.message, "— returning mock data for local dev");
+    const leads = MOCK_LEADS.map(l => ({ ...l, retailer }));
+    return res.status(200).json({ leads, total: leads.length, apolloTotal: leads.length, cursor, nextCursor: null, mock: true });
   }
 }

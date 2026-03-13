@@ -85,6 +85,7 @@ export default function App() {
   const [copied,     setCopied]     = useState(null);
   const [enriching,  setEnriching]  = useState(new Set()); // contact IDs currently being enriched
   const [enriched,   setEnriched]   = useState({}); // id -> {email, phone, linkedin}
+  const [enrichFailed, setEnrichFailed] = useState(new Set()); // contact IDs that failed
   const [statuses,   setStatuses]   = useState({});
   const [notes,      setNotes]      = useState({});
   const [view,       setView]       = useState("people");
@@ -207,13 +208,19 @@ export default function App() {
         }),
       });
       const data = await res.json();
-      setEnriched(prev => ({ ...prev, [lead.id]: data }));
-      // Also update the lead in the leads array with the revealed info
-      setLeads(prev => prev.map(l => l.id === lead.id
-        ? { ...l, email: data.email || l.email, phone: data.phone || l.phone }
-        : l
-      ));
-    } catch(e) { console.error("Enrich failed:", e); }
+      if (!res.ok || data.error) {
+        setEnrichFailed(prev => new Set([...prev, lead.id]));
+      } else {
+        setEnriched(prev => ({ ...prev, [lead.id]: data }));
+        setLeads(prev => prev.map(l => l.id === lead.id
+          ? { ...l, email: data.email || l.email, phone: data.phone || l.phone }
+          : l
+        ));
+      }
+    } catch(e) {
+      console.error("Enrich failed:", e);
+      setEnrichFailed(prev => new Set([...prev, lead.id]));
+    }
     setEnriching(prev => { const n = new Set(prev); n.delete(lead.id); return n; });
   }, [isSubscribed]);
 
@@ -782,7 +789,9 @@ ONLY JSON: {"subject":"...","body":"..."}`
                                     ? <button className="cbtn cb-email" onClick={()=>copy(lead.email,"e_"+lead.id)}>✉ {copied==="e_"+lead.id?"Copied!":lead.email.length>22?lead.email.slice(0,22)+"…":lead.email}</button>
                                     : enriching.has(lead.id)
                                       ? <span className="cbtn cb-gen"><span className="spin" style={{width:10,height:10}}/>Revealing...</span>
-                                      : <button className="cbtn cb-gen" onClick={()=>enrichContact(lead)}>⚡ Reveal</button>
+                                      : enrichFailed.has(lead.id)
+                                        ? <button className="cbtn cb-gen" title="Retry" onClick={()=>{setEnrichFailed(prev=>{const n=new Set(prev);n.delete(lead.id);return n;});enrichContact(lead);}}>⚠ Retry</button>
+                                        : <button className="cbtn cb-gen" onClick={()=>enrichContact(lead)}>⚡ Reveal</button>
                                 }
                               </td>
                               <td onClick={e=>e.stopPropagation()}>
@@ -868,7 +877,9 @@ ONLY JSON: {"subject":"...","body":"..."}`
                     ? <div className="dp-row"><span className="dp-icon">✉</span><span className="dp-val">{activeLead.email}{activeLead.emailStatus && <span style={{marginLeft:5,fontSize:10,color:"#4ade80",fontWeight:700}}>{activeLead.emailStatus}</span>}</span><button className="dp-copy" onClick={()=>copy(activeLead.email,"de")}>{copied==="de"?"✓":"Copy"}</button></div>
                     : enriching.has(activeLead.id)
                       ? <div className="dp-row"><span className="dp-icon">✉</span><span style={{color:"var(--teal)",fontSize:11,display:"flex",alignItems:"center",gap:6}}><span className="spin" style={{width:11,height:11}}/>Revealing...</span></div>
-                      : <div className="dp-row"><span className="dp-icon">✉</span><span style={{color:"var(--text3)",fontSize:11,flex:1}}>Not revealed</span><button className="dp-copy" onClick={()=>enrichContact(activeLead)}>⚡ Reveal</button></div>
+                      : enrichFailed.has(activeLead.id)
+                        ? <div className="dp-row"><span className="dp-icon">✉</span><span style={{color:"#f87171",fontSize:11,flex:1}}>Reveal failed</span><button className="dp-copy" onClick={()=>{setEnrichFailed(prev=>{const n=new Set(prev);n.delete(activeLead.id);return n;});enrichContact(activeLead);}}>Retry</button></div>
+                        : <div className="dp-row"><span className="dp-icon">✉</span><span style={{color:"var(--text3)",fontSize:11,flex:1}}>Not revealed</span><button className="dp-copy" onClick={()=>enrichContact(activeLead)}>⚡ Reveal</button></div>
                   }
                   {/* Personal emails */}
                   {(activeLead.personalEmails||[]).map((em,i) => (

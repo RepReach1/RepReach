@@ -39,7 +39,7 @@ const STATUSES = [
   { id: "passed",  label: "Passed",        color: "#f87171" },
 ];
 
-const AV_COLORS = ["#00c9a7","#06b6d4","#f59e0b","#10b981","#3b82f6","#8b5cf6","#ec4899","#00c9a7"];
+const AV_COLORS = ["#00c8ff","#06b6d4","#f59e0b","#10b981","#3b82f6","#8b5cf6","#ec4899","#0099cc"];
 
 const TITLE_OPTIONS = [
   "Buyer","Senior Buyer","Merchant","Senior Merchant",
@@ -355,15 +355,15 @@ ONLY JSON: {"subject":"...","body":"..."}`
         @import url('https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,700;12..96,800&family=Inter:wght@400;500;600;700&display=swap');
 
         :root {
-          --bg:      #07080f;
-          --bg2:     #0c0e19;
-          --bg3:     #11152a;
-          --border:  #1a1f3a;
-          --border2: #242942;
-          --teal:    #00e5c0;
-          --teal2:   #00c9a7;
-          --teal-dim:rgba(0,229,192,.08);
-          --teal-glow:rgba(0,229,192,.25);
+          --bg:      #000000;
+          --bg2:     #08090f;
+          --bg3:     #0c0d15;
+          --border:  rgba(255,255,255,.07);
+          --border2: rgba(255,255,255,.12);
+          --teal:    #00c8ff;
+          --teal2:   #0099cc;
+          --teal-dim:rgba(0,200,255,.08);
+          --teal-glow:rgba(0,200,255,.28);
           --text:    #f0f2ff;
           --text2:   #8b91b8;
           --text3:   #3d4468;
@@ -387,14 +387,14 @@ ONLY JSON: {"subject":"...","body":"..."}`
         .sidebar{width:230px;background:var(--bg2);border-right:1px solid var(--border);display:flex;flex-direction:column;flex-shrink:0;overflow-y:auto}
 
         .sb-logo{padding:16px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px}
-        .sb-logo-icon{width:32px;height:32px;background:linear-gradient(135deg,var(--teal),var(--teal2));border-radius:9px;display:flex;align-items:center;justify-content:center;font-family:'Bricolage Grotesque',sans-serif;font-weight:800;font-size:14px;color:#07080f;flex-shrink:0;box-shadow:0 0 16px var(--teal-glow)}
+        .sb-logo-icon{width:32px;height:32px;background:linear-gradient(135deg,var(--teal),var(--teal2));border-radius:9px;display:flex;align-items:center;justify-content:center;font-family:'Bricolage Grotesque',sans-serif;font-weight:800;font-size:14px;color:#000;flex-shrink:0;box-shadow:0 0 16px var(--teal-glow)}
         .sb-logo-text{font-family:'Bricolage Grotesque',sans-serif;font-weight:800;font-size:17px;color:var(--text);letter-spacing:-.4px}
         .sb-logo-text em{font-style:normal;color:var(--teal)}
 
         .sb-nav{padding:8px;border-bottom:1px solid var(--border)}
         .sb-item{display:flex;align-items:center;gap:9px;padding:9px 11px;border-radius:9px;font-size:12px;font-weight:600;color:var(--text3);cursor:pointer;transition:.15s;margin-bottom:1px;letter-spacing:.01em}
         .sb-item:hover{background:var(--bg3);color:var(--text2)}
-        .sb-item.on{background:var(--teal-dim);color:var(--teal);border:1px solid rgba(0,229,192,.14)}
+        .sb-item.on{background:var(--teal-dim);color:var(--teal);border:1px solid rgba(0,200,255,.14)}
         .sb-item-icon{font-size:14px;width:18px;text-align:center;flex-shrink:0}
 
         .sb-sec{border-bottom:1px solid var(--border);padding:14px}
@@ -402,9 +402,9 @@ ONLY JSON: {"subject":"...","body":"..."}`
         .sb-sec-clear{font-size:10px;color:var(--teal);font-weight:700;cursor:pointer;background:none;border:none}
         .sb-in{width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:8px 11px;font-size:12px;color:var(--text);outline:none;margin-bottom:9px;transition:.15s}
         .sb-in::placeholder{color:var(--text3)}
-        .sb-in:focus{border-color:var(--teal2);box-shadow:0 0 0 3px rgba(0,229,192,.07)}
-        .sb-tag{display:inline-flex;align-items:center;gap:4px;padding:4px 10px;background:var(--teal-dim);border:1px solid rgba(0,229,192,.16);border-radius:6px;font-size:11px;color:var(--teal);margin:2px;cursor:pointer;transition:.1s;font-weight:600;letter-spacing:.01em}
-        .sb-tag:hover{background:rgba(0,229,192,.14)}
+        .sb-in:focus{border-color:var(--teal2);box-shadow:0 0 0 3px rgba(0,200,255,.07)}
+        .sb-tag{display:inline-flex;align-items:center;gap:4px;padding:4px 10px;background:var(--teal-dim);border:1px solid rgba(0,200,255,.16);border-radius:6px;font-size:11px;color:var(--teal);margin:2px;cursor:pointer;transition:.1s;font-weight:600;letter-spacing:.01em}
+        .sb-tag:hover{background:rgba(0,200,255,.14)}
         .sb-tag-x{color:var(--teal2);font-size:12px;font-weight:800}
         .sb-check{display:flex;align-items:center;gap:8px;padding:6px 7px;border-radius:7px;cursor:pointer;transition:.1s}
         .sb-check:hover{background:var(--bg3)}
@@ -419,7 +419,7 @@ ONLY JSON: {"subject":"...","body":"..."}`
         .ts-wrap{flex:1;max-width:440px;position:relative}
         .ts-wrap input{width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:9px;padding:9px 13px 9px 36px;font-size:13px;color:var(--text);outline:none;transition:.15s;font-weight:500}
         .ts-wrap input::placeholder{color:var(--text3)}
-        .ts-wrap input:focus{border-color:var(--teal2);box-shadow:0 0 0 3px rgba(0,229,192,.08)}
+        .ts-wrap input:focus{border-color:var(--teal2);box-shadow:0 0 0 3px rgba(0,200,255,.08)}
         .ts-icon{position:absolute;left:11px;top:50%;transform:translateY(-50%);color:var(--text3);font-size:14px;pointer-events:none}
         .topbar-right{margin-left:auto;display:flex;align-items:center;gap:8px}
 
@@ -449,7 +449,7 @@ ONLY JSON: {"subject":"...","body":"..."}`
         table.pt td{padding:10px 14px;border-bottom:1px solid rgba(26,31,58,.6);vertical-align:middle;transition:.1s}
         table.pt tr:hover td{background:rgba(12,14,25,.8)}
         table.pt tr.sel td{background:var(--teal-dim)}
-        table.pt tr.act td{background:rgba(0,229,192,.06);border-left:2px solid var(--teal)}
+        table.pt tr.act td{background:rgba(0,200,255,.06);border-left:2px solid var(--teal)}
 
         /* Avatar */
         .av{width:31px;height:31px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:11px;color:#fff;flex-shrink:0;font-family:'Bricolage Grotesque',sans-serif}
@@ -465,8 +465,8 @@ ONLY JSON: {"subject":"...","body":"..."}`
         .cbtn{display:inline-flex;align-items:center;gap:5px;padding:4px 11px;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;border:none;white-space:nowrap;transition:.12s;font-family:'Inter',sans-serif;letter-spacing:.01em}
         .cb-locked{background:var(--bg3);color:var(--text3);border:1px solid var(--border)}
         .cb-locked:hover{border-color:var(--amber);color:var(--amber)}
-        .cb-email{background:var(--teal-dim);color:var(--teal);border:1px solid rgba(0,229,192,.18)}
-        .cb-email:hover{background:rgba(0,229,192,.14)}
+        .cb-email{background:var(--teal-dim);color:var(--teal);border:1px solid rgba(0,200,255,.18)}
+        .cb-email:hover{background:rgba(0,200,255,.14)}
         .cb-gen{background:rgba(245,166,35,.08);color:var(--amber);border:1px solid rgba(245,166,35,.2)}
         .cb-gen:hover{background:rgba(245,166,35,.14)}
         .cb-phone{background:var(--bg3);color:var(--text2);border:1px solid var(--border)}
@@ -493,7 +493,7 @@ ONLY JSON: {"subject":"...","body":"..."}`
         .dp-val a{color:var(--teal);text-decoration:none}
         .dp-val a:hover{text-decoration:underline}
         .dp-copy{font-size:10px;font-weight:700;color:var(--teal);cursor:pointer;background:var(--teal-dim);border:none;border-radius:5px;padding:3px 9px;flex-shrink:0;transition:.1s;letter-spacing:.02em}
-        .dp-copy:hover{background:rgba(0,229,192,.16)}
+        .dp-copy:hover{background:rgba(0,200,255,.16)}
 
         /* Email panel */
         .etabs{display:flex;border-bottom:1px solid var(--border);flex-shrink:0}
@@ -512,8 +512,8 @@ ONLY JSON: {"subject":"...","body":"..."}`
         /* Buttons */
         .btn{padding:9px 20px;border-radius:9px;font-size:12px;font-weight:700;cursor:pointer;border:none;transition:.15s;display:inline-flex;align-items:center;gap:6px;font-family:'Inter',sans-serif;letter-spacing:.02em}
         .btn:disabled{opacity:.35;cursor:not-allowed}
-        .btn-teal{background:linear-gradient(135deg,var(--teal),var(--teal2));color:#07080f;box-shadow:0 4px 16px var(--teal-glow)}
-        .btn-teal:hover:not(:disabled){box-shadow:0 4px 24px rgba(0,229,192,.35);transform:translateY(-1px)}
+        .btn-teal{background:linear-gradient(135deg,var(--teal),var(--teal2));color:#000;box-shadow:0 4px 16px var(--teal-glow)}
+        .btn-teal:hover:not(:disabled){box-shadow:0 4px 24px rgba(0,200,255,.35);transform:translateY(-1px)}
         .btn-outline{background:transparent;color:var(--text2);border:1px solid var(--border)}
         .btn-outline:hover:not(:disabled){border-color:var(--teal2);color:var(--teal)}
         .btn-amber{background:linear-gradient(135deg,var(--amber),#fbbf24);color:#07080f;box-shadow:0 4px 16px rgba(245,166,35,.2)}
@@ -523,15 +523,15 @@ ONLY JSON: {"subject":"...","body":"..."}`
         input[type=checkbox]{accent-color:var(--teal);cursor:pointer}
 
         @keyframes sp{to{transform:rotate(360deg)}}
-        .spin{width:13px;height:13px;border:2px solid rgba(0,229,192,.12);border-top-color:var(--teal);border-radius:50%;animation:sp .7s linear infinite;display:inline-block;flex-shrink:0}
+        .spin{width:13px;height:13px;border:2px solid rgba(0,200,255,.12);border-top-color:var(--teal);border-radius:50%;animation:sp .7s linear infinite;display:inline-block;flex-shrink:0}
         .spin-lg{width:32px;height:32px;border-width:3px}
         @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
         .pulsing{animation:pulse 1.4s ease-in-out infinite}
 
         /* ─── PAYWALL ─── */
         .pw-overlay{position:fixed;inset:0;background:rgba(4,5,12,.88);backdrop-filter:blur(10px);z-index:999;display:flex;align-items:center;justify-content:center;padding:20px}
-        .pw-modal{background:var(--bg2);border:1px solid var(--border);border-radius:20px;max-width:440px;width:100%;overflow:hidden;box-shadow:0 32px 80px rgba(0,0,0,.7),0 0 0 1px rgba(0,229,192,.06);position:relative}
-        .pw-head{background:linear-gradient(135deg,var(--bg),#081a15);padding:32px;text-align:center;border-bottom:1px solid rgba(0,229,192,.1)}
+        .pw-modal{background:var(--bg2);border:1px solid var(--border);border-radius:20px;max-width:440px;width:100%;overflow:hidden;box-shadow:0 32px 80px rgba(0,0,0,.7),0 0 0 1px rgba(0,200,255,.06);position:relative}
+        .pw-head{background:linear-gradient(135deg,var(--bg),#050818);padding:32px;text-align:center;border-bottom:1px solid rgba(0,200,255,.1)}
         .pw-glow{width:62px;height:62px;background:linear-gradient(135deg,var(--teal),var(--teal2));border-radius:18px;display:flex;align-items:center;justify-content:center;font-size:28px;margin:0 auto 18px;box-shadow:0 0 36px var(--teal-glow)}
         .pw-head h2{font-family:'Bricolage Grotesque',sans-serif;font-size:24px;font-weight:800;color:var(--text);margin-bottom:8px;letter-spacing:-.4px}
         .pw-head p{font-size:13px;color:var(--text2);line-height:1.65;max-width:300px;margin:0 auto;font-weight:500}
@@ -573,7 +573,7 @@ ONLY JSON: {"subject":"...","body":"..."}`
         .st-grid{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:10px}
 
         /* Pro badge */
-        .pro-badge{font-size:11px;font-weight:700;color:var(--teal);padding:4px 13px;background:var(--teal-dim);border:1px solid rgba(0,229,192,.18);border-radius:20px;letter-spacing:.02em}
+        .pro-badge{font-size:11px;font-weight:700;color:var(--teal);padding:4px 13px;background:var(--teal-dim);border:1px solid rgba(0,200,255,.18);border-radius:20px;letter-spacing:.02em}
 
         /* ─── PIPELINE / KANBAN ─── */
         .kanban{display:flex;gap:12px;padding:16px 20px;overflow-x:auto;flex:1;align-items:flex-start}
@@ -611,7 +611,7 @@ ONLY JSON: {"subject":"...","body":"..."}`
         .f-lbl{font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.8px}
         .f-in{background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:8px 11px;font-size:13px;color:var(--text);outline:none;width:100%;transition:.15s;font-weight:500}
         .f-in::placeholder{color:var(--text3)}
-        .f-in:focus{border-color:var(--teal2);box-shadow:0 0 0 3px rgba(0,229,192,.07)}
+        .f-in:focus{border-color:var(--teal2);box-shadow:0 0 0 3px rgba(0,200,255,.07)}
         .f-ta{resize:vertical;min-height:72px;font-family:'Inter',sans-serif;line-height:1.6}
 
         /* ─── SEQUENCES ─── */
@@ -669,7 +669,7 @@ ONLY JSON: {"subject":"...","body":"..."}`
         .enable-icon{font-size:24px;margin-bottom:10px}
         .enable-title{font-size:13px;font-weight:700;color:var(--text);margin-bottom:5px;letter-spacing:-.1px}
         .enable-desc{font-size:12px;color:var(--text3);line-height:1.6}
-        .enable-tag{display:inline-flex;padding:3px 9px;border-radius:20px;font-size:10px;font-weight:700;margin-top:10px;background:var(--teal-dim);color:var(--teal);border:1px solid rgba(0,229,192,.16)}
+        .enable-tag{display:inline-flex;padding:3px 9px;border-radius:20px;font-size:10px;font-weight:700;margin-top:10px;background:var(--teal-dim);color:var(--teal);border:1px solid rgba(0,200,255,.16)}
 
         /* ─── MEETINGS ─── */
         .meet-list{padding:16px 20px;display:flex;flex-direction:column;gap:10px;overflow-y:auto;flex:1}
@@ -722,7 +722,7 @@ ONLY JSON: {"subject":"...","body":"..."}`
                 <div className="pw-feat">Up to 500 contacts per search</div>
               </div>
               <a href={PAYMENT_LINK} target="_blank" rel="noreferrer"
-                style={{display:"block",width:"100%",padding:"13px",borderRadius:9,background:"linear-gradient(135deg,#00c9a7,#00e5c0)",color:"#060b10",fontWeight:800,fontSize:14,textAlign:"center",textDecoration:"none",letterSpacing:".02em",boxShadow:"0 4px 20px rgba(0,201,167,.35)"}}>
+                style={{display:"block",width:"100%",padding:"13px",borderRadius:9,background:"linear-gradient(135deg,#00c8ff,#0077ff)",color:"#000",fontWeight:800,fontSize:14,textAlign:"center",textDecoration:"none",letterSpacing:".02em",boxShadow:"0 4px 20px rgba(0,200,255,.4)"}}>
                 Get Access — $1,500 First Month →
               </a>
               <div className="pw-divider">— or enter access code —</div>
@@ -843,7 +843,7 @@ ONLY JSON: {"subject":"...","body":"..."}`
                 <option value="data-driven">Data-Driven</option>
               </select>
             </div>
-            {searching && <span style={{marginLeft:"auto",fontSize:11,color:"#00c9a7",fontWeight:700}} className="pulsing">Searching Apollo...</span>}
+            {searching && <span style={{marginLeft:"auto",fontSize:11,color:"#00c8ff",fontWeight:700}} className="pulsing">Searching Apollo...</span>}
           </div>
 
           <div className="content">
@@ -994,7 +994,7 @@ ONLY JSON: {"subject":"...","body":"..."}`
                               <div className="f-lbl" style={{marginBottom:10}}>Steps</div>
                               {seqForm.steps.map((s,i)=>(
                                 <div key={i} style={{display:"flex",gap:8,alignItems:"center",padding:"7px 10px",background:"var(--bg3)",border:"1px solid var(--border)",borderRadius:8,marginBottom:5}}>
-                                  <span style={{fontSize:11,color:"#00c9a7",fontWeight:700,width:40,flexShrink:0}}>Day {s.day}</span>
+                                  <span style={{fontSize:11,color:"#00c8ff",fontWeight:700,width:40,flexShrink:0}}>Day {s.day}</span>
                                   <span style={{fontSize:11,color:"#8b91b8",flex:1}}>{s.type==="email"?"✉ "+s.subject:s.type==="linkedin"?"💼 LinkedIn touch":"📞 Call task"}</span>
                                   <button style={{background:"none",border:"none",color:"#f87171",cursor:"pointer",fontSize:14}} onClick={()=>setSeqForm(p=>({...p,steps:p.steps.filter((_,j)=>j!==i)}))}>×</button>
                                 </div>
@@ -1331,13 +1331,13 @@ ONLY JSON: {"summary":"...","outcomes":["..."],"actionItems":["..."],"nextSteps"
                 <div className="toolbar">
                   {searching ? (
                     <><span className="spin"/><span style={{color:"#334155",marginLeft:8,fontWeight:600}}>
-                      {searchMode==="person" ? <>Searching for <span style={{color:"#00c9a7"}}>{companyInput}</span>...</> : <>Finding buyers at <span style={{color:"#00c9a7"}}>{companyInput}</span>...</>}
+                      {searchMode==="person" ? <>Searching for <span style={{color:"#00c8ff"}}>{companyInput}</span>...</> : <>Finding buyers at <span style={{color:"#00c8ff"}}>{companyInput}</span>...</>}
                     </span></>
                   ) : hasSearched ? (
                     <>
                       <span className="rc">{leads.length.toLocaleString()} buyers found</span>
                       {totalAvailable > leads.length && <span className="rs" style={{marginLeft:6}}>of {totalAvailable.toLocaleString()} in Apollo</span>}
-                      {selected.size > 0 && <span style={{marginLeft:12,color:"#00c9a7",fontWeight:700,fontSize:12}}>{selected.size} selected</span>}
+                      {selected.size > 0 && <span style={{marginLeft:12,color:"#00c8ff",fontWeight:700,fontSize:12}}>{selected.size} selected</span>}
                       {!isSubscribed && leads.length > 0 && (
                         <button className="btn btn-amber btn-sm" style={{marginLeft:"auto"}} onClick={() => setShowPaywall(true)}>⚡ Unlock All Contacts</button>
                       )}
@@ -1362,7 +1362,7 @@ ONLY JSON: {"summary":"...","outcomes":["..."],"actionItems":["..."],"nextSteps"
                   <div className="empty">
                     <span className="spin-lg spin" style={{marginBottom:18}} />
                     <h3>Hitting Apollo...</h3>
-                    <p style={{color:"#334155"}}>Pulling every buyer at <span style={{color:"#00c9a7",fontWeight:700}}>{companyInput}</span></p>
+                    <p style={{color:"#334155"}}>Pulling every buyer at <span style={{color:"#00c8ff",fontWeight:700}}>{companyInput}</span></p>
                   </div>
                 ) : leads.length === 0 ? (
                   <div className="empty">
@@ -1415,7 +1415,7 @@ ONLY JSON: {"summary":"...","outcomes":["..."],"actionItems":["..."],"nextSteps"
                               <td style={{color:"#334155",fontSize:12}}>{lead.location||"—"}</td>
                               <td>
                                 {departments[lead.id]
-                                  ? <span style={{display:"inline-flex",alignItems:"center",gap:4,padding:"3px 9px",background:"rgba(0,201,167,.07)",border:"1px solid rgba(0,201,167,.15)",borderRadius:5,fontSize:11,fontWeight:700,color:"#00c9a7",whiteSpace:"nowrap"}}>{departments[lead.id]}</span>
+                                  ? <span style={{display:"inline-flex",alignItems:"center",gap:4,padding:"3px 9px",background:"rgba(0,200,255,.07)",border:"1px solid rgba(0,200,255,.15)",borderRadius:5,fontSize:11,fontWeight:700,color:"#00c8ff",whiteSpace:"nowrap"}}>{departments[lead.id]}</span>
                                   : loadingDepts ? <span style={{fontSize:11,color:"#1e2d3d"}}>···</span> : <span style={{color:"#1e2d3d",fontSize:12}}>—</span>
                                 }
                               </td>
@@ -1476,7 +1476,7 @@ ONLY JSON: {"summary":"...","outcomes":["..."],"actionItems":["..."],"nextSteps"
                             <tr key={lead.id}>
                               <td style={{color:"#f1f5f9",fontWeight:600}}>{lead.firstName} {lead.lastName}</td>
                               <td style={{color:"#64748b",maxWidth:160,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{lead.title}</td>
-                              <td style={{color:"#00c9a7",fontWeight:600}}>{lead.retailer}</td>
+                              <td style={{color:"#00c8ff",fontWeight:600}}>{lead.retailer}</td>
                               <td><button className="spill" style={{background:st.color+"20",color:st.color}} onClick={()=>cycleStatus(lead.id)}>● {st.label}</button></td>
                               <td><textarea className="n-in" rows={2} placeholder="Notes..." value={notes[lead.id]||""} onChange={e=>setNotes(p=>({...p,[lead.id]:e.target.value}))} /></td>
                               <td><button className="btn btn-teal btn-sm" onClick={()=>{setView("people");openLead(lead);}}>⚡ Email</button></td>
@@ -1499,7 +1499,7 @@ ONLY JSON: {"summary":"...","outcomes":["..."],"actionItems":["..."],"nextSteps"
                     <div className="dp-role">{activeLead.title}</div>
                     <div className="dp-co">{activeLead.retailer}</div>
                     {departments[activeLead.id] && (
-                      <span style={{display:"inline-flex",alignItems:"center",gap:4,padding:"3px 9px",background:"rgba(0,201,167,.08)",border:"1px solid rgba(0,201,167,.15)",borderRadius:5,fontSize:11,fontWeight:700,color:"#00c9a7",marginTop:5,width:"fit-content"}}>{departments[activeLead.id]}</span>
+                      <span style={{display:"inline-flex",alignItems:"center",gap:4,padding:"3px 9px",background:"rgba(0,200,255,.08)",border:"1px solid rgba(0,200,255,.15)",borderRadius:5,fontSize:11,fontWeight:700,color:"#00c8ff",marginTop:5,width:"fit-content"}}>{departments[activeLead.id]}</span>
                     )}
                   </div>
                   <button className="dp-x" onClick={()=>setActiveLead(null)}>×</button>
@@ -1511,7 +1511,7 @@ ONLY JSON: {"summary":"...","outcomes":["..."],"actionItems":["..."],"nextSteps"
                   {activeLead.email
                     ? <div className="dp-row"><span className="dp-icon">✉</span><span className="dp-val">{activeLead.email}{activeLead.emailStatus && <span style={{marginLeft:5,fontSize:10,color:"#4ade80",fontWeight:700}}>{activeLead.emailStatus}</span>}</span><button className="dp-copy" onClick={()=>copy(activeLead.email,"de")}>{copied==="de"?"✓":"Copy"}</button></div>
                     : enriching.has(activeLead.id)
-                      ? <div className="dp-row"><span className="dp-icon">✉</span><span style={{color:"#00c9a7",fontSize:11,display:"flex",alignItems:"center",gap:6}}><span className="spin" style={{width:11,height:11}}/>Revealing...</span></div>
+                      ? <div className="dp-row"><span className="dp-icon">✉</span><span style={{color:"#00c8ff",fontSize:11,display:"flex",alignItems:"center",gap:6}}><span className="spin" style={{width:11,height:11}}/>Revealing...</span></div>
                       : <div className="dp-row"><span className="dp-icon">✉</span><span style={{color:"#334155",fontSize:11,flex:1}}>Not revealed</span><button className="dp-copy" onClick={()=>enrichContact(activeLead)}>⚡ Reveal</button></div>
                   }
                   {/* Personal emails */}
@@ -1522,7 +1522,7 @@ ONLY JSON: {"summary":"...","outcomes":["..."],"actionItems":["..."],"nextSteps"
                   {activeLead.phone
                     ? <div className="dp-row"><span className="dp-icon">📞</span><span className="dp-val">{activeLead.phone}</span><button className="dp-copy" onClick={()=>copy(activeLead.phone,"dp2")}>{copied==="dp2"?"✓":"Copy"}</button></div>
                     : enriching.has(activeLead.id)
-                      ? <div className="dp-row"><span className="dp-icon">📞</span><span style={{color:"#00c9a7",fontSize:11}}>Revealing...</span></div>
+                      ? <div className="dp-row"><span className="dp-icon">📞</span><span style={{color:"#00c8ff",fontSize:11}}>Revealing...</span></div>
                       : null
                   }
                   {/* Extra phones */}

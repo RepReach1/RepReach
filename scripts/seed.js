@@ -1,264 +1,387 @@
 #!/usr/bin/env node
 /**
- * RepReach Seed Script
- * ---------------------
- * Bulk-fetches all retail buyer contacts from Apollo and writes them
- * to data/contacts.json so the app can search locally — no live API
- * calls needed at runtime.
+ * RepReach Seed Script — Full Apollo Discovery
+ * ─────────────────────────────────────────────
+ * Two-phase approach:
+ *   Phase 1 — Discover ALL retail companies on Apollo via industry/keyword
+ *             search. Paginate until exhausted. Collect org IDs.
+ *   Phase 2 — For every discovered org, batch-query buyer contacts.
+ *             Dedupe and write to data/contacts.json.
  *
  * Usage:
  *   node scripts/seed.js
- *   APOLLO_KEY=your_key node scripts/seed.js
- *   node scripts/seed.js --retailers "Walmart,Target"   (specific retailers only)
- *   node scripts/seed.js --append                       (add to existing DB, skip dupes)
+ *   APOLLO_KEY=xxx node scripts/seed.js
+ *   node scripts/seed.js --phase1-only      (just discover companies, save company list)
+ *   node scripts/seed.js --phase2-only      (use saved company list, fetch buyers)
+ *   node scripts/seed.js --append           (merge into existing contacts.json)
+ *   node scripts/seed.js --max-orgs 500     (limit orgs for testing)
  */
 
 import { writeFileSync, readFileSync, existsSync, mkdirSync } from "fs";
 import { fileURLToPath } from "url";
 import { dirname, join } from "path";
 
-const __dirname = dirname(fileURLToPath(import.meta.url));
-const OUT_FILE  = join(__dirname, "../data/contacts.json");
+const __dirname   = dirname(fileURLToPath(import.meta.url));
+const DATA_DIR    = join(__dirname, "../data");
+const CONTACTS_F  = join(DATA_DIR, "contacts.json");
+const COMPANIES_F = join(DATA_DIR, "companies.json");
+
+mkdirSync(DATA_DIR, { recursive: true });
 
 // ── Config ────────────────────────────────────────────────────────────────────
 const KEY      = process.env.APOLLO_KEY || process.env.APOLLO_ENRICH_KEY || "RDwOP69rbo3M2KQ1iJNLhQ";
 const HEADERS  = { "Content-Type": "application/json", "Cache-Control": "no-cache", "X-Api-Key": KEY };
-const PER_PAGE = 100;   // max Apollo allows
-const MAX_PAGES = 10;   // 10 pages × 100 = 1,000 contacts per retailer
-const DELAY_MS  = 800;  // pause between retailer batches to respect rate limits
 
-const ARGS        = process.argv.slice(2);
-const APPEND_MODE = ARGS.includes("--append");
-const RETAILER_FILTER = (() => {
-  const i = ARGS.indexOf("--retailers");
-  if (i === -1) return null;
-  return ARGS[i + 1]?.split(",").map(s => s.trim().toLowerCase()) || null;
-})();
+const ARGS          = process.argv.slice(2);
+const PHASE1_ONLY   = ARGS.includes("--phase1-only");
+const PHASE2_ONLY   = ARGS.includes("--phase2-only");
+const APPEND_MODE   = ARGS.includes("--append");
+const MAX_ORGS      = parseInt(ARGS[ARGS.indexOf("--max-orgs") + 1] || "0") || Infinity;
 
-// ── Retailers ─────────────────────────────────────────────────────────────────
-const RETAILERS = [
-  { name: "Walmart",          domain: "walmart.com"            },
-  { name: "Sam's Club",       domain: "samsclub.com"           },
-  { name: "Kroger",           domain: "kroger.com"             },
-  { name: "Target",           domain: "target.com"             },
-  { name: "Costco",           domain: "costco.com"             },
-  { name: "Home Depot",       domain: "homedepot.com"          },
-  { name: "CVS",              domain: "cvs.com"                },
-  { name: "Tractor Supply",   domain: "tractorsupply.com"      },
-  { name: "Amazon",           domain: "amazon.com"             },
-  { name: "Lowe's",           domain: "lowes.com"              },
-  { name: "Publix",           domain: "publix.com"             },
-  { name: "Walgreens",        domain: "walgreens.com"          },
-  { name: "Best Buy",         domain: "bestbuy.com"            },
-  { name: "Dollar General",   domain: "dollargeneral.com"      },
-  { name: "Albertsons",       domain: "albertsons.com"         },
-  { name: "Dollar Tree",      domain: "dollartree.com"         },
-  { name: "Aldi",             domain: "aldi.us"                },
-  { name: "Trader Joe's",     domain: "traderjoes.com"         },
-  { name: "Whole Foods",      domain: "wholefoodsmarket.com"   },
-  { name: "Meijer",           domain: "meijer.com"             },
-  { name: "HEB",              domain: "heb.com"                },
-  { name: "Sprouts",          domain: "sprouts.com"            },
-  { name: "Wegmans",          domain: "wegmans.com"            },
-  { name: "Rite Aid",         domain: "riteaid.com"            },
-  { name: "TJ Maxx",          domain: "tjmaxx.com"             },
-  { name: "Ross",             domain: "rossstores.com"         },
-  { name: "Marshalls",        domain: "marshalls.com"          },
-  { name: "Family Dollar",    domain: "familydollar.com"       },
-  { name: "7-Eleven",         domain: "7-eleven.com"           },
-  { name: "BJ's Wholesale",   domain: "bjs.com"                },
-  { name: "Kohl's",           domain: "kohls.com"              },
-  { name: "Macy's",           domain: "macys.com"              },
-  { name: "Nordstrom",        domain: "nordstrom.com"          },
-  { name: "Dick's Sporting",  domain: "dickssportinggoods.com" },
-  { name: "Ace Hardware",     domain: "acehardware.com"        },
-  { name: "Winn-Dixie",       domain: "winndixie.com"          },
-  { name: "Giant Eagle",      domain: "gianteagle.com"         },
-  { name: "ShopRite",         domain: "shoprite.com"           },
-  { name: "Stop & Shop",      domain: "stopandshop.com"        },
-  { name: "Safeway",          domain: "safeway.com"            },
-];
+// Pages of companies to fetch per industry search term (100 per page)
+const ORG_PAGES_PER_TERM = 8;   // 8 × 100 = 800 orgs per keyword
+const ORG_BATCH_SIZE     = 25;  // Apollo allows up to 25-50 org IDs per people search
+const BUYER_PAGES_PER_ORG_BATCH = 3; // 3 × 25 = up to 75 buyers per batch
+const DELAY_MS           = 600;
 
 // ── Buyer title keywords ───────────────────────────────────────────────────────
-const TITLES = [
-  "buyer","senior buyer","merchant","senior merchant","category manager",
-  "senior category manager","divisional merchandise manager","general merchandise manager",
+const BUYER_TITLES = [
+  "buyer","senior buyer","associate buyer","assistant buyer",
+  "merchant","senior merchant","associate merchant","assistant merchant",
+  "category manager","senior category manager","associate category manager",
+  "divisional merchandise manager","general merchandise manager",
   "director of merchandising","vp of merchandising","head of merchandising",
   "director of buying","director of purchasing","director of sourcing",
   "purchasing manager","procurement manager","sourcing manager",
-  "merchandise manager","category director","buying manager","chief merchant",
-  "merchandise planner","inventory manager","assortment manager","head of buying",
+  "merchandise manager","category director","buying manager",
+  "chief merchant","merchandise planner","inventory manager",
+  "assortment manager","head of buying","vp of buying",
+  "chief merchandising officer","evp merchandising","svp merchandising",
 ];
 
-const KEYWORDS = [
+const BUYER_KEYWORDS = [
   "buyer","merchant","category","purchasing","procurement","sourcing",
   "merchandise","buying","assortment","dmm","gmm","chief merchant",
-  "planner","allocation","director","vp ","head of",
+  "planner","allocation","director","vp ","head of","svp","evp",
+];
+
+// ── Industry search terms — these drive company discovery ─────────────────────
+// Apollo company search: q_organization_keyword_tags matches industry/description
+const INDUSTRY_TERMS = [
+  // Mass / big box
+  "mass merchandise retailer",
+  "big box retailer",
+  "hypermarket retail",
+  "discount retailer",
+  "dollar store",
+  // Grocery / food
+  "supermarket",
+  "grocery store",
+  "food retailer",
+  "natural food retailer",
+  "organic grocery",
+  "specialty food retailer",
+  "convenience store retail",
+  "warehouse club",
+  "wholesale club",
+  // Drug / health / beauty
+  "drug store",
+  "pharmacy retail",
+  "health beauty retail",
+  "beauty retailer",
+  "personal care retail",
+  // Home improvement / hardware
+  "home improvement retail",
+  "hardware retail",
+  "home center retail",
+  "building materials retail",
+  // Apparel / fashion / department
+  "department store",
+  "apparel retailer",
+  "clothing retailer",
+  "fashion retailer",
+  "off price retailer",
+  "specialty apparel",
+  "footwear retailer",
+  // Electronics / sporting / hobbies
+  "electronics retailer",
+  "sporting goods retailer",
+  "outdoor retail",
+  "fitness retail",
+  "hobby retailer",
+  "toy retailer",
+  "craft retailer",
+  "book retailer",
+  // Home / furnishings
+  "home goods retailer",
+  "home furnishings retail",
+  "furniture retailer",
+  "decor retailer",
+  "kitchen retail",
+  "bed bath retail",
+  // Automotive / tools
+  "auto parts retailer",
+  "automotive retail",
+  "tools retail",
+  // Pet / garden / outdoor
+  "pet supply retailer",
+  "garden center retail",
+  "farm supply retailer",
+  "ranch supply retail",
+  // Office / tech
+  "office supply retailer",
+  "computer electronics retail",
+  // Specialty / misc
+  "specialty retailer",
+  "general merchandise",
+  "variety store",
+  "club store",
+  "liquidation retailer",
+  "closeout retailer",
+  // E-commerce / omni
+  "e-commerce retailer",
+  "online retailer",
+  "omnichannel retailer",
+  "direct to consumer retailer",
 ];
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 const sleep = (ms) => new Promise(r => setTimeout(r, ms));
 
 const post = (url, body) =>
-  fetch(url, { method: "POST", headers: HEADERS, body: JSON.stringify(body) });
-
-function log(msg) { process.stdout.write(msg + "\n"); }
-
-// ── Fetch org ID ───────────────────────────────────────────────────────────────
-async function resolveOrgId(retailer) {
-  try {
-    const r = await fetch(
-      `https://api.apollo.io/v1/organizations/enrich?domain=${retailer.domain}`,
-      { headers: HEADERS }
-    );
-    const d = await r.json();
-    if (d?.organization?.id) return d.organization.id;
-  } catch (e) { /* fall through */ }
-
-  try {
-    const r = await post("https://api.apollo.io/v1/mixed_companies/search",
-      { q_organization_name: retailer.name, page: 1, per_page: 5 });
-    const d = await r.json();
-    const orgs = d?.organizations || d?.accounts || [];
-    const best = orgs.find(o => o.name?.toLowerCase() === retailer.name.toLowerCase()) || orgs[0];
-    return best?.id || null;
-  } catch (e) { return null; }
-}
-
-// ── Fetch one retailer ─────────────────────────────────────────────────────────
-async function fetchRetailer(retailer) {
-  log(`\n▶  ${retailer.name} (${retailer.domain})`);
-
-  const orgId = await resolveOrgId(retailer);
-  log(`   org_id: ${orgId || "not found — using name fallback"}`);
-
-  const body = orgId
-    ? { organization_ids: [orgId], person_titles: TITLES }
-    : { organization_names: [retailer.name], person_titles: TITLES };
-
-  let allPeople = [];
-  let totalEntries = 0;
-
-  for (let page = 1; page <= MAX_PAGES; page++) {
-    try {
-      const r = await post("https://api.apollo.io/v1/mixed_people/search",
-        { ...body, page, per_page: PER_PAGE });
-      const d = await r.json();
-
-      if (r.status === 429) {
-        log(`   ⚠ rate limited on page ${page}, waiting 5s...`);
-        await sleep(5000);
-        page--; continue;
-      }
-
-      const people = d?.people || [];
-      if (page === 1) totalEntries = d?.pagination?.total_entries || 0;
-
-      if (people.length === 0) break;
-      allPeople.push(...people);
-      process.stdout.write(`   page ${page}: ${people.length} contacts (total pool: ${totalEntries})\n`);
-
-      if (page >= (d?.pagination?.total_pages || 1)) break;
-      await sleep(300); // small pause between pages
-    } catch (e) {
-      log(`   ✗ page ${page} error: ${e.message}`);
-      break;
-    }
-  }
-
-  // Dedupe
-  const seen = new Set();
-  allPeople = allPeople.filter(p => {
-    const k = `${p.first_name}${p.last_name}`.toLowerCase().replace(/\s/g, "");
-    if (seen.has(k)) return false; seen.add(k); return true;
+  fetch(url, { method: "POST", headers: HEADERS, body: JSON.stringify(body) }).then(async r => {
+    if (r.status === 429) throw Object.assign(new Error("rate_limited"), { status: 429 });
+    return r.json();
   });
 
-  // Keyword filter — only keep genuine buyers/merchandisers
-  const filtered = allPeople.filter(p =>
-    KEYWORDS.some(kw => (p.title || "").toLowerCase().includes(kw))
-  );
+function log(msg) { process.stdout.write(msg + "\n"); }
+function logr(msg) { process.stdout.write("\r" + msg + "                    "); }
 
-  log(`   ✓ ${filtered.length} buyers kept (${allPeople.length - filtered.length} filtered out)`);
+// Retry with backoff
+async function withRetry(fn, retries = 4) {
+  let delay = 2000;
+  for (let i = 0; i <= retries; i++) {
+    try { return await fn(); }
+    catch(e) {
+      if (i === retries) throw e;
+      if (e.status === 429 || e.message === "rate_limited") {
+        log(`   ⚠ rate limited, waiting ${delay / 1000}s...`);
+        await sleep(delay);
+        delay *= 2;
+      } else throw e;
+    }
+  }
+}
 
-  return filtered.map((p, i) => ({
-    id:          `${retailer.domain}_${i}_${(p.id || "").slice(-6)}`,
-    apolloId:    p.id          || null,
-    firstName:   p.first_name  || "",
-    lastName:    p.last_name   || "",
-    title:       p.title       || "",
-    seniority:   p.seniority   || "",
-    departments: p.departments || [],
-    retailer:    p.organization_name || retailer.name,
-    retailerKey: retailer.name.toLowerCase(),
-    domain:      retailer.domain,
-    email:       p.email       || null,
-    phone:       p.phone_numbers?.[0]?.sanitized_number || null,
-    location:    [p.city, p.state].filter(Boolean).join(", ") || "",
-    country:     p.country     || null,
-    linkedin:    p.linkedin_url || null,
-    seededAt:    new Date().toISOString(),
-  }));
+// ── Phase 1: Discover all retail orgs ─────────────────────────────────────────
+async function discoverCompanies() {
+  log("\n╔══════════════════════════════════════════╗");
+  log("║  Phase 1: Discovering Retail Companies   ║");
+  log("╚══════════════════════════════════════════╝\n");
+
+  const orgMap = new Map(); // id → { id, name, domain }
+
+  for (let ti = 0; ti < INDUSTRY_TERMS.length; ti++) {
+    const term = INDUSTRY_TERMS[ti];
+    log(`[${ti + 1}/${INDUSTRY_TERMS.length}] "${term}"`);
+    let added = 0;
+
+    for (let page = 1; page <= ORG_PAGES_PER_TERM; page++) {
+      if (orgMap.size >= MAX_ORGS) break;
+      try {
+        const d = await withRetry(() => post("https://api.apollo.io/v1/mixed_companies/search", {
+          q_organization_keyword_tags: [term],
+          page,
+          per_page: 100,
+        }));
+
+        const orgs = d?.organizations || d?.accounts || [];
+        if (!orgs.length) break;
+
+        for (const o of orgs) {
+          if (!o.id || orgMap.has(o.id)) continue;
+          orgMap.set(o.id, {
+            id:     o.id,
+            name:   o.name || "",
+            domain: o.primary_domain || o.website_url || "",
+          });
+          added++;
+        }
+
+        const totalPages = d?.pagination?.total_pages || 1;
+        logr(`   page ${page}/${Math.min(totalPages, ORG_PAGES_PER_TERM)}: ${orgs.length} orgs (+${added} new, ${orgMap.size} total)`);
+        if (page >= totalPages) break;
+        await sleep(250);
+      } catch(e) {
+        log(`\n   ✗ error: ${e.message}`);
+        break;
+      }
+    }
+    log(`\n   → ${added} new orgs found (${orgMap.size} unique total)`);
+    await sleep(DELAY_MS);
+  }
+
+  const companies = Array.from(orgMap.values());
+  writeFileSync(COMPANIES_F, JSON.stringify(companies, null, 2));
+  log(`\n✅ Phase 1 done — ${companies.length} unique retail orgs → data/companies.json`);
+  return companies;
+}
+
+// ── Phase 2: Fetch buyers for all orgs ────────────────────────────────────────
+async function fetchBuyers(companies) {
+  log("\n╔══════════════════════════════════════════╗");
+  log("║  Phase 2: Fetching Buyer Contacts        ║");
+  log("╚══════════════════════════════════════════╝\n");
+
+  const limit = Math.min(companies.length, MAX_ORGS);
+  log(`Processing ${limit} companies in batches of ${ORG_BATCH_SIZE}...\n`);
+
+  const allContacts = [];
+  const seenPeople  = new Set();
+
+  const batches = [];
+  for (let i = 0; i < limit; i += ORG_BATCH_SIZE) {
+    batches.push(companies.slice(i, i + ORG_BATCH_SIZE));
+  }
+
+  for (let bi = 0; bi < batches.length; bi++) {
+    const batch    = batches[bi];
+    const orgIds   = batch.map(c => c.id);
+    const orgNames = batch.map(c => c.name).join(", ").slice(0, 80);
+    logr(`Batch ${bi + 1}/${batches.length}: ${orgNames}...`);
+
+    for (let page = 1; page <= BUYER_PAGES_PER_ORG_BATCH; page++) {
+      try {
+        const d = await withRetry(() => post("https://api.apollo.io/v1/mixed_people/search", {
+          organization_ids: orgIds,
+          person_titles:    BUYER_TITLES,
+          page,
+          per_page: 100,
+        }));
+
+        const people = d?.people || [];
+        if (!people.length) break;
+
+        for (const p of people) {
+          if (!p.first_name) continue;
+          const key = `${p.first_name}${p.last_name}${p.organization_id}`.toLowerCase().replace(/\s/g, "");
+          if (seenPeople.has(key)) continue;
+          seenPeople.add(key);
+
+          // Only keep genuine retail buying roles
+          if (!BUYER_KEYWORDS.some(kw => (p.title || "").toLowerCase().includes(kw))) continue;
+
+          // Find the org record to get domain/name
+          const org = batch.find(c => c.id === p.organization_id) ||
+                      { name: p.organization_name || "", domain: "" };
+
+          allContacts.push({
+            id:          `rr_${allContacts.length}`,
+            apolloId:    p.id            || null,
+            firstName:   p.first_name    || "",
+            lastName:    p.last_name     || "",
+            title:       p.title         || "",
+            seniority:   p.seniority     || "",
+            departments: p.departments   || [],
+            retailer:    p.organization_name || org.name || "",
+            retailerKey: (p.organization_name || org.name || "").toLowerCase(),
+            domain:      org.domain       || "",
+            email:       p.email          || null,
+            phone:       p.phone_numbers?.[0]?.sanitized_number || null,
+            location:    [p.city, p.state].filter(Boolean).join(", ") || "",
+            country:     p.country        || null,
+            linkedin:    p.linkedin_url   || null,
+            seededAt:    new Date().toISOString(),
+          });
+        }
+
+        const totalPages = d?.pagination?.total_pages || 1;
+        if (page >= totalPages) break;
+        await sleep(250);
+      } catch(e) {
+        if (e.message !== "rate_limited") log(`\n   ✗ batch ${bi + 1} page ${page}: ${e.message}`);
+        break;
+      }
+    }
+
+    // Save checkpoint every 50 batches
+    if ((bi + 1) % 50 === 0) {
+      writeFileSync(CONTACTS_F, JSON.stringify(allContacts, null, 2));
+      log(`\n   💾 checkpoint: ${allContacts.length} contacts saved`);
+    }
+
+    await sleep(DELAY_MS);
+  }
+
+  log(`\n\n✅ Phase 2 done — ${allContacts.length} buyer contacts collected`);
+  return allContacts;
 }
 
 // ── Main ───────────────────────────────────────────────────────────────────────
 async function main() {
   log("╔══════════════════════════════════════════╗");
-  log("║       RepReach Apollo Seed Script        ║");
+  log("║   RepReach Full Apollo Discovery Seed    ║");
   log("╚══════════════════════════════════════════╝");
-  log(`Mode: ${APPEND_MODE ? "append" : "full rebuild"}`);
-  log(`Key:  ${KEY.slice(0, 6)}...`);
+  log(`Key:    ${KEY.slice(0, 6)}...`);
+  log(`Mode:   ${PHASE1_ONLY ? "phase 1 only" : PHASE2_ONLY ? "phase 2 only" : "full (phase 1 + 2)"}`);
+  log(`Append: ${APPEND_MODE}`);
+  if (MAX_ORGS < Infinity) log(`Max orgs: ${MAX_ORGS}`);
 
-  // Load existing contacts if appending
-  let existing = [];
-  if (APPEND_MODE && existsSync(OUT_FILE)) {
-    existing = JSON.parse(readFileSync(OUT_FILE, "utf8"));
-    log(`Loaded ${existing.length} existing contacts`);
+  let companies = [];
+
+  // ── Phase 1 ──────────────────────────────────────────────────────────────
+  if (!PHASE2_ONLY) {
+    companies = await discoverCompanies();
+  } else {
+    if (!existsSync(COMPANIES_F)) {
+      log("ERROR: data/companies.json not found. Run without --phase2-only first.");
+      process.exit(1);
+    }
+    companies = JSON.parse(readFileSync(COMPANIES_F, "utf8"));
+    log(`Loaded ${companies.length} companies from data/companies.json`);
   }
 
-  // Filter retailers if --retailers flag used
-  const retailers = RETAILER_FILTER
-    ? RETAILERS.filter(r => RETAILER_FILTER.includes(r.name.toLowerCase()))
-    : RETAILERS;
-
-  log(`\nFetching ${retailers.length} retailers...\n`);
-
-  const allNew = [];
-  for (let i = 0; i < retailers.length; i++) {
-    const contacts = await fetchRetailer(retailers[i]);
-    allNew.push(...contacts);
-    if (i < retailers.length - 1) await sleep(DELAY_MS);
+  if (PHASE1_ONLY) {
+    log("\nDone (phase 1 only). Run again with --phase2-only to fetch contacts.");
+    return;
   }
 
-  // Merge and dedupe if appending
-  let final = allNew;
-  if (APPEND_MODE && existing.length > 0) {
+  // ── Phase 2 ──────────────────────────────────────────────────────────────
+  let newContacts = await fetchBuyers(companies);
+
+  // Merge if appending
+  let final = newContacts;
+  if (APPEND_MODE && existsSync(CONTACTS_F)) {
+    const existing = JSON.parse(readFileSync(CONTACTS_F, "utf8"));
     const existingKeys = new Set(
       existing.map(c => `${c.firstName}${c.lastName}${c.retailerKey}`.toLowerCase())
     );
-    const brandNew = allNew.filter(c =>
+    const brandNew = newContacts.filter(c =>
       !existingKeys.has(`${c.firstName}${c.lastName}${c.retailerKey}`.toLowerCase())
     );
     final = [...existing, ...brandNew];
-    log(`\nMerged: ${brandNew.length} new + ${existing.length} existing = ${final.length} total`);
+    log(`Merged: ${brandNew.length} new + ${existing.length} existing = ${final.length} total`);
   }
 
-  // Reassign stable IDs
+  // Stable IDs
   final = final.map((c, i) => ({ ...c, id: `rr_${i}` }));
 
-  // Write output
-  mkdirSync(join(__dirname, "../data"), { recursive: true });
-  writeFileSync(OUT_FILE, JSON.stringify(final, null, 2));
+  // Write final output
+  writeFileSync(CONTACTS_F, JSON.stringify(final, null, 2));
+  const kb = (JSON.stringify(final).length / 1024).toFixed(0);
+  log(`\n✅ Saved ${final.length} contacts → data/contacts.json (${kb} KB)`);
 
-  log(`\n✅ Done! Saved ${final.length} contacts → data/contacts.json`);
-  log(`   File size: ${(JSON.stringify(final).length / 1024).toFixed(0)} KB`);
-
-  // Summary by retailer
-  log("\n── Breakdown ──────────────────────────────");
+  // ── Breakdown by retailer (top 50) ────────────────────────────────────────
+  log("\n── Top retailers by contact count ─────────────────────────────────");
   const byRetailer = {};
   for (const c of final) byRetailer[c.retailer] = (byRetailer[c.retailer] || 0) + 1;
-  for (const [r, n] of Object.entries(byRetailer).sort((a, b) => b[1] - a[1])) {
-    log(`   ${r.padEnd(25)} ${n}`);
-  }
+  Object.entries(byRetailer)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 50)
+    .forEach(([r, n]) => log(`   ${r.padEnd(35)} ${n}`));
+
+  const uniqueRetailers = Object.keys(byRetailer).length;
+  log(`\n   Total: ${final.length} contacts across ${uniqueRetailers} retailers`);
 }
 
-main().catch(e => { console.error("Fatal:", e); process.exit(1); });
+main().catch(e => { console.error("\nFatal:", e); process.exit(1); });

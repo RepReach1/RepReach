@@ -254,12 +254,18 @@ async function fetchBuyers(companies) {
       try {
         const d = await withRetry(() => post("https://api.apollo.io/v1/mixed_people/search", {
           organization_ids: orgIds,
-          person_titles:    BUYER_TITLES,
+          // q_person_title does fuzzy keyword search; person_titles requires near-exact match
+          q_person_title: "buyer merchant category purchasing procurement sourcing merchandising",
           page,
           per_page: 100,
         }));
 
-        const people = d?.people || [];
+        // Apollo returns people under either key depending on plan/endpoint version
+        const people = d?.people || d?.contacts || [];
+        if (bi === 0 && page === 1 && !people.length) {
+          log(`\n   [debug] batch 1 raw keys: ${Object.keys(d || {}).join(", ")}`);
+          log(`   [debug] pagination: ${JSON.stringify(d?.pagination)}`);
+        }
         if (!people.length) break;
 
         for (const p of people) {

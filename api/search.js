@@ -119,7 +119,7 @@ function cacheToDb(newLeads) {
 async function apolloFallback(req, res) {
   const { retailer, titleKeyword, personName, cursor = 1 } = req.body;
 
-  const KEY     = "NaiSzPpxILq0OSyylU1Cxg"; // search key (not the enrich key)
+  const KEY     = process.env.APOLLO_API_KEY;
   const HEADERS = { "Content-Type": "application/json", "Cache-Control": "no-cache", "X-Api-Key": KEY };
   const BATCH   = 5;
 

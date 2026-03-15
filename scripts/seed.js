@@ -29,7 +29,7 @@ const COMPANIES_F = join(DATA_DIR, "companies.json");
 mkdirSync(DATA_DIR, { recursive: true });
 
 // ── Config ────────────────────────────────────────────────────────────────────
-const KEY      = process.env.APOLLO_KEY || process.env.APOLLO_ENRICH_KEY || "RDwOP69rbo3M2KQ1iJNLhQ";
+const KEY      = "RDwOP69rbo3M2KQ1iJNLhQ";
 const HEADERS  = { "Content-Type": "application/json", "Cache-Control": "no-cache", "X-Api-Key": KEY };
 
 const ARGS          = process.argv.slice(2);
@@ -38,10 +38,10 @@ const PHASE2_ONLY   = ARGS.includes("--phase2-only");
 const APPEND_MODE   = ARGS.includes("--append");
 const MAX_ORGS      = parseInt(ARGS[ARGS.indexOf("--max-orgs") + 1] || "0") || Infinity;
 
-// Pages of companies to fetch per industry search term (100 per page)
-const ORG_PAGES_PER_TERM = 8;   // 8 × 100 = 800 orgs per keyword
+// Apollo caps at 100 pages (10 000 results) per query — we paginate to natural end
+const ORG_MAX_PAGES      = 100; // absolute ceiling per term (Apollo's own limit)
 const ORG_BATCH_SIZE     = 25;  // Apollo allows up to 25-50 org IDs per people search
-const BUYER_PAGES_PER_ORG_BATCH = 3; // 3 × 25 = up to 75 buyers per batch
+const BUYER_PAGES_PER_ORG_BATCH = 10; // 10 × 100 = up to 1 000 buyers per batch
 const DELAY_MS           = 600;
 
 // ── Buyer title keywords ───────────────────────────────────────────────────────
@@ -186,7 +186,7 @@ async function discoverCompanies() {
     log(`[${ti + 1}/${INDUSTRY_TERMS.length}] "${term}"`);
     let added = 0;
 
-    for (let page = 1; page <= ORG_PAGES_PER_TERM; page++) {
+    for (let page = 1; page <= ORG_MAX_PAGES; page++) {
       if (orgMap.size >= MAX_ORGS) break;
       try {
         const d = await withRetry(() => post("https://api.apollo.io/v1/mixed_companies/search", {
@@ -209,7 +209,7 @@ async function discoverCompanies() {
         }
 
         const totalPages = d?.pagination?.total_pages || 1;
-        logr(`   page ${page}/${Math.min(totalPages, ORG_PAGES_PER_TERM)}: ${orgs.length} orgs (+${added} new, ${orgMap.size} total)`);
+        logr(`   page ${page}/${totalPages}: ${orgs.length} orgs (+${added} new, ${orgMap.size} total)`);
         if (page >= totalPages) break;
         await sleep(250);
       } catch(e) {

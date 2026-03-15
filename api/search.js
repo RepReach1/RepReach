@@ -1,4 +1,4 @@
-import { readFileSync, existsSync } from "fs";
+import { readFileSync, writeFileSync, existsSync } from "fs";
 import { fileURLToPath } from "url";
 import { dirname, join } from "path";
 
@@ -99,11 +99,27 @@ function stamp(c, i) {
   return { ...c, id: c.id || `rr_${i}` };
 }
 
+// ── Persist new Apollo contacts into the local DB ─────────────────────────────
+function cacheToDb(newLeads) {
+  if (!newLeads.length) return;
+  try {
+    const existing = existsSync(DB_PATH)
+      ? JSON.parse(readFileSync(DB_PATH, "utf8"))
+      : [];
+    const knownIds = new Set(existing.map(c => c.apolloId).filter(Boolean));
+    const brandNew = newLeads.filter(c => c.apolloId && !knownIds.has(c.apolloId));
+    if (!brandNew.length) return;
+    const merged = [...existing, ...brandNew].map((c, i) => ({ ...c, id: `rr_${i}` }));
+    writeFileSync(DB_PATH, JSON.stringify(merged, null, 2));
+    _cache = merged; // refresh in-memory cache
+  } catch { /* non-fatal — live results already returned to caller */ }
+}
+
 // ── Apollo live fallback (used only when DB is empty) ─────────────────────────
 async function apolloFallback(req, res) {
   const { retailer, titleKeyword, personName, cursor = 1 } = req.body;
 
-  const KEY     = process.env.APOLLO_KEY || process.env.APOLLO_ENRICH_KEY || "RDwOP69rbo3M2KQ1iJNLhQ";
+  const KEY     = "RDwOP69rbo3M2KQ1iJNLhQ";
   const HEADERS = { "Content-Type": "application/json", "Cache-Control": "no-cache", "X-Api-Key": KEY };
   const BATCH   = 5;
 
@@ -169,6 +185,7 @@ async function apolloFallback(req, res) {
           country:     p.country     || null,
           linkedin:    p.linkedin_url || null,
         }));
+      cacheToDb(leads);
       return res.status(200).json({ leads, total: leads.length, apolloTotal: d?.pagination?.total_entries || leads.length, cursor: 1, nextCursor: null, source: "apollo_live" });
     }
 
@@ -229,6 +246,7 @@ async function apolloFallback(req, res) {
     }));
 
     const nextCursor = start + BATCH <= totalPages ? cursor + 1 : null;
+    cacheToDb(leads);
     return res.status(200).json({ leads, total:leads.length, apolloTotal, cursor, nextCursor, source:"apollo_live" });
   } catch(e) {
     return res.status(500).json({ error: e.message, leads: [] });

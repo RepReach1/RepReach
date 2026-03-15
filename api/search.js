@@ -110,9 +110,9 @@ function cacheToDb(newLeads) {
     const brandNew = newLeads.filter(c => c.apolloId && !knownIds.has(c.apolloId));
     if (!brandNew.length) return;
     const merged = [...existing, ...brandNew].map((c, i) => ({ ...c, id: `rr_${i}` }));
-    writeFileSync(DB_PATH, JSON.stringify(merged, null, 2));
-    _cache = merged; // refresh in-memory cache
-  } catch { /* non-fatal — live results already returned to caller */ }
+    _cache = merged; // update in-memory cache first (always works)
+    try { writeFileSync(DB_PATH, JSON.stringify(merged, null, 2)); } catch {} // non-fatal on read-only fs
+  } catch { /* non-fatal */ }
 }
 
 // ── Apollo live fallback (used only when DB is empty) ─────────────────────────
@@ -204,17 +204,27 @@ async function apolloFallback(req, res) {
       if (best?.id) orgId = best.id;
     }
 
-    const body = orgId
-      ? { organization_ids:[orgId], person_titles: TITLES }
-      : { organization_names:[retailer], person_titles: TITLES };
+    const Q_TITLE = "buyer merchant category purchasing procurement sourcing merchandising";
+    const pageStart = (cursor - 1) * BATCH + 1;
 
-    const start = (cursor - 1) * BATCH + 1;
-    const pages = Array.from({length:BATCH}, (_,i) => start+i);
-    const results = await Promise.all(pages.map(async pg => {
-      const r = await post("https://api.apollo.io/v1/mixed_people/search", {...body, page:pg, per_page:100});
-      const d = await r.json();
-      return { people:d?.people||d?.contacts||[], total:d?.pagination?.total_entries||0, pages:d?.pagination?.total_pages||1 };
-    }));
+    const fetchPages = async (body) => {
+      const pages = Array.from({length:BATCH}, (_,i) => pageStart+i);
+      const results = await Promise.all(pages.map(async pg => {
+        const r = await post("https://api.apollo.io/v1/mixed_people/search", {...body, page:pg, per_page:100});
+        const d = await r.json();
+        return { people:d?.people||d?.contacts||[], total:d?.pagination?.total_entries||0, pages:d?.pagination?.total_pages||1 };
+      }));
+      return results;
+    };
+
+    // Try org_id first; fall back to org_name if it returns nothing
+    let results = orgId
+      ? await fetchPages({ organization_ids:[orgId], q_person_title: Q_TITLE })
+      : null;
+
+    if (!results || results[0]?.total === 0) {
+      results = await fetchPages({ organization_names:[retailer], q_person_title: Q_TITLE });
+    }
 
     const apolloTotal = results[0]?.total || 0;
     const totalPages  = Math.min(results[0]?.pages || 1, 500);
@@ -241,7 +251,7 @@ async function apolloFallback(req, res) {
       linkedin:    p.linkedin_url || null,
     }));
 
-    const nextCursor = start + BATCH <= totalPages ? cursor + 1 : null;
+    const nextCursor = pageStart + BATCH <= totalPages ? cursor + 1 : null;
     cacheToDb(leads);
     return res.status(200).json({ leads, total:leads.length, apolloTotal, cursor, nextCursor, source:"apollo_live" });
   } catch(e) {

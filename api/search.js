@@ -204,7 +204,6 @@ async function apolloFallback(req, res) {
       if (best?.id) orgId = best.id;
     }
 
-    const Q_TITLE = "buyer merchant category purchasing procurement sourcing merchandising";
     const pageStart = (cursor - 1) * BATCH + 1;
 
     const fetchPages = async (body) => {
@@ -217,13 +216,20 @@ async function apolloFallback(req, res) {
       return results;
     };
 
-    // Try org_id first; fall back to org_name if it returns nothing
+    // Try org_id + titles first; fall back progressively
     let results = orgId
-      ? await fetchPages({ organization_ids:[orgId], q_person_title: Q_TITLE })
+      ? await fetchPages({ organization_ids:[orgId], person_titles: TITLES })
       : null;
 
     if (!results || results[0]?.total === 0) {
-      results = await fetchPages({ organization_names:[retailer], q_person_title: Q_TITLE });
+      results = await fetchPages({ organization_names:[retailer], person_titles: TITLES });
+    }
+
+    // Broaden: drop title filter if still nothing
+    if (!results || results[0]?.total === 0) {
+      results = orgId
+        ? await fetchPages({ organization_ids:[orgId] })
+        : await fetchPages({ organization_names:[retailer] });
     }
 
     const apolloTotal = results[0]?.total || 0;

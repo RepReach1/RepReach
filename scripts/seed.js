@@ -29,7 +29,7 @@ const COMPANIES_F = join(DATA_DIR, "companies.json");
 mkdirSync(DATA_DIR, { recursive: true });
 
 // ── Config ────────────────────────────────────────────────────────────────────
-const KEY      = "RDwOP69rbo3M2KQ1iJNLhQ";
+const KEY      = "NaiSzPpxILq0OSyylU1Cxg"; // Apollo search key — NOT the enrich key
 const HEADERS  = { "Content-Type": "application/json", "Cache-Control": "no-cache", "X-Api-Key": KEY };
 
 const ARGS          = process.argv.slice(2);

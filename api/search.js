@@ -27,7 +27,7 @@ const KEYWORDS = [
   "planner","allocation","director","vp ","head of",
 ];
 
-export default function handler(req, res) {
+export default async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
 
   const { retailer, titleKeyword, personName, cursor = 1 } = req.body;
@@ -36,7 +36,7 @@ export default function handler(req, res) {
 
   // ── Person name search ─────────────────────────────────────────────────────
   if (personName) {
-    if (contacts.length === 0) return apolloFallback(req, res);
+    if (contacts.length === 0) return await apolloFallback(req, res);
 
     const q = personName.trim().toLowerCase();
     const filtered = contacts.filter(c =>
@@ -81,7 +81,7 @@ export default function handler(req, res) {
 
   // If local DB is empty fall back to Apollo live search
   if (contacts.length === 0) {
-    return apolloFallback(req, res);
+    return await apolloFallback(req, res);
   }
 
   return res.status(200).json({
@@ -119,7 +119,7 @@ function cacheToDb(newLeads) {
 async function apolloFallback(req, res) {
   const { retailer, titleKeyword, personName, cursor = 1 } = req.body;
 
-  const KEY     = "RDwOP69rbo3M2KQ1iJNLhQ";
+  const KEY     = "NaiSzPpxILq0OSyylU1Cxg"; // search key (not the enrich key)
   const HEADERS = { "Content-Type": "application/json", "Cache-Control": "no-cache", "X-Api-Key": KEY };
   const BATCH   = 5;
 

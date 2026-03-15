@@ -159,7 +159,7 @@ async function apolloFallback(req, res) {
   try {
     // ── Person name search path ──────────────────────────────────────────────
     if (personName) {
-      const r = await post("https://api.apollo.io/v1/mixed_people/search", {
+      const r = await post("https://api.apollo.io/v1/people/search", {
         q_person_name:  personName.trim(),
         person_titles:  TITLES,
         page:    1,
@@ -196,7 +196,7 @@ async function apolloFallback(req, res) {
       orgId = d?.organization?.id || null;
     }
     if (!orgId) {
-      const r = await post("https://api.apollo.io/v1/mixed_companies/search",
+      const r = await post("https://api.apollo.io/v1/organizations/search",
         { q_organization_name: retailer, page:1, per_page:5 });
       const d = await r.json();
       const orgs = d?.organizations || d?.accounts || [];
@@ -210,7 +210,7 @@ async function apolloFallback(req, res) {
     const fetchPages = async (body) => {
       const pages = Array.from({length:BATCH}, (_,i) => pageStart+i);
       const results = await Promise.all(pages.map(async pg => {
-        const r = await post("https://api.apollo.io/v1/mixed_people/search", {...body, page:pg, per_page:100});
+        const r = await post("https://api.apollo.io/v1/people/search", {...body, page:pg, per_page:100});
         const d = await r.json();
         return { people:d?.people||d?.contacts||[], total:d?.pagination?.total_entries||0, pages:d?.pagination?.total_pages||1 };
       }));

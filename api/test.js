@@ -14,7 +14,7 @@ export default async function handler(req, res) {
 
   // Test 2: Search key — people search
   try {
-    const r = await fetch("https://api.apollo.io/v1/mixed_people/search", {
+    const r = await fetch("https://api.apollo.io/v1/people/search", {
       method: "POST", headers: sh,
       body: JSON.stringify({ organization_names: ["Walmart"], person_titles: ["buyer"], page: 1, per_page: 3 })
     });

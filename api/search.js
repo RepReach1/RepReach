@@ -74,15 +74,15 @@ export default async function handler(req, res) {
     );
   }
 
+  // If local DB is empty or no local results for this retailer, fall back to Apollo live search
+  if (contacts.length === 0 || filtered.length === 0) {
+    return await apolloFallback(req, res);
+  }
+
   const total  = filtered.length;
   const page   = Math.max(1, cursor);
   const start  = (page - 1) * PER_PAGE;
   const leads  = filtered.slice(start, start + PER_PAGE).map(stamp);
-
-  // If local DB is empty fall back to Apollo live search
-  if (contacts.length === 0) {
-    return await apolloFallback(req, res);
-  }
 
   return res.status(200).json({
     leads,

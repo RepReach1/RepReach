@@ -4,7 +4,7 @@ export default async function handler(req, res) {
   const { apolloId, firstName, lastName, retailer, linkedin } = req.body;
   if (!apolloId && !firstName) return res.status(400).json({ error: "Missing contact info" });
 
-  const APOLLO_ENRICH_KEY = process.env.APOLLO_ENRICH_KEY;
+  const APOLLO_ENRICH_KEY = process.env.APOLLO_API_KEY;
 
   try {
     const payload = {

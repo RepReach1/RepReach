@@ -1,10 +1,9 @@
 export default async function handler(req, res) {
-  const SEARCH_KEY = process.env.APOLLO_API_KEY;
-  const ENRICH_KEY = process.env.APOLLO_ENRICH_KEY;
+  const KEY = process.env.APOLLO_API_KEY;
   const results = {};
 
-  const sh = { "Content-Type": "application/json", "X-Api-Key": SEARCH_KEY };
-  const eh = { "Content-Type": "application/json", "X-Api-Key": ENRICH_KEY };
+  const sh = { "Content-Type": "application/json", "X-Api-Key": KEY };
+  const eh = { "Content-Type": "application/json", "X-Api-Key": KEY };
 
   // Test 1: Search key — org lookup
   try {

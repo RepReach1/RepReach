@@ -36,6 +36,8 @@ export default function handler(req, res) {
 
   // ── Person name search ─────────────────────────────────────────────────────
   if (personName) {
+    if (contacts.length === 0) return apolloFallback(req, res);
+
     const q = personName.trim().toLowerCase();
     const filtered = contacts.filter(c =>
       `${c.firstName} ${c.lastName}`.toLowerCase().includes(q)
@@ -99,7 +101,7 @@ function stamp(c, i) {
 
 // ── Apollo live fallback (used only when DB is empty) ─────────────────────────
 async function apolloFallback(req, res) {
-  const { retailer, titleKeyword, cursor = 1 } = req.body;
+  const { retailer, titleKeyword, personName, cursor = 1 } = req.body;
 
   const KEY     = process.env.APOLLO_KEY || process.env.APOLLO_ENRICH_KEY || "RDwOP69rbo3M2KQ1iJNLhQ";
   const HEADERS = { "Content-Type": "application/json", "Cache-Control": "no-cache", "X-Api-Key": KEY };
@@ -138,7 +140,39 @@ async function apolloFallback(req, res) {
   const post = (url, body) =>
     fetch(url, { method: "POST", headers: HEADERS, body: JSON.stringify(body) });
 
+  const Q_TITLE = "buyer merchant category purchasing procurement sourcing merchandising";
+
   try {
+    // ── Person name search path ──────────────────────────────────────────────
+    if (personName) {
+      const r = await post("https://api.apollo.io/v1/mixed_people/search", {
+        q_person_name:  personName.trim(),
+        q_person_title: Q_TITLE,
+        page:    1,
+        per_page: 25,
+      });
+      const d = await r.json();
+      const people = d?.people || d?.contacts || [];
+      const leads = people.filter(p => p.first_name && KEYWORDS_FB.some(kw => (p.title||"").toLowerCase().includes(kw)))
+        .map((p, i) => ({
+          id:          `apollo_pn_${i}_${(p.id||"").slice(-6)}`,
+          apolloId:    p.id || null,
+          firstName:   p.first_name  || "",
+          lastName:    p.last_name   || "",
+          title:       p.title       || "",
+          seniority:   p.seniority   || "",
+          departments: p.departments || [],
+          retailer:    p.organization_name || "",
+          email:       p.email       || null,
+          phone:       p.phone_numbers?.[0]?.sanitized_number || null,
+          location:    [p.city, p.state].filter(Boolean).join(", ") || "",
+          country:     p.country     || null,
+          linkedin:    p.linkedin_url || null,
+        }));
+      return res.status(200).json({ leads, total: leads.length, apolloTotal: d?.pagination?.total_entries || leads.length, cursor: 1, nextCursor: null, source: "apollo_live" });
+    }
+
+    // ── Retailer search path ─────────────────────────────────────────────────
     let orgId = null;
     const domain = DOMAINS[retailer.toLowerCase().trim()];
     if (domain) {
@@ -156,15 +190,15 @@ async function apolloFallback(req, res) {
     }
 
     const body = orgId
-      ? { organization_ids:[orgId], person_titles:TITLES }
-      : { organization_names:[retailer], person_titles:TITLES };
+      ? { organization_ids:[orgId], q_person_title: Q_TITLE }
+      : { organization_names:[retailer], q_person_title: Q_TITLE };
 
     const start = (cursor - 1) * BATCH + 1;
     const pages = Array.from({length:BATCH}, (_,i) => start+i);
     const results = await Promise.all(pages.map(async pg => {
       const r = await post("https://api.apollo.io/v1/mixed_people/search", {...body, page:pg, per_page:100});
       const d = await r.json();
-      return { people:d?.people||[], total:d?.pagination?.total_entries||0, pages:d?.pagination?.total_pages||1 };
+      return { people:d?.people||d?.contacts||[], total:d?.pagination?.total_entries||0, pages:d?.pagination?.total_pages||1 };
     }));
 
     const apolloTotal = results[0]?.total || 0;

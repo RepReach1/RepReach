@@ -156,20 +156,18 @@ async function apolloFallback(req, res) {
   const post = (url, body) =>
     fetch(url, { method: "POST", headers: HEADERS, body: JSON.stringify(body) });
 
-  const Q_TITLE = "buyer merchant category purchasing procurement sourcing merchandising";
-
   try {
     // ── Person name search path ──────────────────────────────────────────────
     if (personName) {
       const r = await post("https://api.apollo.io/v1/mixed_people/search", {
         q_person_name:  personName.trim(),
-        q_person_title: Q_TITLE,
+        person_titles:  TITLES,
         page:    1,
         per_page: 25,
       });
       const d = await r.json();
       const people = d?.people || d?.contacts || [];
-      const leads = people.filter(p => p.first_name && KEYWORDS_FB.some(kw => (p.title||"").toLowerCase().includes(kw)))
+      const leads = people.filter(p => p.first_name)
         .map((p, i) => ({
           id:          `apollo_pn_${i}_${(p.id||"").slice(-6)}`,
           apolloId:    p.id || null,
@@ -207,8 +205,8 @@ async function apolloFallback(req, res) {
     }
 
     const body = orgId
-      ? { organization_ids:[orgId], q_person_title: Q_TITLE }
-      : { organization_names:[retailer], q_person_title: Q_TITLE };
+      ? { organization_ids:[orgId], person_titles: TITLES }
+      : { organization_names:[retailer], person_titles: TITLES };
 
     const start = (cursor - 1) * BATCH + 1;
     const pages = Array.from({length:BATCH}, (_,i) => start+i);
@@ -227,8 +225,6 @@ async function apolloFallback(req, res) {
       const k = `${p.first_name}${p.last_name||""}`.toLowerCase().replace(/\s/g,"");
       if (seen.has(k)) return false; seen.add(k); return true;
     });
-    people = people.filter(p => KEYWORDS_FB.some(kw => (p.title||"").toLowerCase().includes(kw)));
-
     const leads = people.map((p,i) => ({
       id:          `apollo_${cursor}_${i}_${(p.id||"").slice(-6)}`,
       apolloId:    p.id || null,

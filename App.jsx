@@ -52,7 +52,7 @@ const TITLE_OPTIONS = [
 const QUICK_COMPANIES = ["Walmart","Sam's Club","Kroger","Target","Costco","Home Depot","CVS","Tractor Supply","Amazon","Lowe's","Publix","Walgreens","Best Buy","Dollar General","Albertsons","Dollar Tree","Aldi","Whole Foods","Meijer","HEB","Sprouts","Wegmans","Kohl's","Macy's","Nordstrom","Dick's Sporting","BJ's Wholesale","Ace Hardware","TJ Maxx","Ross","Marshalls","Safeway","Giant Eagle","ShopRite","Winn-Dixie"];
 
 export default function App() {
-  const [isSubscribed, setIsSubscribed] = useState(false);
+  const [isSubscribed, setIsSubscribed] = useState(true);
   const [showPaywall,  setShowPaywall]  = useState(false);
   const [accessCode,   setAccessCode]   = useState("");
   const [codeError,    setCodeError]    = useState("");

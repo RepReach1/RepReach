@@ -34,12 +34,28 @@ export default async function handler(req, res) {
     }
 
     const p = data?.person;
-    if (!p) return res.status(200).json({ enriched: false });
+    if (!p) return res.status(200).json({ enriched: false, _debug: { topKeys: Object.keys(data || {}), payload } });
+
+    // Log what Apollo actually returned so we can diagnose missing emails
+    console.log("Apollo enrich raw:", JSON.stringify({
+      id: p.id, name: `${p.first_name} ${p.last_name}`,
+      email: p.email, email_status: p.email_status,
+      personal_emails: p.personal_emails,
+      phone_numbers: p.phone_numbers?.length,
+      contact_emails: p.contact_emails,
+    }));
+
+    // Pull email from whichever field Apollo populated
+    const email = p.email
+      || p.contact_emails?.[0]?.email
+      || p.personal_emails?.[0]
+      || null;
 
     return res.status(200).json({
       enriched: true,
+      _debug: { email_status: p.email_status, had_email: !!p.email, had_personal: !!(p.personal_emails?.length), had_contact_emails: !!(p.contact_emails?.length) },
       // Contact
-      email:            p.email || null,
+      email,
       emailStatus:      p.email_status || null,
       personalEmails:   p.personal_emails || [],
       phone:            p.phone_numbers?.[0]?.sanitized_number || null,

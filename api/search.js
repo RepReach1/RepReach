@@ -153,94 +153,126 @@ async function apolloFallback(req, res) {
     "planner","allocation","director of","vp of","head of",
   ];
 
-  const post = (url, body) =>
+  // Try X-Api-Key header first, then api_key in body as fallback
+  const postHeader = (url, body) =>
     fetch(url, { method: "POST", headers: HEADERS, body: JSON.stringify(body) });
+  const postBody = (url, body) =>
+    fetch(url, { method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ...body, api_key: KEY }) });
+
+  // Returns { people, total, pages, status, error } — never throws
+  const apolloSearch = async (url, body, useBodyAuth = false) => {
+    try {
+      const r = useBodyAuth ? await postBody(url, body) : await postHeader(url, body);
+      const text = await r.text();
+      let d;
+      try { d = JSON.parse(text); } catch { d = { _raw: text.slice(0, 200) }; }
+      const people = d?.people || d?.contacts || [];
+      return {
+        people,
+        total:  d?.pagination?.total_entries || 0,
+        pages:  d?.pagination?.total_pages   || 1,
+        status: r.status,
+        error:  d?.error || (r.status !== 200 ? `HTTP ${r.status}` : null) || d?._raw || null,
+      };
+    } catch(e) {
+      return { people: [], total: 0, pages: 1, status: 0, error: e.message };
+    }
+  };
+
+  const debugLog = [];
 
   try {
     // ── Person name search path ──────────────────────────────────────────────
     if (personName) {
-      const r = await post("https://api.apollo.io/v1/people/search", {
-        q_person_name:  personName.trim(),
-        person_titles:  TITLES,
-        page:    1,
-        per_page: 25,
+      let d = await apolloSearch("https://api.apollo.io/v1/people/search", {
+        q_person_name: personName.trim(), person_titles: TITLES, page: 1, per_page: 25,
       });
-      const d = await r.json();
-      const people = d?.people || d?.contacts || [];
-      const leads = people.filter(p => p.first_name)
-        .map((p, i) => ({
-          id:          `apollo_pn_${i}_${(p.id||"").slice(-6)}`,
-          apolloId:    p.id || null,
-          firstName:   p.first_name  || "",
-          lastName:    p.last_name   || "",
-          title:       p.title       || "",
-          seniority:   p.seniority   || "",
-          departments: p.departments || [],
-          retailer:    p.organization_name || "",
-          email:       p.email       || null,
-          phone:       p.phone_numbers?.[0]?.sanitized_number || null,
-          location:    [p.city, p.state].filter(Boolean).join(", ") || "",
-          country:     p.country     || null,
-          linkedin:    p.linkedin_url || null,
-        }));
+      // retry with body auth if header auth failed
+      if (d.status !== 200 || d.error) {
+        d = await apolloSearch("https://api.apollo.io/v1/people/search", {
+          q_person_name: personName.trim(), page: 1, per_page: 25,
+        }, true);
+      }
+      const leads = d.people.filter(p => p.first_name).map((p, i) => ({
+        id: `apollo_pn_${i}_${(p.id||"").slice(-6)}`, apolloId: p.id || null,
+        firstName: p.first_name || "", lastName: p.last_name || "",
+        title: p.title || "", seniority: p.seniority || "",
+        departments: p.departments || [], retailer: p.organization_name || "",
+        email: p.email || null, phone: p.phone_numbers?.[0]?.sanitized_number || null,
+        location: [p.city, p.state].filter(Boolean).join(", ") || "",
+        country: p.country || null, linkedin: p.linkedin_url || null,
+      }));
       cacheToDb(leads);
-      return res.status(200).json({ leads, total: leads.length, apolloTotal: d?.pagination?.total_entries || leads.length, cursor: 1, nextCursor: null, source: "apollo_live" });
+      return res.status(200).json({ leads, total: leads.length, apolloTotal: d.total || leads.length, cursor: 1, nextCursor: null, source: "apollo_live", _debug: { status: d.status, error: d.error } });
     }
 
     // ── Retailer search path ─────────────────────────────────────────────────
     let orgId = null;
     const domain = DOMAINS[retailer.toLowerCase().trim()];
     if (domain) {
-      const r = await fetch(`https://api.apollo.io/v1/organizations/enrich?domain=${domain}`, { headers: HEADERS });
-      const d = await r.json();
-      orgId = d?.organization?.id || null;
+      try {
+        const r = await fetch(`https://api.apollo.io/v1/organizations/enrich?domain=${domain}`, { headers: HEADERS });
+        const d = await r.json();
+        orgId = d?.organization?.id || null;
+        debugLog.push({ step: "orgEnrich", status: r.status, orgId });
+      } catch(e) { debugLog.push({ step: "orgEnrich", error: e.message }); }
     }
     if (!orgId) {
-      const r = await post("https://api.apollo.io/v1/mixed_companies/search",
-        { q_organization_name: retailer, page:1, per_page:5 });
-      const d = await r.json();
-      const orgs = d?.organizations || d?.accounts || [];
-      const best = orgs.find(o => o.name?.toLowerCase()===retailer.toLowerCase()) || orgs[0];
-      if (best?.id) orgId = best.id;
+      try {
+        const r = await postHeader("https://api.apollo.io/v1/mixed_companies/search",
+          { q_organization_name: retailer, page:1, per_page:5 });
+        const d = await r.json();
+        const orgs = d?.organizations || d?.accounts || [];
+        const best = orgs.find(o => o.name?.toLowerCase()===retailer.toLowerCase()) || orgs[0];
+        if (best?.id) orgId = best.id;
+        debugLog.push({ step: "orgSearch", status: r.status, orgId, count: orgs.length });
+      } catch(e) { debugLog.push({ step: "orgSearch", error: e.message }); }
     }
 
+    // ── Try every combination to find people ─────────────────────────────────
     const pageStart = (cursor - 1) * BATCH + 1;
+    let best = null;
 
-    const fetchPages = async (body) => {
-      const pages = Array.from({length:BATCH}, (_,i) => pageStart+i);
-      const results = await Promise.all(pages.map(async pg => {
-        const r = await post("https://api.apollo.io/v1/people/search", {...body, page:pg, per_page:100});
-        const d = await r.json();
-        return { people:d?.people||d?.contacts||[], total:d?.pagination?.total_entries||0, pages:d?.pagination?.total_pages||1 };
-      }));
-      return results;
+    const attempt = async (label, url, body, useBodyAuth = false) => {
+      if (best && best.total > 0) return; // already found results
+      const result = await apolloSearch(url, { ...body, page: pageStart, per_page: 100 }, useBodyAuth);
+      debugLog.push({ step: label, status: result.status, total: result.total, error: result.error });
+      if (result.total > 0 || result.people.length > 0) best = result;
     };
 
-    // Try org_id + titles first; fall back progressively
-    let results = orgId
-      ? await fetchPages({ organization_ids:[orgId], person_titles: TITLES })
-      : null;
+    const PEOPLE_URL  = "https://api.apollo.io/v1/people/search";
+    const MIXED_URL   = "https://api.apollo.io/v1/mixed_people/search";
 
-    if (!results || results[0]?.total === 0) {
-      results = await fetchPages({ organization_names:[retailer], person_titles: TITLES });
+    if (orgId) {
+      await attempt("people/orgId+titles",      PEOPLE_URL, { organization_ids:[orgId], person_titles:TITLES });
+      await attempt("people/orgId+kw",           PEOPLE_URL, { organization_ids:[orgId], q_person_title:"buyer merchant category purchasing" });
+      await attempt("people/orgId only",         PEOPLE_URL, { organization_ids:[orgId] });
+      await attempt("people/orgId body-auth",    PEOPLE_URL, { organization_ids:[orgId] }, true);
+      await attempt("mixed/orgId body-auth",     MIXED_URL,  { organization_ids:[orgId] }, true);
     }
+    await attempt("people/orgName+titles",       PEOPLE_URL, { organization_names:[retailer], person_titles:TITLES });
+    await attempt("people/orgName+kw",           PEOPLE_URL, { organization_names:[retailer], q_person_title:"buyer merchant category" });
+    await attempt("people/orgName only",         PEOPLE_URL, { organization_names:[retailer] });
+    await attempt("people/orgName body-auth",    PEOPLE_URL, { organization_names:[retailer] }, true);
+    await attempt("mixed/orgName body-auth",     MIXED_URL,  { organization_names:[retailer] }, true);
+    await attempt("people/keyword",              PEOPLE_URL, { q_keywords:`${retailer} buyer` });
 
-    // Broaden: drop title filter if still nothing
-    if (!results || results[0]?.total === 0) {
-      results = orgId
-        ? await fetchPages({ organization_ids:[orgId] })
-        : await fetchPages({ organization_names:[retailer] });
-    }
-
-    const apolloTotal = results[0]?.total || 0;
-    const totalPages  = Math.min(results[0]?.pages || 1, 500);
-    let   people      = results.flatMap(r => r.people).filter(p => p.first_name);
+    const { people: allPeople = [], total: apolloTotal = 0, pages: totalPagesRaw = 1 } = best || {};
+    const totalPages = Math.min(totalPagesRaw, 500);
 
     const seen = new Set();
-    people = people.filter(p => {
+    let people = allPeople.filter(p => p.first_name).filter(p => {
       const k = `${p.first_name}${p.last_name||""}`.toLowerCase().replace(/\s/g,"");
       if (seen.has(k)) return false; seen.add(k); return true;
     });
+
+    // If user applied a title keyword filter, apply it here
+    if (titleKeyword && titleKeyword.trim()) {
+      const kws = titleKeyword.trim().toLowerCase().split(/[\s,]+/).filter(Boolean);
+      people = people.filter(p => kws.some(kw => (p.title||"").toLowerCase().includes(kw)));
+    }
+
     const leads = people.map((p,i) => ({
       id:          `apollo_${cursor}_${i}_${(p.id||"").slice(-6)}`,
       apolloId:    p.id || null,
@@ -259,8 +291,8 @@ async function apolloFallback(req, res) {
 
     const nextCursor = pageStart + BATCH <= totalPages ? cursor + 1 : null;
     cacheToDb(leads);
-    return res.status(200).json({ leads, total:leads.length, apolloTotal, cursor, nextCursor, source:"apollo_live" });
+    return res.status(200).json({ leads, total:leads.length, apolloTotal, cursor, nextCursor, source:"apollo_live", _debug: debugLog });
   } catch(e) {
-    return res.status(500).json({ error: e.message, leads: [] });
+    return res.status(500).json({ error: e.message, leads: [], _debug: debugLog });
   }
 }

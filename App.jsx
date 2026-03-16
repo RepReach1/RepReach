@@ -258,11 +258,15 @@ export default function App() {
       });
       const data = await res.json();
       setEnriched(prev => ({ ...prev, [lead.id]: data }));
-      // Also update the lead in the leads array with the revealed info
-      setLeads(prev => prev.map(l => l.id === lead.id
-        ? { ...l, email: data.email || l.email, phone: data.phone || l.phone }
-        : l
-      ));
+      const patch = {
+        email:       data.email       || lead.email  || null,
+        phone:       data.phone       || lead.phone  || null,
+        emailStatus: data.emailStatus || null,
+        enriched:    true,
+      };
+      setLeads(prev => prev.map(l => l.id === lead.id ? { ...l, ...patch } : l));
+      // Keep the active lead panel in sync
+      setActiveLead(prev => prev?.id === lead.id ? { ...prev, ...patch } : prev);
     } catch(e) { console.error("Enrich failed:", e); }
     setEnriching(prev => { const n = new Set(prev); n.delete(lead.id); return n; });
   }, [isSubscribed]);
@@ -1426,7 +1430,9 @@ ONLY JSON: {"summary":"...","outcomes":["..."],"actionItems":["..."],"nextSteps"
                                     ? <button className="cbtn cb-email" onClick={()=>copy(lead.email,"e_"+lead.id)}>✉ {copied==="e_"+lead.id?"Copied!":lead.email.length>22?lead.email.slice(0,22)+"…":lead.email}</button>
                                     : enriching.has(lead.id)
                                       ? <span className="cbtn cb-gen"><span className="spin" style={{width:10,height:10}}/>Revealing...</span>
-                                      : <button className="cbtn cb-gen" onClick={()=>enrichContact(lead)}>⚡ Reveal</button>
+                                      : lead.enriched
+                                        ? <span style={{color:"#475569",fontSize:10}}>No email</span>
+                                        : <button className="cbtn cb-gen" onClick={()=>enrichContact(lead)}>⚡ Reveal</button>
                                 }
                               </td>
                               <td onClick={e=>e.stopPropagation()}>
@@ -1512,7 +1518,9 @@ ONLY JSON: {"summary":"...","outcomes":["..."],"actionItems":["..."],"nextSteps"
                     ? <div className="dp-row"><span className="dp-icon">✉</span><span className="dp-val">{activeLead.email}{activeLead.emailStatus && <span style={{marginLeft:5,fontSize:10,color:"#4ade80",fontWeight:700}}>{activeLead.emailStatus}</span>}</span><button className="dp-copy" onClick={()=>copy(activeLead.email,"de")}>{copied==="de"?"✓":"Copy"}</button></div>
                     : enriching.has(activeLead.id)
                       ? <div className="dp-row"><span className="dp-icon">✉</span><span style={{color:"#00c8ff",fontSize:11,display:"flex",alignItems:"center",gap:6}}><span className="spin" style={{width:11,height:11}}/>Revealing...</span></div>
-                      : <div className="dp-row"><span className="dp-icon">✉</span><span style={{color:"#334155",fontSize:11,flex:1}}>Not revealed</span><button className="dp-copy" onClick={()=>enrichContact(activeLead)}>⚡ Reveal</button></div>
+                      : activeLead.enriched
+                        ? <div className="dp-row"><span className="dp-icon">✉</span><span style={{color:"#64748b",fontSize:11,flex:1}}>No email on record{activeLead.emailStatus==="unavailable"?" (unavailable in Apollo)":""}</span></div>
+                        : <div className="dp-row"><span className="dp-icon">✉</span><span style={{color:"#334155",fontSize:11,flex:1}}>Not revealed</span><button className="dp-copy" onClick={()=>enrichContact(activeLead)}>⚡ Reveal</button></div>
                   }
                   {/* Personal emails */}
                   {(activeLead.personalEmails||[]).map((em,i) => (

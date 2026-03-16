@@ -255,6 +255,7 @@ async function fetchBuyers(companies) {
         const d = await withRetry(() => post("https://api.apollo.io/v1/mixed_people/api_search", {
           organization_ids: orgIds,
           q_person_title: "buyer merchant category purchasing procurement sourcing merchandising",
+          contact_email_status_cd: ["verified", "guessed", "database"],
           page,
           per_page: 100,
         }));

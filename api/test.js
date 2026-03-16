@@ -1,70 +1,64 @@
 export default async function handler(req, res) {
   const KEY = process.env.APOLLO_API_KEY;
-  if (!KEY) return res.status(500).json({ error: "APOLLO_API_KEY not set" });
+  if (!KEY) return res.status(500).json({ error: "APOLLO_API_KEY not set", keySet: false });
 
-  const results = {};
-  const xHeader = { "Content-Type": "application/json", "X-Api-Key": KEY };
+  const results = { keyPrefix: KEY.slice(0, 8) + "..." };
+  const H = { "Content-Type": "application/json", "X-Api-Key": KEY };
 
-  const postH = (url, body) =>
-    fetch(url, { method: "POST", headers: xHeader, body: JSON.stringify(body) });
-  const postB = (url, body) =>
-    fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ...body, api_key: KEY }) });
+  const safe = async (fn) => {
+    try {
+      const r = await Promise.race([fn(), new Promise((_, j) => setTimeout(() => j(new Error("timeout")), 8000))]);
+      const text = await r.text();
+      let d; try { d = JSON.parse(text); } catch { d = { _raw: text.slice(0, 300) }; }
+      const arr = d?.people || d?.contacts || d?.organizations || d?.accounts || [];
+      return {
+        status: r.status,
+        total: d?.pagination?.total_entries ?? (arr.length || null),
+        count: arr.length,
+        error: d?.error || d?._raw || null,
+        sample: arr.slice(0, 2).map(p => ({ name: `${p.first_name||p.name||"?"} ${p.last_name||""}`.trim(), title: p.title, org: p.organization_name })),
+      };
+    } catch(e) { return { error: e.message }; }
+  };
 
-  // 1. Org enrich (known-working)
-  try {
-    const r = await fetch("https://api.apollo.io/v1/organizations/enrich?domain=walmart.com", { headers: xHeader });
-    const d = await r.json();
-    results.orgEnrich = { status: r.status, orgId: d?.organization?.id || null, error: d?.error || null };
-  } catch(e) { results.orgEnrich = { error: e.message }; }
+  // 1. Org enrich — GET, known working
+  results.t1_orgEnrich = await safe(() =>
+    fetch("https://api.apollo.io/v1/organizations/enrich?domain=walmart.com", { headers: H }));
 
-  // 2. people/search with X-Api-Key header
-  try {
-    const r = await postH("https://api.apollo.io/v1/people/search",
-      { organization_names: ["Walmart"], person_titles: ["buyer"], page: 1, per_page: 3 });
-    const d = await r.json();
-    results.peopleSearchHeader = { status: r.status, count: d?.people?.length ?? 0, total: d?.pagination?.total_entries ?? 0, error: d?.error || null, raw: d?.people ? "has_people_key" : Object.keys(d||{}).join(",") };
-  } catch(e) { results.peopleSearchHeader = { error: e.message }; }
+  // 2. people/search — X-Api-Key header
+  results.t2_peopleHeader = await safe(() =>
+    fetch("https://api.apollo.io/v1/people/search", { method:"POST", headers:H,
+      body: JSON.stringify({ organization_names:["Walmart"], page:1, per_page:5 }) }));
 
-  // 3. people/search with api_key in body
-  try {
-    const r = await postB("https://api.apollo.io/v1/people/search",
-      { organization_names: ["Walmart"], person_titles: ["buyer"], page: 1, per_page: 3 });
-    const d = await r.json();
-    results.peopleSearchBody = { status: r.status, count: d?.people?.length ?? 0, total: d?.pagination?.total_entries ?? 0, error: d?.error || null };
-  } catch(e) { results.peopleSearchBody = { error: e.message }; }
+  // 3. people/search — api_key in body
+  results.t3_peopleBody = await safe(() =>
+    fetch("https://api.apollo.io/v1/people/search", { method:"POST", headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({ api_key:KEY, organization_names:["Walmart"], page:1, per_page:5 }) }));
 
-  // 4. mixed_people/search with api_key in body (original endpoint, different auth)
-  try {
-    const r = await postB("https://api.apollo.io/v1/mixed_people/search",
-      { organization_names: ["Walmart"], person_titles: ["buyer"], page: 1, per_page: 3 });
-    const d = await r.json();
-    results.mixedPeopleBody = { status: r.status, count: d?.people?.length ?? 0, total: d?.pagination?.total_entries ?? 0, error: d?.error || null };
-  } catch(e) { results.mixedPeopleBody = { error: e.message }; }
+  // 4. people/search — api_key as query param
+  results.t4_peopleQueryParam = await safe(() =>
+    fetch(`https://api.apollo.io/v1/people/search?api_key=${KEY}`, { method:"POST", headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({ organization_names:["Walmart"], page:1, per_page:5 }) }));
 
-  // 5. contacts/search
-  try {
-    const r = await postH("https://api.apollo.io/v1/contacts/search",
-      { organization_names: ["Walmart"], person_titles: ["buyer"], page: 1, per_page: 3 });
-    const d = await r.json();
-    results.contactsSearch = { status: r.status, count: d?.contacts?.length ?? 0, total: d?.pagination?.total_entries ?? 0, error: d?.error || null };
-  } catch(e) { results.contactsSearch = { error: e.message }; }
+  // 5. mixed_people/search — api_key in body (old auth method)
+  results.t5_mixedPeopleBody = await safe(() =>
+    fetch("https://api.apollo.io/v1/mixed_people/search", { method:"POST", headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({ api_key:KEY, organization_names:["Walmart"], page:1, per_page:5 }) }));
 
-  // 6. people/search — no title filter, just org
-  try {
-    const r = await postH("https://api.apollo.io/v1/people/search",
-      { organization_names: ["Walmart"], page: 1, per_page: 3 });
-    const d = await r.json();
-    results.peopleNoFilter = { status: r.status, count: d?.people?.length ?? 0, total: d?.pagination?.total_entries ?? 0, error: d?.error || null, sample: (d?.people||[]).slice(0,2).map(p=>({ name:`${p.first_name} ${p.last_name}`, title:p.title })) };
-  } catch(e) { results.peopleNoFilter = { error: e.message }; }
+  // 6. contacts/search — header auth
+  results.t6_contactsHeader = await safe(() =>
+    fetch("https://api.apollo.io/v1/contacts/search", { method:"POST", headers:H,
+      body: JSON.stringify({ organization_names:["Walmart"], page:1, per_page:5 }) }));
 
-  // 7. mixed_companies/search (org discovery)
-  try {
-    const r = await postH("https://api.apollo.io/v1/mixed_companies/search",
-      { q_organization_name: "Walmart", page: 1, per_page: 3 });
-    const d = await r.json();
-    const orgs = d?.organizations || d?.accounts || [];
-    results.mixedCompanies = { status: r.status, count: orgs.length, error: d?.error || null, first: orgs[0]?.name || null };
-  } catch(e) { results.mixedCompanies = { error: e.message }; }
+  // 7. mixed_companies/search — header auth
+  results.t7_mixedCompanies = await safe(() =>
+    fetch("https://api.apollo.io/v1/mixed_companies/search", { method:"POST", headers:H,
+      body: JSON.stringify({ q_organization_name:"Walmart", page:1, per_page:3 }) }));
+
+  // 8. people/search — no filter at all, just page
+  results.t8_peopleNoFilter = await safe(() =>
+    fetch("https://api.apollo.io/v1/people/search", { method:"POST", headers:H,
+      body: JSON.stringify({ page:1, per_page:3 }) }));
 
   return res.status(200).json(results);
 }

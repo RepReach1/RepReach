@@ -60,5 +60,13 @@ export default async function handler(req, res) {
     fetch("https://api.apollo.io/v1/people/search", { method:"POST", headers:H,
       body: JSON.stringify({ page:1, per_page:3 }) }));
 
+  // 9. Account / current user info
+  results.t9_accountInfo = await safe(() =>
+    fetch("https://api.apollo.io/v1/users/me", { headers: H }));
+
+  // 10. Health / ping
+  results.t10_health = await safe(() =>
+    fetch("https://api.apollo.io/health", { headers: H }));
+
   return res.status(200).json(results);
 }

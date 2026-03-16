@@ -119,8 +119,11 @@ function cacheToDb(newLeads) {
 async function apolloFallback(req, res) {
   const { retailer, titleKeyword, personName, cursor = 1 } = req.body;
 
-  const KEY     = process.env.APOLLO_API_KEY;
-  const HEADERS = { "Content-Type": "application/json", "Cache-Control": "no-cache", "X-Api-Key": KEY };
+  // Apollo uses TWO separate keys: Search key for people/search, Enrichment key for org/enrich + people/match
+  const SEARCH_KEY  = process.env.APOLLO_SEARCH_KEY || process.env.APOLLO_API_KEY;
+  const ENRICH_KEY  = process.env.APOLLO_API_KEY;
+  const HEADERS     = { "Content-Type": "application/json", "Cache-Control": "no-cache", "X-Api-Key": SEARCH_KEY };
+  const ENRICH_HDR  = { "Content-Type": "application/json", "X-Api-Key": ENRICH_KEY };
   const BATCH   = 5;
 
   const DOMAINS = {
@@ -158,7 +161,7 @@ async function apolloFallback(req, res) {
     fetch(url, { method: "POST", headers: HEADERS, body: JSON.stringify(body) });
   const postBody = (url, body) =>
     fetch(url, { method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ...body, api_key: KEY }) });
+      body: JSON.stringify({ ...body, api_key: SEARCH_KEY }) });
 
   // Returns { people, total, pages, status, error } — never throws
   const apolloSearch = async (url, body, useBodyAuth = false) => {
@@ -212,7 +215,7 @@ async function apolloFallback(req, res) {
     const domain = DOMAINS[retailer.toLowerCase().trim()];
     if (domain) {
       try {
-        const r = await fetch(`https://api.apollo.io/v1/organizations/enrich?domain=${domain}`, { headers: HEADERS });
+        const r = await fetch(`https://api.apollo.io/v1/organizations/enrich?domain=${domain}`, { headers: ENRICH_HDR });
         const d = await r.json();
         orgId = d?.organization?.id || null;
         debugLog.push({ step: "orgEnrich", status: r.status, orgId });

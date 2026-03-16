@@ -2,7 +2,8 @@
 /**
  * Run: APOLLO_API_KEY=your_key node scripts/test-apollo.js
  */
-const KEY = process.env.APOLLO_API_KEY || "xHkG62bA8-6XFutAKMgrFQ";
+const KEY = process.env.APOLLO_API_KEY;
+if (!KEY) { console.error("Set APOLLO_API_KEY env var"); process.exit(1); }
 const h = { "Content-Type": "application/json", "X-Api-Key": KEY };
 
 const postH = (url, body) =>

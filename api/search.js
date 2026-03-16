@@ -196,7 +196,7 @@ async function apolloFallback(req, res) {
       orgId = d?.organization?.id || null;
     }
     if (!orgId) {
-      const r = await post("https://api.apollo.io/v1/organizations/search",
+      const r = await post("https://api.apollo.io/v1/mixed_companies/search",
         { q_organization_name: retailer, page:1, per_page:5 });
       const d = await r.json();
       const orgs = d?.organizations || d?.accounts || [];

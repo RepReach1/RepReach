@@ -252,9 +252,8 @@ async function fetchBuyers(companies) {
 
     for (let page = 1; page <= BUYER_PAGES_PER_ORG_BATCH; page++) {
       try {
-        const d = await withRetry(() => post("https://api.apollo.io/v1/mixed_people/search", {
+        const d = await withRetry(() => post("https://api.apollo.io/v1/mixed_people/api_search", {
           organization_ids: orgIds,
-          // q_person_title does fuzzy keyword search; person_titles requires near-exact match
           q_person_title: "buyer merchant category purchasing procurement sourcing merchandising",
           page,
           per_page: 100,

@@ -30,7 +30,7 @@ export default async function handler(req, res) {
   };
 
   await run("orgEnrich",    () => fetch("https://api.apollo.io/v1/organizations/enrich?domain=walmart.com", { headers: H }));
-  await run("peopleSearch", () => fetch("https://api.apollo.io/v1/people/search", { method: "POST", headers: H, body: JSON.stringify({ organization_names: ["Walmart"], page: 1, per_page: 5 }) }));
+  await run("peopleSearch", () => fetch("https://api.apollo.io/v1/mixed_people/api_search", { method: "POST", headers: H, body: JSON.stringify({ organization_names: ["Walmart"], page: 1, per_page: 5 }) }));
   await run("enrichTest",   () => fetch("https://api.apollo.io/v1/people/match", { method: "POST", headers: H, body: JSON.stringify({ first_name: "John", last_name: "Furner", organization_name: "Walmart" }) }));
 
   const allWork = Object.values(out.tests).every(t => t.works);

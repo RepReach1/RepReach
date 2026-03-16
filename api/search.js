@@ -186,12 +186,11 @@ async function apolloFallback(req, res) {
   try {
     // ── Person name search path ──────────────────────────────────────────────
     if (personName) {
-      let d = await apolloSearch("https://api.apollo.io/v1/people/search", {
+      let d = await apolloSearch("https://api.apollo.io/v1/mixed_people/api_search", {
         q_person_name: personName.trim(), person_titles: TITLES, page: 1, per_page: 25,
       });
-      // retry with body auth if header auth failed
       if (d.status !== 200 || d.error) {
-        d = await apolloSearch("https://api.apollo.io/v1/people/search", {
+        d = await apolloSearch("https://api.apollo.io/v1/mixed_people/api_search", {
           q_person_name: personName.trim(), page: 1, per_page: 25,
         }, true);
       }
@@ -242,22 +241,19 @@ async function apolloFallback(req, res) {
       if (result.total > 0 || result.people.length > 0) best = result;
     };
 
-    const PEOPLE_URL  = "https://api.apollo.io/v1/people/search";
-    const MIXED_URL   = "https://api.apollo.io/v1/mixed_people/search";
+    const SEARCH_URL = "https://api.apollo.io/v1/mixed_people/api_search";
 
     if (orgId) {
-      await attempt("people/orgId+titles",      PEOPLE_URL, { organization_ids:[orgId], person_titles:TITLES });
-      await attempt("people/orgId+kw",           PEOPLE_URL, { organization_ids:[orgId], q_person_title:"buyer merchant category purchasing" });
-      await attempt("people/orgId only",         PEOPLE_URL, { organization_ids:[orgId] });
-      await attempt("people/orgId body-auth",    PEOPLE_URL, { organization_ids:[orgId] }, true);
-      await attempt("mixed/orgId body-auth",     MIXED_URL,  { organization_ids:[orgId] }, true);
+      await attempt("mixed/orgId+titles",   SEARCH_URL, { organization_ids:[orgId], person_titles:TITLES });
+      await attempt("mixed/orgId+kw",       SEARCH_URL, { organization_ids:[orgId], q_person_title:"buyer merchant category purchasing" });
+      await attempt("mixed/orgId only",     SEARCH_URL, { organization_ids:[orgId] });
+      await attempt("mixed/orgId body",     SEARCH_URL, { organization_ids:[orgId] }, true);
     }
-    await attempt("people/orgName+titles",       PEOPLE_URL, { organization_names:[retailer], person_titles:TITLES });
-    await attempt("people/orgName+kw",           PEOPLE_URL, { organization_names:[retailer], q_person_title:"buyer merchant category" });
-    await attempt("people/orgName only",         PEOPLE_URL, { organization_names:[retailer] });
-    await attempt("people/orgName body-auth",    PEOPLE_URL, { organization_names:[retailer] }, true);
-    await attempt("mixed/orgName body-auth",     MIXED_URL,  { organization_names:[retailer] }, true);
-    await attempt("people/keyword",              PEOPLE_URL, { q_keywords:`${retailer} buyer` });
+    await attempt("mixed/orgName+titles",   SEARCH_URL, { organization_names:[retailer], person_titles:TITLES });
+    await attempt("mixed/orgName+kw",       SEARCH_URL, { organization_names:[retailer], q_person_title:"buyer merchant category" });
+    await attempt("mixed/orgName only",     SEARCH_URL, { organization_names:[retailer] });
+    await attempt("mixed/orgName body",     SEARCH_URL, { organization_names:[retailer] }, true);
+    await attempt("mixed/keyword",          SEARCH_URL, { q_keywords:`${retailer} buyer` });
 
     const { people: allPeople = [], total: apolloTotal = 0, pages: totalPagesRaw = 1 } = best || {};
     const totalPages = Math.min(totalPagesRaw, 500);

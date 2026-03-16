@@ -53,28 +53,28 @@ await test("GET organizations/enrich (walmart.com)", async () => {
 
 // 2. people/search header auth
 const r2 = await test("POST people/search header auth (Walmart buyers)", async () => {
-  const r = await postH("https://api.apollo.io/v1/people/search",
+  const r = await postH("https://api.apollo.io/v1/mixed_people/api_search",
     { organization_names: ["Walmart"], page: 1, per_page: 5 });
   return parseSearch(r);
 });
 
 // 3. people/search body auth
 await test("POST people/search body auth (Walmart)", async () => {
-  const r = await postB("https://api.apollo.io/v1/people/search",
+  const r = await postB("https://api.apollo.io/v1/mixed_people/api_search",
     { organization_names: ["Walmart"], page: 1, per_page: 5 });
   return parseSearch(r);
 });
 
 // 4. mixed_people/search header auth
 await test("POST mixed_people/search header auth", async () => {
-  const r = await postH("https://api.apollo.io/v1/mixed_people/search",
+  const r = await postH("https://api.apollo.io/v1/mixed_people/api_search",
     { organization_names: ["Walmart"], page: 1, per_page: 5 });
   return parseSearch(r);
 });
 
 // 5. mixed_people/search body auth
 await test("POST mixed_people/search body auth", async () => {
-  const r = await postB("https://api.apollo.io/v1/mixed_people/search",
+  const r = await postB("https://api.apollo.io/v1/mixed_people/api_search",
     { organization_names: ["Walmart"], page: 1, per_page: 5 });
   return parseSearch(r);
 });

@@ -7,6 +7,13 @@ const PAYMENT_LINK         = "https://buy.stripe.com/8x200j5GZaO9aYZb7A2Ji00"; /
 const PAYMENT_LINK_STARTER = "https://buy.stripe.com/8x200j5GZaO9aYZb7A2Ji00"; // TODO: replace
 const PAYMENT_LINK_TEAM    = "https://buy.stripe.com/8x200j5GZaO9aYZb7A2Ji00"; // TODO: replace
 const PAYMENT_LINK_ENT     = "https://buy.stripe.com/8x200j5GZaO9aYZb7A2Ji00"; // TODO: replace
+
+const PLANS = {
+  starter:    { label:"Starter",    searchLimit:10,  enrichDay:3,  ai:false, sequences:false, pipeline:false, intelligence:false },
+  pro:        { label:"Pro",        searchLimit:500, enrichDay:Infinity, ai:true, sequences:true,  pipeline:true,  intelligence:true  },
+  team:       { label:"Team",       searchLimit:500, enrichDay:Infinity, ai:true, sequences:true,  pipeline:true,  intelligence:true  },
+  enterprise: { label:"Enterprise", searchLimit:500, enrichDay:Infinity, ai:true, sequences:true,  pipeline:true,  intelligence:true  },
+};
 const ACCESS_CODE  = "Championsucks";
 
 async function apolloSearch(retailer, titles) {
@@ -55,7 +62,9 @@ const TITLE_OPTIONS = [
 const QUICK_COMPANIES = ["Walmart","Sam's Club","Kroger","Target","Costco","Home Depot","CVS","Tractor Supply","Amazon","Lowe's","Publix","Walgreens","Best Buy","Dollar General","Albertsons","Dollar Tree","Aldi","Whole Foods","Meijer","HEB","Sprouts","Wegmans","Kohl's","Macy's","Nordstrom","Dick's Sporting","BJ's Wholesale","Ace Hardware","TJ Maxx","Ross","Marshalls","Safeway","Giant Eagle","ShopRite","Winn-Dixie"];
 
 export default function App() {
-  const [isSubscribed, setIsSubscribed] = useState(() => lsGet("rr_subscribed", false));
+  const [plan,         setPlan]         = useState(() => lsGet("rr_plan", null));
+  const isSubscribed = !!plan;
+  const planLimits   = PLANS[plan] || null;
   const [showPaywall,  setShowPaywall]  = useState(false);
   const [accessCode,   setAccessCode]   = useState("");
   const [codeError,    setCodeError]    = useState("");
@@ -246,6 +255,13 @@ export default function App() {
 
   const enrichContact = useCallback(async (lead) => {
     if (!isSubscribed) { setShowPaywall(true); return; }
+    if (plan === "starter") {
+      const today = new Date().toDateString();
+      const rec   = lsGet("rr_enrich_day", { date: "", count: 0 });
+      const count = rec.date === today ? rec.count : 0;
+      if (count >= PLANS.starter.enrichDay) { setShowPaywall(true); return; }
+      lsSave("rr_enrich_day", { date: today, count: count + 1 });
+    }
     setEnriching(prev => new Set([...prev, lead.id]));
     try {
       const res = await fetch("/api/enrich", {
@@ -272,7 +288,7 @@ export default function App() {
       setActiveLead(prev => prev?.id === lead.id ? { ...prev, ...patch } : prev);
     } catch(e) { console.error("Enrich failed:", e); }
     setEnriching(prev => { const n = new Set(prev); n.delete(lead.id); return n; });
-  }, [isSubscribed]);
+  }, [isSubscribed, plan]);
 
   const handleCompanyInput = (val) => {
     setCompanyInput(val);
@@ -568,6 +584,14 @@ ONLY JSON: {"subject":"...","body":"..."}`
         .pw-x{position:absolute;top:14px;right:16px;background:none;border:none;color:var(--text3);font-size:22px;cursor:pointer;line-height:1}
         .pw-x:hover{color:var(--text)}
         .pw-divider{text-align:center;color:var(--text3);font-size:11px;margin:14px 0;font-weight:600;letter-spacing:.6px}
+
+        /* ─── PLAN GATES ─── */
+        .plan-gate{display:flex;flex-direction:column;align-items:center;justify-content:center;flex:1;padding:60px 24px;text-align:center;gap:14px}
+        .plan-gate-icon{font-size:48px;line-height:1;margin-bottom:4px;filter:grayscale(1);opacity:.4}
+        .plan-gate h3{font-family:'Bricolage Grotesque',sans-serif;font-size:20px;font-weight:800;color:var(--text);letter-spacing:-.3px;margin:0}
+        .plan-gate p{font-size:13px;color:var(--text2);line-height:1.65;max-width:340px;margin:0;font-weight:500}
+        .plan-limit-row{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:14px 20px;background:linear-gradient(90deg,rgba(0,200,255,.06),rgba(0,200,255,.03));border-top:1px dashed rgba(0,200,255,.2);font-size:12px;color:var(--text2);font-weight:600}
+        @media(max-width:600px){.plan-limit-row{flex-direction:column;align-items:flex-start}}
         .code-wrap{display:flex;gap:8px}
         .code-in{flex:1;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:10px 13px;font-size:13px;color:var(--text);outline:none;font-weight:500}
         .code-in::placeholder{color:var(--text3)}
@@ -795,8 +819,8 @@ ONLY JSON: {"subject":"...","body":"..."}`
               <div className="code-wrap">
                 <input className="code-in" placeholder="Access code" value={accessCode}
                   onChange={e => setAccessCode(e.target.value)}
-                  onKeyDown={e => { if(e.key==="Enter"){ if(accessCode.trim()===ACCESS_CODE){lsSave("rr_subscribed",true);setIsSubscribed(true);setShowPaywall(false);setCodeError("");}else{setCodeError("Invalid code.");} }}} />
-                <button className="btn btn-teal" onClick={() => { if(accessCode.trim()===ACCESS_CODE){lsSave("rr_subscribed",true);setIsSubscribed(true);setShowPaywall(false);setCodeError("");}else{setCodeError("Invalid code.");} }}>Apply</button>
+                  onKeyDown={e => { if(e.key==="Enter"){ if(accessCode.trim()===ACCESS_CODE){lsSave("rr_plan","pro");setPlan("pro");setShowPaywall(false);setCodeError("");}else{setCodeError("Invalid code.");} }}} />
+                <button className="btn btn-teal" onClick={() => { if(accessCode.trim()===ACCESS_CODE){lsSave("rr_plan","pro");setPlan("pro");setShowPaywall(false);setCodeError("");}else{setCodeError("Invalid code.");} }}>Apply</button>
               </div>
               {codeError && <div className="err">{codeError}</div>}
             </div>
@@ -890,8 +914,8 @@ ONLY JSON: {"subject":"...","body":"..."}`
                 placeholder="Search any retailer — or type a person's name..." />
             </div>
             <div className="topbar-right">
-              {isSubscribed
-                ? <span className="pro-badge">✓ Pro Active</span>
+              {plan
+                ? <span className="pro-badge" title={`${PLANS[plan]?.label} plan`}>✓ {PLANS[plan]?.label} Active</span>
                 : <button className="btn btn-amber btn-sm" onClick={() => setShowPaywall(true)}>⚡ Upgrade to Pro</button>
               }
             </div>
@@ -917,6 +941,7 @@ ONLY JSON: {"subject":"...","body":"..."}`
 
               {/* ── PIPELINE VIEW ── */}
               {view === "pipeline" && (() => {
+                if (planLimits && !planLimits.pipeline) return <div className="plan-gate"><div className="plan-gate-icon">📊</div><h3>Pipeline — Pro Feature</h3><p>Track every deal from first contact to purchase order. Available on Pro and above.</p><button className="btn btn-teal" onClick={()=>setShowPaywall(true)}>⚡ Upgrade to Pro</button></div>;
                 const STAGES = [
                   {id:"Lead",        color:"#64748b", pct:10},
                   {id:"Contacted",   color:"#38bdf8", pct:25},
@@ -1006,6 +1031,7 @@ ONLY JSON: {"subject":"...","body":"..."}`
 
               {/* ── SEQUENCES VIEW ── */}
               {view === "sequences" && (() => {
+                if (planLimits && !planLimits.sequences) return <div className="plan-gate"><div className="plan-gate-icon">⚡</div><h3>Sequences — Pro Feature</h3><p>Automate your entire outreach with multi-step email and LinkedIn sequences. Available on Pro and above.</p><button className="btn btn-teal" onClick={()=>setShowPaywall(true)}>⚡ Upgrade to Pro</button></div>;
                 const saveSeq = () => {
                   if(!seqForm.name) return;
                   setSequences(p=>[...p,{...seqForm,id:Date.now()+"",createdAt:new Date().toISOString()}]);
@@ -1148,6 +1174,7 @@ ONLY JSON: {"subject":"...","body":"..."}`
 
               {/* ── AI TOOLS VIEW ── */}
               {view === "aitools" && (() => {
+                if (planLimits && !planLimits.ai) return <div className="plan-gate"><div className="plan-gate-icon">🧠</div><h3>AI Tools — Pro Feature</h3><p>Generate personalized cold emails, LinkedIn messages, and follow-ups with AI. Available on Pro and above.</p><button className="btn btn-teal" onClick={()=>setShowPaywall(true)}>⚡ Upgrade to Pro</button></div>;
                 const AI_TOOLS = [
                   {id:"pitch",      label:"Pitch Builder",       icon:"🎯", desc:"Generate a tailored pitch for any buyer"},
                   {id:"objection",  label:"Objection Handler",   icon:"🛡️", desc:"Overcome common buyer objections"},
@@ -1221,6 +1248,7 @@ ONLY JSON: {"subject":"...","body":"..."}`
 
               {/* ── INTELLIGENCE VIEW ── */}
               {view === "intelligence" && (() => {
+                if (planLimits && !planLimits.intelligence) return <div className="plan-gate"><div className="plan-gate-icon">🔭</div><h3>Intelligence — Pro Feature</h3><p>Research any retailer's buying strategy, trends, and priorities with AI. Available on Pro and above.</p><button className="btn btn-teal" onClick={()=>setShowPaywall(true)}>⚡ Upgrade to Pro</button></div>;
                 const runIntel = async () => {
                   if(!intelQuery.trim()) return;
                   setIntelLoading(true); setIntelResult(null);
@@ -1458,7 +1486,7 @@ ONLY JSON: {"summary":"...","outcomes":["..."],"actionItems":["..."],"nextSteps"
                         </tr>
                       </thead>
                       <tbody>
-                        {leads.map((lead, i) => {
+                        {leads.slice(0, planLimits ? planLimits.searchLimit : leads.length).map((lead, i) => {
                           const color  = AV_COLORS[i % AV_COLORS.length];
                           const st     = getStatus(lead.id);
                           const isSel  = selected.has(lead.id);
@@ -1515,6 +1543,16 @@ ONLY JSON: {"summary":"...","outcomes":["..."],"actionItems":["..."],"nextSteps"
                             </tr>
                           );
                         })}
+                        {planLimits && leads.length > planLimits.searchLimit && (
+                          <tr>
+                            <td colSpan={8} style={{padding:0}}>
+                              <div className="plan-limit-row">
+                                <span>Showing {planLimits.searchLimit} of {leads.length.toLocaleString()} contacts — Starter plan limit</span>
+                                <button className="btn btn-teal btn-sm" onClick={() => setShowPaywall(true)}>⚡ Upgrade to Pro for all {leads.length.toLocaleString()} contacts →</button>
+                              </div>
+                            </td>
+                          </tr>
+                        )}
                       </tbody>
                     </table>
                   </div>

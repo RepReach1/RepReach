@@ -3,8 +3,8 @@ import { useState, useCallback, useRef, useEffect } from "react";
 function lsGet(k, def) { try { const v=localStorage.getItem(k); return v?JSON.parse(v):def; } catch{ return def; } }
 function lsSave(k, v) { try { localStorage.setItem(k,JSON.stringify(v)); } catch{} }
 
-const PAYMENT_LINK         = "https://buy.stripe.com/8x200j5GZaO9aYZb7A2Ji00"; // Pro (best value)
-const PAYMENT_LINK_STARTER = "https://buy.stripe.com/8x200j5GZaO9aYZb7A2Ji00"; // TODO: replace
+const PAYMENT_LINK         = "https://buy.stripe.com/7sY7sL4CV9K56IJ3F82Ji03"; // Pro (best value)
+const PAYMENT_LINK_STARTER = "https://buy.stripe.com/dRm28r8Tb6xTd77fnQ2Ji04";
 const PAYMENT_LINK_TEAM    = "https://buy.stripe.com/8x200j5GZaO9aYZb7A2Ji00"; // TODO: replace
 const PAYMENT_LINK_ENT     = "https://buy.stripe.com/8x200j5GZaO9aYZb7A2Ji00"; // TODO: replace
 

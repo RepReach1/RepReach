@@ -3,7 +3,10 @@ import { useState, useCallback, useRef, useEffect } from "react";
 function lsGet(k, def) { try { const v=localStorage.getItem(k); return v?JSON.parse(v):def; } catch{ return def; } }
 function lsSave(k, v) { try { localStorage.setItem(k,JSON.stringify(v)); } catch{} }
 
-const PAYMENT_LINK = "https://buy.stripe.com/8x200j5GZaO9aYZb7A2Ji00";
+const PAYMENT_LINK         = "https://buy.stripe.com/8x200j5GZaO9aYZb7A2Ji00"; // Pro (best value)
+const PAYMENT_LINK_STARTER = "https://buy.stripe.com/8x200j5GZaO9aYZb7A2Ji00"; // TODO: replace
+const PAYMENT_LINK_TEAM    = "https://buy.stripe.com/8x200j5GZaO9aYZb7A2Ji00"; // TODO: replace
+const PAYMENT_LINK_ENT     = "https://buy.stripe.com/8x200j5GZaO9aYZb7A2Ji00"; // TODO: replace
 const ACCESS_CODE  = "Championsucks";
 
 async function apolloSearch(retailer, titles) {
@@ -533,20 +536,35 @@ ONLY JSON: {"subject":"...","body":"..."}`
         .pulsing{animation:pulse 1.4s ease-in-out infinite}
 
         /* ─── PAYWALL ─── */
-        .pw-overlay{position:fixed;inset:0;background:rgba(4,5,12,.88);backdrop-filter:blur(10px);z-index:999;display:flex;align-items:center;justify-content:center;padding:20px}
-        .pw-modal{background:var(--bg2);border:1px solid var(--border);border-radius:20px;max-width:440px;width:100%;overflow:hidden;box-shadow:0 32px 80px rgba(0,0,0,.7),0 0 0 1px rgba(0,200,255,.06);position:relative}
-        .pw-head{background:linear-gradient(135deg,var(--bg),#050818);padding:32px;text-align:center;border-bottom:1px solid rgba(0,200,255,.1)}
-        .pw-glow{width:62px;height:62px;background:linear-gradient(135deg,var(--teal),var(--teal2));border-radius:18px;display:flex;align-items:center;justify-content:center;font-size:28px;margin:0 auto 18px;box-shadow:0 0 36px var(--teal-glow)}
-        .pw-head h2{font-family:'Bricolage Grotesque',sans-serif;font-size:24px;font-weight:800;color:var(--text);margin-bottom:8px;letter-spacing:-.4px}
-        .pw-head p{font-size:13px;color:var(--text2);line-height:1.65;max-width:300px;margin:0 auto;font-weight:500}
-        .pw-body{padding:26px}
-        .pw-price{text-align:center;margin-bottom:20px;padding-bottom:18px;border-bottom:1px solid var(--border)}
-        .pw-amt{font-family:'Bricolage Grotesque',sans-serif;font-size:48px;font-weight:800;color:var(--text);line-height:1;letter-spacing:-2px}
-        .pw-per{font-size:13px;color:var(--text2);margin-top:4px;font-weight:500}
-        .pw-disc{font-size:12px;color:var(--teal);font-weight:700;margin-top:5px;letter-spacing:.02em}
-        .pw-feats{display:flex;flex-direction:column;gap:10px;margin-bottom:22px}
-        .pw-feat{display:flex;align-items:center;gap:10px;font-size:13px;color:var(--text2);font-weight:500}
-        .pw-feat:before{content:'→';color:var(--teal);font-weight:800;flex-shrink:0;font-size:15px}
+        .pw-overlay{position:fixed;inset:0;background:rgba(4,5,12,.88);backdrop-filter:blur(10px);z-index:999;display:flex;align-items:center;justify-content:center;padding:20px;overflow-y:auto}
+        .pw-modal{background:var(--bg2);border:1px solid var(--border);border-radius:20px;max-width:860px;width:100%;overflow:hidden;box-shadow:0 32px 80px rgba(0,0,0,.7),0 0 0 1px rgba(0,200,255,.06);position:relative}
+        .pw-head{background:linear-gradient(135deg,var(--bg),#050818);padding:28px 32px 24px;text-align:center;border-bottom:1px solid rgba(0,200,255,.1)}
+        .pw-glow{width:52px;height:52px;background:linear-gradient(135deg,var(--teal),var(--teal2));border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:24px;margin:0 auto 14px;box-shadow:0 0 36px var(--teal-glow)}
+        .pw-head h2{font-family:'Bricolage Grotesque',sans-serif;font-size:22px;font-weight:800;color:var(--text);margin-bottom:6px;letter-spacing:-.4px}
+        .pw-head p{font-size:13px;color:var(--text2);line-height:1.65;max-width:400px;margin:0 auto;font-weight:500}
+        .pw-body{padding:24px}
+        .pw-tiers{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px}
+        @media(max-width:700px){.pw-tiers{grid-template-columns:1fr 1fr}}
+        @media(max-width:440px){.pw-tiers{grid-template-columns:1fr}}
+        .pw-tier{background:var(--bg);border:1px solid var(--border);border-radius:14px;padding:18px 14px 16px;display:flex;flex-direction:column;gap:0;position:relative;transition:border-color .2s}
+        .pw-tier:hover{border-color:rgba(0,200,255,.25)}
+        .pw-tier.best{border-color:var(--teal);box-shadow:0 0 0 1px var(--teal),0 8px 32px rgba(0,200,255,.18);background:linear-gradient(160deg,#06101f,var(--bg))}
+        .pw-best-badge{position:absolute;top:-11px;left:50%;transform:translateX(-50%);background:linear-gradient(90deg,var(--teal),var(--teal2));color:#000;font-size:10px;font-weight:800;letter-spacing:.08em;padding:3px 12px;border-radius:20px;white-space:nowrap;text-transform:uppercase}
+        .pw-tier-name{font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--text3);margin-bottom:10px}
+        .pw-tier.best .pw-tier-name{color:var(--teal)}
+        .pw-tier-amt{font-family:'Bricolage Grotesque',sans-serif;font-size:30px;font-weight:800;color:var(--text);letter-spacing:-1.5px;line-height:1}
+        .pw-tier-orig{font-size:11px;color:var(--text3);text-decoration:line-through;margin-left:4px;font-weight:500}
+        .pw-tier-per{font-size:11px;color:var(--text2);font-weight:500;margin-top:3px;margin-bottom:12px}
+        .pw-tier-disc{font-size:10px;color:var(--teal);font-weight:700;margin-top:-8px;margin-bottom:10px;letter-spacing:.02em}
+        .pw-tier-feats{display:flex;flex-direction:column;gap:7px;flex:1;margin-bottom:14px}
+        .pw-tier-feat{font-size:11.5px;color:var(--text2);font-weight:500;display:flex;gap:7px;align-items:flex-start;line-height:1.35}
+        .pw-tier-feat:before{content:'✓';color:var(--teal);font-weight:800;flex-shrink:0;font-size:11px;margin-top:1px}
+        .pw-tier-feat.dim:before{color:var(--text3)}
+        .pw-tier-feat.dim{color:var(--text3)}
+        .pw-tier-btn{display:block;width:100%;padding:9px;border-radius:8px;font-weight:700;font-size:12px;text-align:center;text-decoration:none;border:1px solid var(--border);background:var(--bg2);color:var(--text2);cursor:pointer;transition:all .15s}
+        .pw-tier-btn:hover{border-color:var(--teal);color:var(--teal)}
+        .pw-tier-btn.best-btn{background:linear-gradient(135deg,#00c8ff,#0077ff);border-color:transparent;color:#000;box-shadow:0 4px 18px rgba(0,200,255,.35)}
+        .pw-tier-btn.best-btn:hover{box-shadow:0 4px 28px rgba(0,200,255,.55)}
         .pw-x{position:absolute;top:14px;right:16px;background:none;border:none;color:var(--text3);font-size:22px;cursor:pointer;line-height:1}
         .pw-x:hover{color:var(--text)}
         .pw-divider{text-align:center;color:var(--text3);font-size:11px;margin:14px 0;font-weight:600;letter-spacing:.6px}
@@ -713,22 +731,66 @@ ONLY JSON: {"subject":"...","body":"..."}`
               <p>Stop losing deals to reps who already have the buyer's number. Get in first.</p>
             </div>
             <div className="pw-body">
-              <div className="pw-price">
-                <div className="pw-amt">$2,000</div>
-                <div className="pw-per">per month</div>
-                <div className="pw-disc">First month: $1,500 — save $500 today</div>
+              <div className="pw-tiers">
+                {/* Starter */}
+                <div className="pw-tier">
+                  <div className="pw-tier-name">Starter</div>
+                  <div><span className="pw-tier-amt">$750</span></div>
+                  <div className="pw-tier-per">per month</div>
+                  <div className="pw-tier-feats">
+                    <div className="pw-tier-feat">25 contacts per search</div>
+                    <div className="pw-tier-feat">People Finder access</div>
+                    <div className="pw-tier-feat">Email reveals</div>
+                    <div className="pw-tier-feat dim">No AI email tools</div>
+                    <div className="pw-tier-feat dim">No outreach tracker</div>
+                  </div>
+                  <a href={PAYMENT_LINK_STARTER} target="_blank" rel="noreferrer" className="pw-tier-btn">Get Started →</a>
+                </div>
+                {/* Pro — best value */}
+                <div className="pw-tier best">
+                  <div className="pw-best-badge">Best Value</div>
+                  <div className="pw-tier-name">Pro</div>
+                  <div><span className="pw-tier-amt">$1,500</span><span className="pw-tier-orig">$2,000</span></div>
+                  <div className="pw-tier-per">first month, then $2,000/mo</div>
+                  <div className="pw-tier-disc">Save $500 today</div>
+                  <div className="pw-tier-feats">
+                    <div className="pw-tier-feat">500 contacts per search</div>
+                    <div className="pw-tier-feat">Direct email + phone reveals</div>
+                    <div className="pw-tier-feat">AI cold emails &amp; LinkedIn</div>
+                    <div className="pw-tier-feat">AI follow-up sequences</div>
+                    <div className="pw-tier-feat">Full outreach tracker</div>
+                  </div>
+                  <a href={PAYMENT_LINK} target="_blank" rel="noreferrer" className="pw-tier-btn best-btn">Get Access — $1,500 →</a>
+                </div>
+                {/* Team */}
+                <div className="pw-tier">
+                  <div className="pw-tier-name">Team</div>
+                  <div><span className="pw-tier-amt">$3,500</span></div>
+                  <div className="pw-tier-per">per month</div>
+                  <div className="pw-tier-feats">
+                    <div className="pw-tier-feat">Everything in Pro</div>
+                    <div className="pw-tier-feat">5 seats included</div>
+                    <div className="pw-tier-feat">Shared pipeline &amp; tracker</div>
+                    <div className="pw-tier-feat">Team sequence library</div>
+                    <div className="pw-tier-feat">Priority support</div>
+                  </div>
+                  <a href={PAYMENT_LINK_TEAM} target="_blank" rel="noreferrer" className="pw-tier-btn">Get Team →</a>
+                </div>
+                {/* Enterprise */}
+                <div className="pw-tier">
+                  <div className="pw-tier-name">Enterprise</div>
+                  <div><span className="pw-tier-amt">$7,500</span></div>
+                  <div className="pw-tier-per">per month</div>
+                  <div className="pw-tier-feats">
+                    <div className="pw-tier-feat">Everything in Team</div>
+                    <div className="pw-tier-feat">Unlimited seats</div>
+                    <div className="pw-tier-feat">Dedicated onboarding</div>
+                    <div className="pw-tier-feat">Custom integrations</div>
+                    <div className="pw-tier-feat">SLA + dedicated support</div>
+                  </div>
+                  <a href={PAYMENT_LINK_ENT} target="_blank" rel="noreferrer" className="pw-tier-btn">Get Enterprise →</a>
+                </div>
               </div>
-              <div className="pw-feats">
-                <div className="pw-feat">Live buyer search for any retailer in seconds</div>
-                <div className="pw-feat">Direct email + phone on every contact</div>
-                <div className="pw-feat">AI cold emails, LinkedIn & follow-ups</div>
-                <div className="pw-feat">Outreach tracker — know where every deal stands</div>
-                <div className="pw-feat">Up to 500 contacts per search</div>
-              </div>
-              <a href={PAYMENT_LINK} target="_blank" rel="noreferrer"
-                style={{display:"block",width:"100%",padding:"13px",borderRadius:9,background:"linear-gradient(135deg,#00c8ff,#0077ff)",color:"#000",fontWeight:800,fontSize:14,textAlign:"center",textDecoration:"none",letterSpacing:".02em",boxShadow:"0 4px 20px rgba(0,200,255,.4)"}}>
-                Get Access — $1,500 First Month →
-              </a>
               <div className="pw-divider">— or enter access code —</div>
               <div className="code-wrap">
                 <input className="code-in" placeholder="Access code" value={accessCode}

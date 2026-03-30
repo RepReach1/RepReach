@@ -5,8 +5,8 @@ function lsSave(k, v) { try { localStorage.setItem(k,JSON.stringify(v)); } catch
 
 const PAYMENT_LINK         = "https://buy.stripe.com/7sY7sL4CV9K56IJ3F82Ji03"; // Pro (best value)
 const PAYMENT_LINK_STARTER = "https://buy.stripe.com/dRm28r8Tb6xTd77fnQ2Ji04";
-const PAYMENT_LINK_TEAM    = "https://buy.stripe.com/8x200j5GZaO9aYZb7A2Ji00"; // TODO: replace
-const PAYMENT_LINK_ENT     = "https://buy.stripe.com/8x200j5GZaO9aYZb7A2Ji00"; // TODO: replace
+const PAYMENT_LINK_TEAM    = "https://buy.stripe.com/3cI5kD8Tb8G10kl7Vo2Ji02";
+const PAYMENT_LINK_ENT     = "https://buy.stripe.com/cNiaEX0mFf4p8QRgrU2Ji01";
 
 const PLANS = {
   starter:    { label:"Starter",    searchLimit:10,   enrichDay:3,        ai:false, sequences:false, seqLimit:0,        pipeline:false, intelligence:false, bulkEnrich:false, csvExport:false, abVariants:false, integrations:false, seats:1          },

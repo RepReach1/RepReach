@@ -9,10 +9,10 @@ const PAYMENT_LINK_TEAM    = "https://buy.stripe.com/8x200j5GZaO9aYZb7A2Ji00"; /
 const PAYMENT_LINK_ENT     = "https://buy.stripe.com/8x200j5GZaO9aYZb7A2Ji00"; // TODO: replace
 
 const PLANS = {
-  starter:    { label:"Starter",    searchLimit:10,  enrichDay:3,  ai:false, sequences:false, pipeline:false, intelligence:false },
-  pro:        { label:"Pro",        searchLimit:500, enrichDay:Infinity, ai:true, sequences:true,  pipeline:true,  intelligence:true  },
-  team:       { label:"Team",       searchLimit:500, enrichDay:Infinity, ai:true, sequences:true,  pipeline:true,  intelligence:true  },
-  enterprise: { label:"Enterprise", searchLimit:500, enrichDay:Infinity, ai:true, sequences:true,  pipeline:true,  intelligence:true  },
+  starter:    { label:"Starter",    searchLimit:10,   enrichDay:3,        ai:false, sequences:false, seqLimit:0,        pipeline:false, intelligence:false, bulkEnrich:false, csvExport:false, abVariants:false, integrations:false, seats:1          },
+  pro:        { label:"Pro",        searchLimit:500,  enrichDay:Infinity, ai:true,  sequences:true,  seqLimit:3,        pipeline:true,  intelligence:true,  bulkEnrich:false, csvExport:false, abVariants:false, integrations:false, seats:1          },
+  team:       { label:"Team",       searchLimit:500,  enrichDay:Infinity, ai:true,  sequences:true,  seqLimit:Infinity, pipeline:true,  intelligence:true,  bulkEnrich:true,  csvExport:true,  abVariants:true,  integrations:true,  seats:5          },
+  enterprise: { label:"Enterprise", searchLimit:1000, enrichDay:Infinity, ai:true,  sequences:true,  seqLimit:Infinity, pipeline:true,  intelligence:true,  bulkEnrich:true,  csvExport:true,  abVariants:true,  integrations:true,  seats:Infinity   },
 };
 const ACCESS_CODE  = "Championsucks";
 
@@ -760,29 +760,31 @@ ONLY JSON: {"subject":"...","body":"..."}`
                 <div className="pw-tier">
                   <div className="pw-tier-name">Starter</div>
                   <div><span className="pw-tier-amt">$750</span></div>
-                  <div className="pw-tier-per">per month</div>
+                  <div className="pw-tier-per">per month · 1 seat</div>
                   <div className="pw-tier-feats">
-                    <div className="pw-tier-feat">25 contacts per search</div>
-                    <div className="pw-tier-feat">People Finder access</div>
-                    <div className="pw-tier-feat">Email reveals</div>
+                    <div className="pw-tier-feat">10 contacts per search</div>
+                    <div className="pw-tier-feat">3 email reveals per day</div>
                     <div className="pw-tier-feat dim">No AI email tools</div>
-                    <div className="pw-tier-feat dim">No outreach tracker</div>
+                    <div className="pw-tier-feat dim">No sequences</div>
+                    <div className="pw-tier-feat dim">No pipeline or tracker</div>
+                    <div className="pw-tier-feat dim">No CSV export</div>
                   </div>
-                  <a href={PAYMENT_LINK_STARTER} target="_blank" rel="noreferrer" className="pw-tier-btn">Get Started →</a>
+                  <a href={PAYMENT_LINK_STARTER} target="_blank" rel="noreferrer" className="pw-tier-btn">Get Starter →</a>
                 </div>
                 {/* Pro — best value */}
                 <div className="pw-tier best">
                   <div className="pw-best-badge">Best Value</div>
                   <div className="pw-tier-name">Pro</div>
                   <div><span className="pw-tier-amt">$1,500</span><span className="pw-tier-orig">$2,000</span></div>
-                  <div className="pw-tier-per">first month, then $2,000/mo</div>
+                  <div className="pw-tier-per">first month, then $2,000/mo · 1 seat</div>
                   <div className="pw-tier-disc">Save $500 today</div>
                   <div className="pw-tier-feats">
                     <div className="pw-tier-feat">500 contacts per search</div>
-                    <div className="pw-tier-feat">Direct email + phone reveals</div>
+                    <div className="pw-tier-feat">Unlimited reveals</div>
                     <div className="pw-tier-feat">AI cold emails &amp; LinkedIn</div>
-                    <div className="pw-tier-feat">AI follow-up sequences</div>
-                    <div className="pw-tier-feat">Full outreach tracker</div>
+                    <div className="pw-tier-feat">Up to 3 active sequences</div>
+                    <div className="pw-tier-feat">Pipeline &amp; intelligence</div>
+                    <div className="pw-tier-feat dim">No CSV export or bulk reveal</div>
                   </div>
                   <a href={PAYMENT_LINK} target="_blank" rel="noreferrer" className="pw-tier-btn best-btn">Get Access — $1,500 →</a>
                 </div>
@@ -790,13 +792,14 @@ ONLY JSON: {"subject":"...","body":"..."}`
                 <div className="pw-tier">
                   <div className="pw-tier-name">Team</div>
                   <div><span className="pw-tier-amt">$3,500</span></div>
-                  <div className="pw-tier-per">per month</div>
+                  <div className="pw-tier-per">per month · 5 seats</div>
                   <div className="pw-tier-feats">
-                    <div className="pw-tier-feat">Everything in Pro</div>
-                    <div className="pw-tier-feat">5 seats included</div>
-                    <div className="pw-tier-feat">Shared pipeline &amp; tracker</div>
-                    <div className="pw-tier-feat">Team sequence library</div>
-                    <div className="pw-tier-feat">Priority support</div>
+                    <div className="pw-tier-feat">500 contacts per search</div>
+                    <div className="pw-tier-feat">Unlimited sequences</div>
+                    <div className="pw-tier-feat">A/B email variants</div>
+                    <div className="pw-tier-feat">Bulk reveal selected contacts</div>
+                    <div className="pw-tier-feat">CSV export</div>
+                    <div className="pw-tier-feat">CRM integrations</div>
                   </div>
                   <a href={PAYMENT_LINK_TEAM} target="_blank" rel="noreferrer" className="pw-tier-btn">Get Team →</a>
                 </div>
@@ -804,13 +807,14 @@ ONLY JSON: {"subject":"...","body":"..."}`
                 <div className="pw-tier">
                   <div className="pw-tier-name">Enterprise</div>
                   <div><span className="pw-tier-amt">$7,500</span></div>
-                  <div className="pw-tier-per">per month</div>
+                  <div className="pw-tier-per">per month · unlimited seats</div>
                   <div className="pw-tier-feats">
+                    <div className="pw-tier-feat">1,000 contacts per search</div>
                     <div className="pw-tier-feat">Everything in Team</div>
                     <div className="pw-tier-feat">Unlimited seats</div>
                     <div className="pw-tier-feat">Dedicated onboarding</div>
-                    <div className="pw-tier-feat">Custom integrations</div>
-                    <div className="pw-tier-feat">SLA + dedicated support</div>
+                    <div className="pw-tier-feat">All CRM integrations active</div>
+                    <div className="pw-tier-feat">SLA + priority support</div>
                   </div>
                   <a href={PAYMENT_LINK_ENT} target="_blank" rel="noreferrer" className="pw-tier-btn">Get Enterprise →</a>
                 </div>
@@ -1034,6 +1038,7 @@ ONLY JSON: {"subject":"...","body":"..."}`
                 if (planLimits && !planLimits.sequences) return <div className="plan-gate"><div className="plan-gate-icon">⚡</div><h3>Sequences — Pro Feature</h3><p>Automate your entire outreach with multi-step email and LinkedIn sequences. Available on Pro and above.</p><button className="btn btn-teal" onClick={()=>setShowPaywall(true)}>⚡ Upgrade to Pro</button></div>;
                 const saveSeq = () => {
                   if(!seqForm.name) return;
+                  if(planLimits && sequences.length >= planLimits.seqLimit){ setShowSeqModal(false); setShowPaywall(true); return; }
                   setSequences(p=>[...p,{...seqForm,id:Date.now()+"",createdAt:new Date().toISOString()}]);
                   setShowSeqModal(false); setSeqForm({name:"",description:"",steps:[]});
                 };
@@ -1391,7 +1396,9 @@ ONLY JSON: {"summary":"...","outcomes":["..."],"actionItems":["..."],"nextSteps"
 
               {/* ── INTEGRATIONS VIEW ── */}
               {view === "integrations" && (
-                <div style={{display:"flex",flexDirection:"column",flex:1,overflowY:"auto"}}>
+                planLimits && !planLimits.integrations
+                  ? <div className="plan-gate"><div className="plan-gate-icon">🔗</div><h3>Integrations — Team Feature</h3><p>Connect Salesforce, HubSpot, Gmail, Slack, and more. Available on Team and Enterprise plans.</p><button className="btn btn-teal" onClick={()=>setShowPaywall(true)}>⚡ Upgrade to Team</button></div>
+                  : <div style={{display:"flex",flexDirection:"column",flex:1,overflowY:"auto"}}>
                   <div className="view-hd"><div><div className="view-hd-title">🔗 Integrations</div><div className="view-hd-sub">Connect your sales stack</div></div></div>
                   <div className="intg-grid">
                     {[
@@ -1435,6 +1442,15 @@ ONLY JSON: {"summary":"...","outcomes":["..."],"actionItems":["..."],"nextSteps"
                       {!isSubscribed && leads.length > 0 && (
                         <button className="btn btn-amber btn-sm" style={{marginLeft:"auto"}} onClick={() => setShowPaywall(true)}>⚡ Unlock All Contacts</button>
                       )}
+                      {isSubscribed && leads.length > 0 && (<div style={{display:"flex",gap:6,marginLeft:"auto"}}>
+                        {planLimits?.bulkEnrich && selected.size > 0 && (
+                          <button className="btn btn-teal btn-sm" onClick={()=>{selected.forEach(id=>{const l=leads.find(x=>x.id===id);if(l&&!l.enriched)enrichContact(l);});}}>⚡ Bulk Reveal ({selected.size})</button>
+                        )}
+                        {planLimits?.csvExport
+                          ? <button className="btn btn-outline btn-sm" onClick={()=>{const rows=[["First","Last","Title","Company","Email","Phone","LinkedIn"],...leads.map(l=>[l.firstName,l.lastName,l.title,l.retailer,l.email||"",l.phone||"",l.linkedin||""])];const csv=rows.map(r=>r.map(v=>`"${String(v||"").replace(/"/g,'""')}"`).join(",")).join("\n");const a=document.createElement("a");a.href="data:text/csv;charset=utf-8,"+encodeURIComponent(csv);a.download=`repreach-${companyInput||"contacts"}.csv`;a.click();}}>⬇ Export CSV</button>
+                          : <button className="btn btn-outline btn-sm" style={{opacity:.45}} onClick={()=>setShowPaywall(true)}>🔒 Export CSV</button>
+                        }
+                      </div>)}
                     </>
                   ) : (
                     <span style={{color:"#334155",fontWeight:600}}>Search a retailer to find buyers instantly</span>
@@ -1683,7 +1699,10 @@ ONLY JSON: {"summary":"...","outcomes":["..."],"actionItems":["..."],"nextSteps"
                     : <>
                         <div style={{display:"flex",gap:5,marginBottom:12,alignItems:"center"}}>
                           <button className={`vbtn ${variant==="a"?"on":""}`} onClick={()=>setVariant("a")}>Version A</button>
-                          <button className={`vbtn ${variant==="b"?"on":""}`} onClick={()=>setVariant("b")}>Version B</button>
+                          {planLimits?.abVariants
+                            ? <button className={`vbtn ${variant==="b"?"on":""}`} onClick={()=>setVariant("b")}>Version B</button>
+                            : <button className="vbtn" style={{opacity:.45,cursor:"default"}} title="Team+ feature" onClick={()=>setShowPaywall(true)}>🔒 Version B</button>
+                          }
                           <button className="btn btn-outline btn-sm" style={{marginLeft:"auto"}} disabled={!!genEmail} onClick={()=>genEmail_(activeLead)}>↺ Redo</button>
                         </div>
                         <div className="ebox"><div className="elabel">Subject</div><div className="ebody" style={{fontWeight:700,color:"#f1f5f9"}}>{eData[variant]?.subject}</div></div>

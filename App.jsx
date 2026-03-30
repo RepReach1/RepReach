@@ -52,7 +52,7 @@ const TITLE_OPTIONS = [
 const QUICK_COMPANIES = ["Walmart","Sam's Club","Kroger","Target","Costco","Home Depot","CVS","Tractor Supply","Amazon","Lowe's","Publix","Walgreens","Best Buy","Dollar General","Albertsons","Dollar Tree","Aldi","Whole Foods","Meijer","HEB","Sprouts","Wegmans","Kohl's","Macy's","Nordstrom","Dick's Sporting","BJ's Wholesale","Ace Hardware","TJ Maxx","Ross","Marshalls","Safeway","Giant Eagle","ShopRite","Winn-Dixie"];
 
 export default function App() {
-  const [isSubscribed, setIsSubscribed] = useState(true);
+  const [isSubscribed, setIsSubscribed] = useState(() => lsGet("rr_subscribed", false));
   const [showPaywall,  setShowPaywall]  = useState(false);
   const [accessCode,   setAccessCode]   = useState("");
   const [codeError,    setCodeError]    = useState("");
@@ -733,8 +733,8 @@ ONLY JSON: {"subject":"...","body":"..."}`
               <div className="code-wrap">
                 <input className="code-in" placeholder="Access code" value={accessCode}
                   onChange={e => setAccessCode(e.target.value)}
-                  onKeyDown={e => { if(e.key==="Enter"){ accessCode.trim()===ACCESS_CODE?(setIsSubscribed(true),setShowPaywall(false),setCodeError("")):setCodeError("Invalid code."); }}} />
-                <button className="btn btn-teal" onClick={() => { accessCode.trim()===ACCESS_CODE?(setIsSubscribed(true),setShowPaywall(false),setCodeError("")):setCodeError("Invalid code."); }}>Apply</button>
+                  onKeyDown={e => { if(e.key==="Enter"){ if(accessCode.trim()===ACCESS_CODE){lsSave("rr_subscribed",true);setIsSubscribed(true);setShowPaywall(false);setCodeError("");}else{setCodeError("Invalid code.");} }}} />
+                <button className="btn btn-teal" onClick={() => { if(accessCode.trim()===ACCESS_CODE){lsSave("rr_subscribed",true);setIsSubscribed(true);setShowPaywall(false);setCodeError("");}else{setCodeError("Invalid code.");} }}>Apply</button>
               </div>
               {codeError && <div className="err">{codeError}</div>}
             </div>

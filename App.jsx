@@ -775,9 +775,8 @@ ONLY JSON: {"subject":"...","body":"..."}`
                 <div className="pw-tier best">
                   <div className="pw-best-badge">Best Value</div>
                   <div className="pw-tier-name">Pro</div>
-                  <div><span className="pw-tier-amt">$1,500</span><span className="pw-tier-orig">$2,000</span></div>
-                  <div className="pw-tier-per">first month, then $2,000/mo · 1 seat</div>
-                  <div className="pw-tier-disc">Save $500 today</div>
+                  <div><span className="pw-tier-amt">$999</span></div>
+                  <div className="pw-tier-per">per month · 1 seat</div>
                   <div className="pw-tier-feats">
                     <div className="pw-tier-feat">500 contacts per search</div>
                     <div className="pw-tier-feat">Unlimited reveals</div>
@@ -786,12 +785,12 @@ ONLY JSON: {"subject":"...","body":"..."}`
                     <div className="pw-tier-feat">Pipeline &amp; intelligence</div>
                     <div className="pw-tier-feat dim">No CSV export or bulk reveal</div>
                   </div>
-                  <a href={PAYMENT_LINK} target="_blank" rel="noreferrer" className="pw-tier-btn best-btn">Get Access — $1,500 →</a>
+                  <a href={PAYMENT_LINK} target="_blank" rel="noreferrer" className="pw-tier-btn best-btn">Get Pro — $999/mo →</a>
                 </div>
                 {/* Team */}
                 <div className="pw-tier">
                   <div className="pw-tier-name">Team</div>
-                  <div><span className="pw-tier-amt">$3,500</span></div>
+                  <div><span className="pw-tier-amt">$3,499</span></div>
                   <div className="pw-tier-per">per month · 5 seats</div>
                   <div className="pw-tier-feats">
                     <div className="pw-tier-feat">500 contacts per search</div>
@@ -806,7 +805,7 @@ ONLY JSON: {"subject":"...","body":"..."}`
                 {/* Enterprise */}
                 <div className="pw-tier">
                   <div className="pw-tier-name">Enterprise</div>
-                  <div><span className="pw-tier-amt">$7,500</span></div>
+                  <div><span className="pw-tier-amt">$7,499</span></div>
                   <div className="pw-tier-per">per month · unlimited seats</div>
                   <div className="pw-tier-feats">
                     <div className="pw-tier-feat">1,000 contacts per search</div>

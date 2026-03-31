@@ -4,7 +4,7 @@ function lsGet(k, def) { try { const v=localStorage.getItem(k); return v?JSON.pa
 function lsSave(k, v) { try { localStorage.setItem(k,JSON.stringify(v)); } catch{} }
 
 const PAYMENT_LINK         = "https://buy.stripe.com/7sY7sL4CV9K56IJ3F82Ji03"; // Pro (best value)
-const PAYMENT_LINK_STARTER = "https://buy.stripe.com/dRm28r8Tb6xTd77fnQ2Ji04";
+const PAYMENT_LINK_STARTER = "https://buy.stripe.com/bJeaEX5GZ7BXgjjdfI2Ji05";
 const PAYMENT_LINK_TEAM    = "https://buy.stripe.com/3cI5kD8Tb8G10kl7Vo2Ji02";
 const PAYMENT_LINK_ENT     = "https://buy.stripe.com/cNiaEX0mFf4p8QRgrU2Ji01";
 

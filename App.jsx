@@ -279,6 +279,32 @@ export default function App() {
     return "company";
   };
 
+  const fireWebhooks = useCallback(async (event, data) => {
+    const { slack, zapier } = integrations;
+    const posts = [];
+    if (slack?.enabled && slack?.webhookUrl)
+      posts.push(fetch("/api/webhook", { method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify({ url: slack.webhookUrl, payload: { text: slackMsg(event, data) } }) }).catch(()=>{}));
+    if (zapier?.enabled && zapier?.webhookUrl)
+      posts.push(fetch("/api/webhook", { method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify({ url: zapier.webhookUrl, payload: { event, ...data, source:"repreach", timestamp: new Date().toISOString() } }) }).catch(()=>{}));
+    await Promise.all(posts);
+  }, [integrations]);
+
+  const saveIntg = (key, values) => {
+    const updated = { ...integrations, [key]: { ...integrations[key], ...values } };
+    setIntegrations(updated);
+    lsSave("rr_integrations", updated);
+  };
+
+  const testWebhook = async (url, event, payload) => {
+    setIntgTesting(true); setIntgTestMsg(null);
+    try {
+      const r = await fetch("/api/webhook", { method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify({ url, payload }) });
+      const d = await r.json();
+      setIntgTestMsg(d.ok ? "✓ Test sent successfully!" : `Error: ${d.body||d.error||"Unknown"}`);
+    } catch(e) { setIntgTestMsg("Error: " + e.message); }
+    setIntgTesting(false);
+  };
+
   const enrichContact = useCallback(async (lead) => {
     if (!isSubscribed) { setShowPaywall(true); return; }
     if (plan === "starter") {
@@ -315,33 +341,7 @@ export default function App() {
         fireWebhooks("contact_revealed", { name:`${lead.firstName} ${lead.lastName}`, company: lead.retailer, email: patch.email, phone: patch.phone });
     } catch(e) { console.error("Enrich failed:", e); }
     setEnriching(prev => { const n = new Set(prev); n.delete(lead.id); return n; });
-  }, [isSubscribed, plan, fireWebhooks]);
-
-  const fireWebhooks = useCallback(async (event, data) => {
-    const { slack, zapier } = integrations;
-    const posts = [];
-    if (slack?.enabled && slack?.webhookUrl)
-      posts.push(fetch("/api/webhook", { method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify({ url: slack.webhookUrl, payload: { text: slackMsg(event, data) } }) }).catch(()=>{}));
-    if (zapier?.enabled && zapier?.webhookUrl)
-      posts.push(fetch("/api/webhook", { method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify({ url: zapier.webhookUrl, payload: { event, ...data, source:"repreach", timestamp: new Date().toISOString() } }) }).catch(()=>{}));
-    await Promise.all(posts);
-  }, [integrations]);
-
-  const saveIntg = (key, values) => {
-    const updated = { ...integrations, [key]: { ...integrations[key], ...values } };
-    setIntegrations(updated);
-    lsSave("rr_integrations", updated);
-  };
-
-  const testWebhook = async (url, event, payload) => {
-    setIntgTesting(true); setIntgTestMsg(null);
-    try {
-      const r = await fetch("/api/webhook", { method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify({ url, payload }) });
-      const d = await r.json();
-      setIntgTestMsg(d.ok ? "✓ Test sent successfully!" : `Error: ${d.body||d.error||"Unknown"}`);
-    } catch(e) { setIntgTestMsg("Error: " + e.message); }
-    setIntgTesting(false);
-  };
+  }, [isSubscribed, plan]);
 
   const handleCompanyInput = (val) => {
     setCompanyInput(val);

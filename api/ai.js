@@ -67,6 +67,21 @@ ICP: ${JSON.stringify(d.icp)}. Brand: ${d.brandName}. Product: ${d.productDesc |
 Contacts (first 20): ${JSON.stringify((d.contacts || []).slice(0, 20).map(c => ({ id: c.id, title: c.title, seniority: c.seniority, company: c.retailer, dept: c.department })))}
 Score each 0-100. Return ONLY valid JSON:
 {"scores":[{"id":"contact_id","score":85,"tier":"A","reason":"Short reason why good fit"}]}`,
+
+    buyercategories: (d) => `You are a retail buyer intelligence AI. Determine what product categories this retail buyer is responsible for purchasing.
+Buyer: ${d.firstName} ${d.lastName}
+Title: ${d.title}
+Retailer: ${d.company}
+Department: ${d.department || "unknown"}
+Seniority: ${d.seniority || "unknown"}
+
+Rules:
+- If the title explicitly states categories (e.g. "Buyer - Snacks & Beverages", "Category Manager - Home Care"), extract those directly.
+- If the title is generic (e.g. "Senior Buyer", "Merchant"), infer from the retailer's known category structure and the department.
+- Be specific — use real retail category names (e.g. "Snacks", "Beverages", "Personal Care", "Home & Garden", "Electronics", "Apparel", "Fresh Produce").
+- Return 2-4 categories maximum.
+Return ONLY valid JSON:
+{"categories":["Category 1","Category 2"],"lookingFor":"Snacks & Beverages","confidence":"high|medium|low"}`,
   };
 
   const buildPrompt = PROMPTS[type];

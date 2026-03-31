@@ -121,6 +121,8 @@ export default function App() {
   const [copied,     setCopied]     = useState(null);
   const [enriching,  setEnriching]  = useState(new Set()); // contact IDs currently being enriched
   const [enriched,   setEnriched]   = useState({}); // id -> {email, phone, linkedin}
+  const [categories, setCategories] = useState({}); // id -> "Snacks & Beverages"
+  const [fetchingCats, setFetchingCats] = useState(new Set());
   const [statuses,   setStatuses]   = useState({});
   const [notes,      setNotes]      = useState({});
   const [view,       setView]       = useState(() => lsGet("rr_view","people"));
@@ -219,7 +221,11 @@ export default function App() {
       setNextCursor(data.nextCursor || null);
       setHasSearched(true);
       setActiveLead(null);
-      if (r.length) setTimeout(() => fetchDepartments(r), 100);
+      setCategories({});
+      if (r.length) {
+        setTimeout(() => fetchDepartments(r), 100);
+        r.forEach(lead => { const cat = parseCategoryFromTitle(lead.title); if (cat) setCategories(p => ({ ...p, [lead.id]: cat })); });
+      }
     } catch(e) { setLeads([]); setHasSearched(true); }
     setSearching(false);
   }, [fetchDepartments]);
@@ -305,6 +311,44 @@ export default function App() {
     setIntgTesting(false);
   };
 
+  // Extract category directly from title if it contains one (e.g. "Buyer - Snacks & Beverages")
+  const parseCategoryFromTitle = (title) => {
+    if (!title) return null;
+    const sep = title.match(/[-–—,|]/);
+    if (sep) {
+      const parts = title.split(/\s*[-–—,|]\s*/);
+      if (parts.length > 1) {
+        const cat = parts.slice(1).join(", ").trim();
+        if (cat.length > 2 && cat.length < 60) return cat;
+      }
+    }
+    return null;
+  };
+
+  const fetchCategories = useCallback(async (lead) => {
+    if (categories[lead.id] || fetchingCats.has(lead.id)) return;
+    // Try parsing from title first (free, instant)
+    const fromTitle = parseCategoryFromTitle(lead.title);
+    if (fromTitle) { setCategories(p => ({ ...p, [lead.id]: fromTitle })); return; }
+    // Fall back to AI
+    setFetchingCats(prev => new Set([...prev, lead.id]));
+    try {
+      const res = await fetch("/api/ai", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ type: "buyercategories", data: {
+          firstName: lead.firstName, lastName: lead.lastName,
+          title: lead.title, company: lead.retailer,
+          department: lead.department, seniority: lead.seniority,
+        }}),
+      });
+      const d = await res.json();
+      if (d.lookingFor) setCategories(p => ({ ...p, [lead.id]: d.lookingFor }));
+      else if (d.categories?.length) setCategories(p => ({ ...p, [lead.id]: d.categories.join(", ") }));
+    } catch(e) { console.error("Categories fetch failed:", e); }
+    setFetchingCats(prev => { const n = new Set(prev); n.delete(lead.id); return n; });
+  }, [categories, fetchingCats]);
+
   const enrichContact = useCallback(async (lead) => {
     if (!isSubscribed) { setShowPaywall(true); return; }
     if (plan === "starter") {
@@ -339,9 +383,11 @@ export default function App() {
       setActiveLead(prev => prev?.id === lead.id ? { ...prev, ...patch } : prev);
       if (patch.email || patch.phone)
         fireWebhooks("contact_revealed", { name:`${lead.firstName} ${lead.lastName}`, company: lead.retailer, email: patch.email, phone: patch.phone });
+      // Fetch buying categories using full enriched profile
+      fetchCategories({ ...lead, ...patch, department: data.departments?.[0] || lead.department, seniority: data.seniority || lead.seniority });
     } catch(e) { console.error("Enrich failed:", e); }
     setEnriching(prev => { const n = new Set(prev); n.delete(lead.id); return n; });
-  }, [isSubscribed, plan]);
+  }, [isSubscribed, plan, fetchCategories]);
 
   const handleCompanyInput = (val) => {
     setCompanyInput(val);
@@ -539,6 +585,9 @@ ONLY JSON: {"subject":"...","body":"..."}`
         /* Name */
         .pname{font-weight:600;font-size:13px;color:var(--text);white-space:nowrap;letter-spacing:-.1px}
         .pli{color:var(--text3);font-size:10px;font-weight:700;cursor:pointer;margin-left:5px;padding:1px 6px;border-radius:4px;background:var(--bg3);border:1px solid var(--border);text-decoration:none;transition:.1s;letter-spacing:.02em}
+        .buyer-cat{font-size:10px;font-weight:600;color:var(--teal);margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:200px}
+        .buyer-cat-btn{background:none;border:none;font-size:10px;color:var(--text3);cursor:pointer;padding:0;margin-top:3px;font-weight:600;transition:.1s}
+        .buyer-cat-btn:hover{color:var(--teal)}
         .pli:hover{border-color:var(--teal2);color:var(--teal)}
         .ptitle{color:var(--text3);font-size:12px;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
         .pco{color:var(--teal);font-size:12px;font-weight:600;white-space:nowrap;letter-spacing:-.1px}
@@ -1678,6 +1727,12 @@ ONLY JSON: {"summary":"...","outcomes":["..."],"actionItems":["..."],"nextSteps"
                                   <span className="pname">{lead.firstName} {lead.lastName}</span>
                                   {lead.linkedin && <a href={"https://"+lead.linkedin.replace(/^https?:\/\//,"")} target="_blank" rel="noreferrer" className="pli" onClick={e=>e.stopPropagation()}>in</a>}
                                 </div>
+                                {categories[lead.id]
+                                  ? <div className="buyer-cat">Looking for: {categories[lead.id]}</div>
+                                  : fetchingCats.has(lead.id)
+                                    ? <div className="buyer-cat" style={{opacity:.4}}>Detecting categories…</div>
+                                    : isSubscribed && <button className="buyer-cat-btn" onClick={e=>{e.stopPropagation();fetchCategories(lead);}}>+ Find categories</button>
+                                }
                               </td>
                               <td><span className="ptitle">{lead.title}</span></td>
                               <td><span className="pco">{lead.retailer}</span></td>

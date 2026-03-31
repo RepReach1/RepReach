@@ -61,6 +61,27 @@ const TITLE_OPTIONS = [
 
 const QUICK_COMPANIES = ["Walmart","Sam's Club","Kroger","Target","Costco","Home Depot","CVS","Tractor Supply","Amazon","Lowe's","Publix","Walgreens","Best Buy","Dollar General","Albertsons","Dollar Tree","Aldi","Whole Foods","Meijer","HEB","Sprouts","Wegmans","Kohl's","Macy's","Nordstrom","Dick's Sporting","BJ's Wholesale","Ace Hardware","TJ Maxx","Ross","Marshalls","Safeway","Giant Eagle","ShopRite","Winn-Dixie"];
 
+const INTG_DEFAULTS = {
+  slack:    { enabled: false, webhookUrl: "" },
+  zapier:   { enabled: false, webhookUrl: "" },
+  gmail:    { enabled: false },
+  calendar: { enabled: false },
+  notion:   { enabled: false, token: "", databaseId: "" },
+  salesforce:{ enabled: false },
+  hubspot:  { enabled: false },
+};
+
+function slackMsg(event, data) {
+  switch (event) {
+    case "contact_revealed":   return `⚡ *Contact Revealed* — ${data.name} at ${data.company}\n📧 ${data.email||"—"} · 📞 ${data.phone||"—"}`;
+    case "status_changed":     return `📊 *Status Updated* — ${data.name} → *${data.status}*`;
+    case "deal_updated":       return `💼 *Deal Updated* — ${data.name} moved to *${data.stage}*${data.value?` · $${Number(data.value).toLocaleString()}`:""}`;
+    case "meeting_logged":     return `🎙️ *Meeting Logged* — ${data.title}${data.contact?" with "+data.contact:""}`;
+    case "sequence_created":   return `⚡ *Sequence Created* — "${data.name}" · ${data.steps} step${data.steps===1?"":"s"}`;
+    default:                   return `RepReach event: ${event}`;
+  }
+}
+
 export default function App() {
   const [plan,         setPlan]         = useState(() => lsGet("rr_plan", null));
   const isSubscribed = !!plan;
@@ -112,6 +133,11 @@ export default function App() {
   const [templates,   setTemplates]   = useState(() => lsGet("rr_templates",[]));
   const [meetings,    setMeetings]    = useState(() => lsGet("rr_meetings",[]));
   const [activities,  setActivities]  = useState(() => lsGet("rr_activities",[]));
+  const [integrations, setIntegrations] = useState(() => lsGet("rr_integrations", INTG_DEFAULTS));
+  const [intgModal,    setIntgModal]    = useState(null); // which integration is open in modal
+  const [intgForm,     setIntgForm]     = useState({});
+  const [intgTesting,  setIntgTesting]  = useState(false);
+  const [intgTestMsg,  setIntgTestMsg]  = useState(null);
 
   // Pipeline deal modal
   const [showDealModal,  setShowDealModal]  = useState(false);
@@ -284,11 +310,38 @@ export default function App() {
         enriched:    true,
       };
       setLeads(prev => prev.map(l => l.id === lead.id ? { ...l, ...patch } : l));
-      // Keep the active lead panel in sync
       setActiveLead(prev => prev?.id === lead.id ? { ...prev, ...patch } : prev);
+      if (patch.email || patch.phone)
+        fireWebhooks("contact_revealed", { name:`${lead.firstName} ${lead.lastName}`, company: lead.retailer, email: patch.email, phone: patch.phone });
     } catch(e) { console.error("Enrich failed:", e); }
     setEnriching(prev => { const n = new Set(prev); n.delete(lead.id); return n; });
-  }, [isSubscribed, plan]);
+  }, [isSubscribed, plan, fireWebhooks]);
+
+  const fireWebhooks = useCallback(async (event, data) => {
+    const { slack, zapier } = integrations;
+    const posts = [];
+    if (slack?.enabled && slack?.webhookUrl)
+      posts.push(fetch("/api/webhook", { method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify({ url: slack.webhookUrl, payload: { text: slackMsg(event, data) } }) }).catch(()=>{}));
+    if (zapier?.enabled && zapier?.webhookUrl)
+      posts.push(fetch("/api/webhook", { method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify({ url: zapier.webhookUrl, payload: { event, ...data, source:"repreach", timestamp: new Date().toISOString() } }) }).catch(()=>{}));
+    await Promise.all(posts);
+  }, [integrations]);
+
+  const saveIntg = (key, values) => {
+    const updated = { ...integrations, [key]: { ...integrations[key], ...values } };
+    setIntegrations(updated);
+    lsSave("rr_integrations", updated);
+  };
+
+  const testWebhook = async (url, event, payload) => {
+    setIntgTesting(true); setIntgTestMsg(null);
+    try {
+      const r = await fetch("/api/webhook", { method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify({ url, payload }) });
+      const d = await r.json();
+      setIntgTestMsg(d.ok ? "✓ Test sent successfully!" : `Error: ${d.body||d.error||"Unknown"}`);
+    } catch(e) { setIntgTestMsg("Error: " + e.message); }
+    setIntgTesting(false);
+  };
 
   const handleCompanyInput = (val) => {
     setCompanyInput(val);
@@ -366,7 +419,13 @@ ONLY JSON: {"subject":"...","body":"..."}`
 
   const copy = (text, key) => { navigator.clipboard.writeText(text); setCopied(key); setTimeout(()=>setCopied(null),1800); };
   const getStatus = (id) => STATUSES.find(s=>s.id===(statuses[id]||"none"))||STATUSES[0];
-  const cycleStatus = (id) => { const i=STATUSES.findIndex(s=>s.id===(statuses[id]||"none")); setStatuses(p=>({...p,[id]:STATUSES[(i+1)%STATUSES.length].id})); };
+  const cycleStatus = (id) => {
+    const i = STATUSES.findIndex(s=>s.id===(statuses[id]||"none"));
+    const next = STATUSES[(i+1)%STATUSES.length];
+    setStatuses(p=>({...p,[id]:next.id}));
+    const lead = leads.find(l=>l.id===id);
+    if (lead) fireWebhooks("status_changed", { name:`${lead.firstName} ${lead.lastName}`, company: lead.retailer, status: next.label });
+  };
 
   const eData  = activeLead && emails[activeLead.id];
   const liData = activeLead && linkedIns[activeLead.id];
@@ -737,6 +796,22 @@ ONLY JSON: {"subject":"...","body":"..."}`
         .intg-badge-pending{font-size:10px;font-weight:700;color:var(--amber);padding:3px 9px;background:rgba(245,166,35,.08);border:1px solid rgba(245,166,35,.2);border-radius:20px;white-space:nowrap}
         .intg-btn{font-size:11px;font-weight:700;padding:6px 14px;border-radius:7px;cursor:pointer;border:1px solid var(--border);background:var(--bg3);color:var(--text2);transition:.12s;white-space:nowrap;flex-shrink:0}
         .intg-btn:hover{border-color:var(--teal2);color:var(--teal)}
+        .intg-btn.connected{border-color:rgba(74,222,128,.3);color:#4ade80;background:rgba(74,222,128,.06)}
+        /* Integration modal */
+        .im-overlay{position:fixed;inset:0;background:rgba(4,5,12,.85);backdrop-filter:blur(8px);z-index:1000;display:flex;align-items:center;justify-content:center;padding:20px}
+        .im-modal{background:var(--bg2);border:1px solid var(--border);border-radius:16px;width:100%;max-width:460px;padding:28px;position:relative;box-shadow:0 24px 60px rgba(0,0,0,.6)}
+        .im-title{font-family:'Bricolage Grotesque',sans-serif;font-size:18px;font-weight:800;color:var(--text);margin-bottom:4px;letter-spacing:-.3px}
+        .im-sub{font-size:12px;color:var(--text3);margin-bottom:20px;line-height:1.6}
+        .im-label{font-size:11px;font-weight:700;color:var(--text2);letter-spacing:.04em;text-transform:uppercase;margin-bottom:6px}
+        .im-input{width:100%;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:9px 12px;color:var(--text);font-size:13px;font-family:monospace;margin-bottom:14px;box-sizing:border-box}
+        .im-input:focus{outline:none;border-color:var(--teal)}
+        .im-step{display:flex;gap:10px;align-items:flex-start;margin-bottom:12px;font-size:12px;color:var(--text2);line-height:1.55}
+        .im-step-num{width:20px;height:20px;border-radius:50%;background:rgba(0,200,255,.12);border:1px solid rgba(0,200,255,.2);color:var(--teal);font-size:10px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px}
+        .im-test-msg{font-size:12px;font-weight:600;margin-top:8px;padding:8px 12px;border-radius:8px;background:rgba(0,200,255,.06);border:1px solid rgba(0,200,255,.12);color:var(--teal)}
+        .im-test-msg.err{background:rgba(248,113,113,.06);border-color:rgba(248,113,113,.2);color:#f87171}
+        .im-x{position:absolute;top:14px;right:16px;background:none;border:none;color:var(--text3);font-size:20px;cursor:pointer}
+        .im-x:hover{color:var(--text)}
+        .im-footer{display:flex;gap:8px;margin-top:20px;justify-content:flex-end}
 
         /* View section header */
         .view-hd{padding:14px 20px;border-bottom:1px solid var(--border);background:var(--bg2);display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
@@ -827,6 +902,75 @@ ONLY JSON: {"subject":"...","body":"..."}`
               </div>
               {codeError && <div className="err">{codeError}</div>}
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── INTEGRATION MODAL ── */}
+      {intgModal && (
+        <div className="im-overlay" onClick={()=>setIntgModal(null)}>
+          <div className="im-modal" onClick={e=>e.stopPropagation()}>
+            <button className="im-x" onClick={()=>setIntgModal(null)}>×</button>
+
+            {/* SLACK */}
+            {intgModal.key === "slack" && (<>
+              <div className="im-title">💬 Connect Slack</div>
+              <div className="im-sub">Paste your Slack Incoming Webhook URL below. RepReach will post a message every time a contact is revealed, a deal moves, or a meeting is logged.</div>
+              <div className="im-step"><div className="im-step-num">1</div><span>In Slack, go to <b>Apps → Incoming Webhooks</b> → Add New Webhook → pick a channel.</span></div>
+              <div className="im-step"><div className="im-step-num">2</div><span>Copy the webhook URL (starts with <code>https://hooks.slack.com/services/…</code>) and paste it below.</span></div>
+              <div className="im-label">Webhook URL</div>
+              <input className="im-input" placeholder="https://hooks.slack.com/services/..." value={intgForm.webhookUrl||""} onChange={e=>setIntgForm(p=>({...p,webhookUrl:e.target.value}))} />
+              {intgTestMsg && <div className={`im-test-msg ${intgTestMsg.startsWith("Error")?"err":""}`}>{intgTestMsg}</div>}
+              <div className="im-footer">
+                <button className="btn btn-outline btn-sm" disabled={intgTesting||!intgForm.webhookUrl} onClick={()=>testWebhook(intgForm.webhookUrl,"contact_revealed",{text:"👋 RepReach connected! You'll get notified here when contacts are revealed, deals move, and meetings are logged."})}>
+                  {intgTesting?"Testing…":"Test"}
+                </button>
+                <button className="btn btn-teal btn-sm" disabled={!intgForm.webhookUrl} onClick={()=>{ saveIntg("slack",{enabled:true,webhookUrl:intgForm.webhookUrl}); setIntgModal(null); }}>Save &amp; Enable</button>
+              </div>
+            </>)}
+
+            {/* ZAPIER / MAKE */}
+            {intgModal.key === "zapier" && (<>
+              <div className="im-title">⚡ Connect Zapier / Make</div>
+              <div className="im-sub">Paste your Zapier Webhook URL (or Make scenario webhook). RepReach will POST a JSON payload every time a key event happens — contact revealed, deal updated, meeting logged, sequence created.</div>
+              <div className="im-step"><div className="im-step-num">1</div><span>In Zapier: create a Zap → trigger <b>Webhooks by Zapier → Catch Hook</b> → copy the URL.</span></div>
+              <div className="im-step"><div className="im-step-num">1</div><span>In Make: create a scenario → add <b>Webhooks → Custom webhook</b> → copy the URL.</span></div>
+              <div className="im-label">Webhook URL</div>
+              <input className="im-input" placeholder="https://hooks.zapier.com/hooks/catch/..." value={intgForm.webhookUrl||""} onChange={e=>setIntgForm(p=>({...p,webhookUrl:e.target.value}))} />
+              {intgTestMsg && <div className={`im-test-msg ${intgTestMsg.startsWith("Error")?"err":""}`}>{intgTestMsg}</div>}
+              <div className="im-footer">
+                <button className="btn btn-outline btn-sm" disabled={intgTesting||!intgForm.webhookUrl} onClick={()=>testWebhook(intgForm.webhookUrl,"test",{event:"test",source:"repreach",message:"RepReach webhook connected successfully!"})}>
+                  {intgTesting?"Testing…":"Test"}
+                </button>
+                <button className="btn btn-teal btn-sm" disabled={!intgForm.webhookUrl} onClick={()=>{ saveIntg("zapier",{enabled:true,webhookUrl:intgForm.webhookUrl}); setIntgModal(null); }}>Save &amp; Enable</button>
+              </div>
+            </>)}
+
+            {/* SALESFORCE via Zapier */}
+            {intgModal.key === "salesforce" && (<>
+              <div className="im-title">🟢 Salesforce via Zapier</div>
+              <div className="im-sub">Connect RepReach to Salesforce in minutes using Zapier — no custom OAuth required.</div>
+              <div className="im-step"><div className="im-step-num">1</div><span>Connect Zapier above (use the Zapier / Make integration).</span></div>
+              <div className="im-step"><div className="im-step-num">2</div><span>In Zapier, create a Zap: <b>Trigger</b> = Webhooks → Catch Hook, <b>Action</b> = Salesforce → Create/Update Contact or Opportunity.</span></div>
+              <div className="im-step"><div className="im-step-num">3</div><span>Map the RepReach fields (<code>name</code>, <code>email</code>, <code>phone</code>, <code>company</code>) to your Salesforce fields.</span></div>
+              <div className="im-step"><div className="im-step-num">4</div><span>Every time you reveal a contact in RepReach, it will automatically appear in Salesforce.</span></div>
+              <div className="im-footer">
+                <button className="btn btn-teal btn-sm" onClick={()=>{ saveIntg("salesforce",{enabled:true}); setIntgModal(null); }}>Mark as Set Up</button>
+              </div>
+            </>)}
+
+            {/* HUBSPOT via Zapier */}
+            {intgModal.key === "hubspot" && (<>
+              <div className="im-title">🔵 HubSpot via Zapier</div>
+              <div className="im-sub">Connect RepReach to HubSpot in minutes using Zapier — no custom OAuth required.</div>
+              <div className="im-step"><div className="im-step-num">1</div><span>Connect Zapier above (use the Zapier / Make integration).</span></div>
+              <div className="im-step"><div className="im-step-num">2</div><span>In Zapier, create a Zap: <b>Trigger</b> = Webhooks → Catch Hook, <b>Action</b> = HubSpot → Create/Update Contact or Deal.</span></div>
+              <div className="im-step"><div className="im-step-num">3</div><span>Map the RepReach fields to your HubSpot properties. Use <code>event</code> to filter by contact reveals vs. deal updates.</span></div>
+              <div className="im-step"><div className="im-step-num">4</div><span>New contacts revealed in RepReach will flow directly into your HubSpot CRM.</span></div>
+              <div className="im-footer">
+                <button className="btn btn-teal btn-sm" onClick={()=>{ saveIntg("hubspot",{enabled:true}); setIntgModal(null); }}>Mark as Set Up</button>
+              </div>
+            </>)}
           </div>
         </div>
       )}
@@ -1039,6 +1183,7 @@ ONLY JSON: {"subject":"...","body":"..."}`
                   if(!seqForm.name) return;
                   if(planLimits && sequences.length >= planLimits.seqLimit){ setShowSeqModal(false); setShowPaywall(true); return; }
                   setSequences(p=>[...p,{...seqForm,id:Date.now()+"",createdAt:new Date().toISOString()}]);
+                  fireWebhooks("sequence_created", { name: seqForm.name, steps: seqForm.steps.length });
                   setShowSeqModal(false); setSeqForm({name:"",description:"",steps:[]});
                 };
                 const addStep = () => {
@@ -1327,6 +1472,7 @@ ONLY JSON: {"company":"...","keyBuyers":"...","categoryFocus":"...","vendorPolic
                   if(!meetForm.title) return;
                   setMeetings(p=>[{...meetForm,id:Date.now()+"",createdAt:new Date().toISOString()},...p]);
                   setActivities(p=>[{id:Date.now()+"",type:"meeting",text:`Meeting notes saved: ${meetForm.title}`,at:new Date().toISOString()},...p.slice(0,49)]);
+                  fireWebhooks("meeting_logged", { title: meetForm.title, contact: meetForm.contact, date: meetForm.date });
                   setShowMeetModal(false); setMeetForm({title:"",contact:"",date:"",notes:"",summary:""});
                 };
                 const genSummary = async () => {
@@ -1397,34 +1543,48 @@ ONLY JSON: {"summary":"...","outcomes":["..."],"actionItems":["..."],"nextSteps"
               {view === "integrations" && (
                 planLimits && !planLimits.integrations
                   ? <div className="plan-gate"><div className="plan-gate-icon">🔗</div><h3>Integrations — Team Feature</h3><p>Connect Salesforce, HubSpot, Gmail, Slack, and more. Available on Team and Enterprise plans.</p><button className="btn btn-teal" onClick={()=>setShowPaywall(true)}>⚡ Upgrade to Team</button></div>
-                  : <div style={{display:"flex",flexDirection:"column",flex:1,overflowY:"auto"}}>
+                  : (() => {
+                  const INTGS = [
+                    { key:"slack",    icon:"💬", name:"Slack",              type:"webhook",  desc:"Get notified in Slack when a contact is revealed, a deal moves, or a meeting is logged." },
+                    { key:"zapier",   icon:"⚡", name:"Zapier / Make",       type:"webhook",  desc:"Fire a webhook on any RepReach event. Connect to 5,000+ apps via Zapier or Make." },
+                    { key:"gmail",    icon:"📧", name:"Gmail",               type:"toggle",   desc:"Enable one-click compose buttons on every contact email. Opens Gmail with the contact pre-filled." },
+                    { key:"calendar", icon:"📅", name:"Google Calendar",     type:"toggle",   desc:"Schedule buyer meetings with one click. Opens Google Calendar with the contact and notes pre-filled." },
+                    { key:"salesforce",icon:"🟢",name:"Salesforce",          type:"zapier",   desc:"Sync contacts and deals to Salesforce via Zapier. No direct OAuth required." },
+                    { key:"hubspot",  icon:"🔵", name:"HubSpot",             type:"zapier",   desc:"Push contacts, deals, and activities to HubSpot CRM automatically via Zapier." },
+                    { key:"apollo",   icon:"📊", name:"Apollo.io",           type:"native",   desc:"Native Apollo integration for contact data. Already active — powering your People Finder." },
+                    { key:"linkedin", icon:"💼", name:"LinkedIn Sales Nav",  type:"soon",     desc:"Pull buyer insights and message history from LinkedIn Sales Navigator into lead profiles." },
+                  ];
+                  return <div style={{display:"flex",flexDirection:"column",flex:1,overflowY:"auto"}}>
                   <div className="view-hd"><div><div className="view-hd-title">🔗 Integrations</div><div className="view-hd-sub">Connect your sales stack</div></div></div>
                   <div className="intg-grid">
-                    {[
-                      {icon:"🟢",name:"Salesforce",desc:"Sync deals, contacts, and activities to your CRM",connected:false},
-                      {icon:"📧",name:"Gmail",desc:"Send emails directly from RepReach. Track opens and replies.",connected:false},
-                      {icon:"💼",name:"LinkedIn Sales Nav",desc:"Pull contact insights from LinkedIn directly into lead profiles.",connected:false},
-                      {icon:"📅",name:"Google Calendar",desc:"Schedule buyer meetings and get prep reminders automatically.",connected:false},
-                      {icon:"💬",name:"Slack",desc:"Get deal updates and meeting reminders sent to your Slack.",connected:false},
-                      {icon:"🔵",name:"HubSpot",desc:"Bi-directional sync with HubSpot CRM. Contacts, deals, emails.",connected:false},
-                      {icon:"📊",name:"Apollo.io",desc:"Native Apollo integration for contact data (already active).",connected:true},
-                      {icon:"📝",name:"Notion",desc:"Auto-sync meeting notes and battlecards to your Notion workspace.",connected:false},
-                    ].map((intg,i)=>(
-                      <div key={i} className="intg-card">
-                        <div className="intg-logo">{intg.icon}</div>
-                        <div className="intg-info">
-                          <div className="intg-name">{intg.name}</div>
-                          <div className="intg-desc">{intg.desc}</div>
-                          {intg.connected && <div style={{marginTop:5}}><span className="intg-badge-connected">✓ Connected</span></div>}
+                    {INTGS.map((intg) => {
+                      const cfg = integrations[intg.key] || {};
+                      const isOn = intg.type === "native" || cfg.enabled;
+                      return (
+                        <div key={intg.key} className="intg-card">
+                          <div className="intg-logo">{intg.icon}</div>
+                          <div className="intg-info">
+                            <div className="intg-name">{intg.name}</div>
+                            <div className="intg-desc">{intg.desc}</div>
+                            {isOn && <div style={{marginTop:5}}><span className="intg-badge-connected">✓ {intg.type==="native"?"Active":"Connected"}</span></div>}
+                          </div>
+                          {intg.type === "native" ? null
+                            : intg.type === "soon"
+                              ? <button className="intg-btn" style={{opacity:.5,cursor:"default"}}>Coming Soon</button>
+                              : intg.type === "toggle"
+                                ? <button className={`intg-btn ${isOn?"connected":""}`} onClick={()=>{ saveIntg(intg.key,{enabled:!cfg.enabled}); }}>
+                                    {isOn ? "✓ Enabled" : "Enable"}
+                                  </button>
+                                : <button className={`intg-btn ${isOn?"connected":""}`} onClick={()=>{ setIntgForm({...cfg}); setIntgTestMsg(null); setIntgModal(intg); }}>
+                                    {isOn ? "✓ Connected" : intg.type==="zapier"?"Via Zapier →":"Connect"}
+                                  </button>
+                          }
                         </div>
-                        {!intg.connected
-                          ? <button className="intg-btn" onClick={()=>alert(`${intg.name} integration coming soon! We're building it. Sign up for early access.`)}>Connect</button>
-                          : null
-                        }
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
-                </div>
+                </div>;
+                })()
               )}
 
               {view === "people" ? (<>
@@ -1532,7 +1692,7 @@ ONLY JSON: {"summary":"...","outcomes":["..."],"actionItems":["..."],"nextSteps"
                                 {!isSubscribed
                                   ? <button className="cbtn cb-locked" onClick={()=>setShowPaywall(true)}>🔒 Unlock</button>
                                   : lead.email
-                                    ? <button className="cbtn cb-email" onClick={()=>copy(lead.email,"e_"+lead.id)}>✉ {copied==="e_"+lead.id?"Copied!":lead.email.length>22?lead.email.slice(0,22)+"…":lead.email}</button>
+                                    ? <button className="cbtn cb-email" onClick={()=>{ if(integrations.gmail?.enabled){ window.open(`https://mail.google.com/mail/?view=cm&to=${encodeURIComponent(lead.email)}&su=${encodeURIComponent(`Hi ${lead.firstName}`)}`,"_blank"); } else { copy(lead.email,"e_"+lead.id); } }}>✉ {integrations.gmail?.enabled?"Compose":copied==="e_"+lead.id?"Copied!":lead.email.length>22?lead.email.slice(0,22)+"…":lead.email}</button>
                                     : enriching.has(lead.id)
                                       ? <span className="cbtn cb-gen"><span className="spin" style={{width:10,height:10}}/>Revealing...</span>
                                       : lead.enriched

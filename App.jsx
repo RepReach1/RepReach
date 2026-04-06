@@ -524,6 +524,25 @@ ONLY JSON: {"subject":"...","body":"..."}`
 
         /* Pro badge */
         .pro-badge{font-size:11px;font-weight:700;color:var(--teal);padding:4px 13px;background:var(--teal-dim);border:1px solid rgba(0,229,192,.18);border-radius:20px;letter-spacing:.02em}
+
+        /* ─── SERVICES VIEW ─── */
+        .svc-page{flex:1;overflow-y:auto;padding:32px 28px}
+        .svc-hd{margin-bottom:30px}
+        .svc-hd h1{font-family:'Bricolage Grotesque',sans-serif;font-size:26px;font-weight:800;color:var(--text);letter-spacing:-.5px;margin-bottom:6px}
+        .svc-hd p{font-size:13px;color:var(--text2);line-height:1.65;max-width:520px;font-weight:500}
+        .svc-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:18px}
+        .svc-card{background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:22px;position:relative;overflow:hidden;transition:.2s;cursor:default}
+        .svc-card:hover{border-color:var(--border2);transform:translateY(-2px);box-shadow:0 8px 32px rgba(0,0,0,.4)}
+        .svc-card-accent{position:absolute;top:0;left:0;right:0;height:3px;border-radius:16px 16px 0 0}
+        .svc-card-top{display:flex;align-items:flex-start;gap:13px;margin-bottom:14px}
+        .svc-icon{width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0}
+        .svc-meta{flex:1;min-width:0}
+        .svc-tag{display:inline-block;font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:1.2px;padding:3px 9px;border-radius:4px;margin-bottom:7px}
+        .svc-title{font-family:'Bricolage Grotesque',sans-serif;font-size:16px;font-weight:800;color:var(--text);letter-spacing:-.3px;line-height:1.2}
+        .svc-desc{font-size:12px;color:var(--text2);line-height:1.7;margin-bottom:14px;font-weight:500}
+        .svc-items{display:flex;flex-direction:column;gap:7px}
+        .svc-item{display:flex;align-items:flex-start;gap:9px;font-size:12px;color:var(--text2);line-height:1.5;font-weight:500}
+        .svc-bullet{width:18px;height:18px;border-radius:5px;display:flex;align-items:center;justify-content:center;font-size:10px;flex-shrink:0;margin-top:1px}
       `}</style>
 
       {/* ── PAYWALL ── */}
@@ -580,6 +599,9 @@ ONLY JSON: {"subject":"...","body":"..."}`
             </div>
             <div className={`sb-item ${view==="tracker"?"on":""}`} onClick={() => setView("tracker")}>
               <span className="sb-item-icon">📋</span> Tracker
+            </div>
+            <div className={`sb-item ${view==="services"?"on":""}`} onClick={() => setView("services")}>
+              <span className="sb-item-icon">🚀</span> Services
             </div>
           </div>
 
@@ -800,7 +822,126 @@ ONLY JSON: {"subject":"...","body":"..."}`
                   )}
                   </div>
                 )}
-              </>) : (
+              </>) : view === "services" ? (
+                /* ── SERVICES ── */
+                <div className="svc-page">
+                  <div className="svc-hd">
+                    <h1>What RepReach Helps You Do</h1>
+                    <p>Every part of your sales system, organized. From finding the right lead to closing the deal — here's where we move the needle.</p>
+                  </div>
+                  <div className="svc-grid">
+
+                    {/* 1 — Lead Generation */}
+                    <div className="svc-card">
+                      <div className="svc-card-accent" style={{background:"linear-gradient(90deg,#00e5c0,#00c9a7)"}}/>
+                      <div className="svc-card-top">
+                        <div className="svc-icon" style={{background:"rgba(0,229,192,.1)"}}>💰</div>
+                        <div className="svc-meta">
+                          <div className="svc-tag" style={{background:"rgba(0,229,192,.1)",color:"#00e5c0"}}>Biggest Pain Point</div>
+                          <div className="svc-title">Lead Generation</div>
+                        </div>
+                      </div>
+                      <div className="svc-desc">Most people don't struggle with closing — they struggle with getting qualified leads consistently. This is where everything starts.</div>
+                      <div className="svc-items">
+                        {["Build targeted lead lists via Apollo & LinkedIn","Find decision-makers with verified emails & phone numbers","Niche targeting — e.g. gym owners in LA, buyers at Kroger","Search by retailer, title, department, or seniority"].map(t => (
+                          <div key={t} className="svc-item"><div className="svc-bullet" style={{background:"rgba(0,229,192,.1)",color:"#00e5c0"}}>→</div>{t}</div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* 2 — Outreach Systems */}
+                    <div className="svc-card">
+                      <div className="svc-card-accent" style={{background:"linear-gradient(90deg,#38bdf8,#0ea5e9)"}}/>
+                      <div className="svc-card-top">
+                        <div className="svc-icon" style={{background:"rgba(56,189,248,.1)"}}>✉️</div>
+                        <div className="svc-meta">
+                          <div className="svc-tag" style={{background:"rgba(56,189,248,.1)",color:"#38bdf8"}}>Where Deals Start</div>
+                          <div className="svc-title">Outreach Systems</div>
+                        </div>
+                      </div>
+                      <div className="svc-desc">People waste leads by sending bad messages or not following up. A strong outreach system turns contacts into conversations.</div>
+                      <div className="svc-items">
+                        {["Cold email copywriting — A/B tested variants","DM scripts for Instagram & LinkedIn","Follow-up sequences (most deals happen here)","Setting up automation tools — Apollo, Instantly, etc."].map(t => (
+                          <div key={t} className="svc-item"><div className="svc-bullet" style={{background:"rgba(56,189,248,.1)",color:"#38bdf8"}}>→</div>{t}</div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* 3 — Automation / Systems */}
+                    <div className="svc-card">
+                      <div className="svc-card-accent" style={{background:"linear-gradient(90deg,#8b5cf6,#7c3aed)"}}/>
+                      <div className="svc-card-top">
+                        <div className="svc-icon" style={{background:"rgba(139,92,246,.1)"}}>⚙️</div>
+                        <div className="svc-meta">
+                          <div className="svc-tag" style={{background:"rgba(139,92,246,.1)",color:"#8b5cf6"}}>High-Value Skill</div>
+                          <div className="svc-title">Automation & Systems</div>
+                        </div>
+                      </div>
+                      <div className="svc-desc">This is where you charge more. Businesses love automation because it saves time and scales without adding headcount.</div>
+                      <div className="svc-items">
+                        {["Auto-sending cold email sequences","CRM setup — HubSpot, Salesforce","Tool integrations — Apollo → website → CRM","Full lead pipeline architecture"].map(t => (
+                          <div key={t} className="svc-item"><div className="svc-bullet" style={{background:"rgba(139,92,246,.1)",color:"#8b5cf6"}}>→</div>{t}</div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* 4 — Appointment Setting */}
+                    <div className="svc-card">
+                      <div className="svc-card-accent" style={{background:"linear-gradient(90deg,#f59e0b,#f97316)"}}/>
+                      <div className="svc-card-top">
+                        <div className="svc-icon" style={{background:"rgba(245,158,11,.1)"}}>📞</div>
+                        <div className="svc-meta">
+                          <div className="svc-tag" style={{background:"rgba(245,158,11,.1)",color:"#f59e0b"}}>Very In Demand</div>
+                          <div className="svc-title">Appointment Setting</div>
+                        </div>
+                      </div>
+                      <div className="svc-desc">A lot of businesses just want meetings booked. Consistent calendar flow is one of the most valuable things you can deliver.</div>
+                      <div className="svc-items">
+                        {["Qualify leads before they hit the calendar","Book calls directly onto decision-makers' schedules","Handle initial conversations & objections","Maintain consistent pipeline of booked meetings"].map(t => (
+                          <div key={t} className="svc-item"><div className="svc-bullet" style={{background:"rgba(245,158,11,.1)",color:"#f59e0b"}}>→</div>{t}</div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* 5 — Offer + Messaging */}
+                    <div className="svc-card">
+                      <div className="svc-card-accent" style={{background:"linear-gradient(90deg,#ec4899,#db2777)"}}/>
+                      <div className="svc-card-top">
+                        <div className="svc-icon" style={{background:"rgba(236,72,153,.1)"}}>🧠</div>
+                        <div className="svc-meta">
+                          <div className="svc-tag" style={{background:"rgba(236,72,153,.1)",color:"#ec4899"}}>Underrated but Powerful</div>
+                          <div className="svc-title">Offer + Messaging</div>
+                        </div>
+                      </div>
+                      <div className="svc-desc">Sometimes sales suck because the offer is weak or unclear — not the outreach. Fix the foundation and everything converts better.</div>
+                      <div className="svc-items">
+                        {["Clarify and sharpen your value proposition","Improve landing pages for conversion","Fix messaging so it resonates with buyers","Position your offer to stand out vs. competitors"].map(t => (
+                          <div key={t} className="svc-item"><div className="svc-bullet" style={{background:"rgba(236,72,153,.1)",color:"#ec4899"}}>→</div>{t}</div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* 6 — Closing */}
+                    <div className="svc-card">
+                      <div className="svc-card-accent" style={{background:"linear-gradient(90deg,#4ade80,#22c55e)"}}/>
+                      <div className="svc-card-top">
+                        <div className="svc-icon" style={{background:"rgba(74,222,128,.1)"}}>🔒</div>
+                        <div className="svc-meta">
+                          <div className="svc-tag" style={{background:"rgba(74,222,128,.1)",color:"#4ade80"}}>For Experienced Reps</div>
+                          <div className="svc-title">Closing</div>
+                        </div>
+                      </div>
+                      <div className="svc-desc">This is important, but harder to sell as a service unless you're legit. For seasoned reps who need to sharpen the final step.</div>
+                      <div className="svc-items">
+                        {["Sales scripts tailored to your product & buyer","Objection handling — price, timing, competitors","Call frameworks that move deals forward","Role-play & coaching on live calls"].map(t => (
+                          <div key={t} className="svc-item"><div className="svc-bullet" style={{background:"rgba(74,222,128,.1)",color:"#4ade80"}}>→</div>{t}</div>
+                        ))}
+                      </div>
+                    </div>
+
+                  </div>
+                </div>
+              ) : (
                 /* ── TRACKER ── */
                 <div style={{padding:"16px 20px",overflow:"auto",flex:1}}>
                   <div style={{marginBottom:16}}>

@@ -1,10 +1,13 @@
 export default async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
 
-  const { retailer, cursor = 1 } = req.body;
-  if (!retailer) return res.status(400).json({ error: "Missing retailer" });
+  const { retailer, personName, titleKeyword, cursor = 1 } = req.body;
+  if (!retailer && !personName) return res.status(400).json({ error: "Missing retailer or personName" });
 
-  const KEY       = process.env.APOLLO_ENRICH_KEY || "RDwOP69rbo3M2KQ1iJNLhQ";
+  // Use APOLLO_API_KEY for search endpoints, fall back to APOLLO_ENRICH_KEY
+  const KEY       = process.env.APOLLO_API_KEY || process.env.APOLLO_ENRICH_KEY;
+  if (!KEY) return res.status(500).json({ error: "Apollo API key not configured" });
+
   const BATCH     = 5;
   const HEADERS   = { "Content-Type": "application/json", "Cache-Control": "no-cache", "X-Api-Key": KEY };
 
@@ -22,7 +25,7 @@ export default async function handler(req, res) {
     "7-eleven":"7-eleven.com","family dollar":"familydollar.com",
   };
 
-  const TITLES = [
+  const DEFAULT_TITLES = [
     "buyer","senior buyer","merchant","senior merchant","category manager",
     "senior category manager","divisional merchandise manager","general merchandise manager",
     "director of merchandising","vp of merchandising","head of merchandising",
@@ -31,6 +34,11 @@ export default async function handler(req, res) {
     "merchandise manager","category director","buying manager","chief merchant",
     "merchandise planner","inventory manager","assortment manager",
   ];
+
+  // titleKeyword is an array of selected title strings from the frontend
+  const TITLES = (Array.isArray(titleKeyword) && titleKeyword.length)
+    ? titleKeyword.map(t => t.toLowerCase())
+    : DEFAULT_TITLES;
 
   const KEYWORDS = [
     "buyer","merchant","category","purchasing","procurement","sourcing",
@@ -42,6 +50,60 @@ export default async function handler(req, res) {
     fetch(url, { method:"POST", headers:HEADERS, body:JSON.stringify(body) });
 
   try {
+    // ── PERSON NAME SEARCH ──────────────────────────────────────────────────
+    if (personName) {
+      console.log(`[person search] name="${personName}" cursor=${cursor}`);
+      const start = (cursor - 1) * BATCH + 1;
+      const pages = Array.from({length:BATCH}, (_,i) => start+i);
+      const results = await Promise.all(pages.map(async pg => {
+        const r = await post("https://api.apollo.io/v1/mixed_people/search", {
+          q_keywords: personName,
+          person_titles: DEFAULT_TITLES,
+          page: pg,
+          per_page: 100,
+        });
+        const d = await r.json();
+        console.log(`[person page ${pg}] status=${r.status} people=${d?.people?.length??0} err=${d?.error??'none'}`);
+        return { people: d?.people||[], total: d?.pagination?.total_entries||0, pages: d?.pagination?.total_pages||1 };
+      }));
+
+      const apolloTotal = results[0]?.total || 0;
+      const totalPages  = Math.min(results[0]?.pages || 1, 500);
+      let   people      = results.flatMap(r => r.people).filter(p => p.first_name);
+
+      // Dedupe by full name
+      const seen = new Set();
+      people = people.filter(p => {
+        const k = `${p.first_name}${p.last_name||""}`.toLowerCase().replace(/\s/g,"");
+        if (seen.has(k)) return false; seen.add(k); return true;
+      });
+
+      // Keyword filter
+      people = people.filter(p => KEYWORDS.some(kw => (p.title||"").toLowerCase().includes(kw)));
+
+      const leads = people.map(p => ({
+        // Use the full Apollo ID as the stable unique key — never truncate
+        id:          p.id ? `apollo_${p.id}` : `apollo_name_${p.first_name}_${p.last_name}_${p.organization_name||"unknown"}`.toLowerCase().replace(/\s+/g,"_"),
+        apolloId:    p.id || null,
+        firstName:   p.first_name  || "",
+        lastName:    p.last_name   || "",
+        title:       p.title       || "",
+        seniority:   p.seniority   || "",
+        departments: p.departments || [],
+        retailer:    p.organization_name || "",
+        email:       p.email       || null,
+        phone:       p.phone_numbers?.[0]?.sanitized_number || null,
+        location:    [p.city, p.state].filter(Boolean).join(", ") || "",
+        country:     p.country     || null,
+        linkedin:    p.linkedin_url || null,
+      }));
+
+      const nextCursor = start + BATCH <= totalPages ? cursor + 1 : null;
+      console.log(`[person done] ${leads.length} leads, apolloTotal=${apolloTotal}`);
+      return res.status(200).json({ leads, total:leads.length, apolloTotal, cursor, nextCursor });
+    }
+
+    // ── RETAILER / COMPANY SEARCH ───────────────────────────────────────────
     // 1. Resolve org ID
     let orgId = null;
     const domain = DOMAINS[retailer.toLowerCase().trim()];
@@ -63,17 +125,18 @@ export default async function handler(req, res) {
       if (best?.id) { orgId = best.id; console.log(`[org] picked "${best.name}" ${best.id}`); }
     }
 
-    const body = orgId
+    // Always scope by org ID or org name — never leave unscoped so different retailers get different results
+    const searchBody = orgId
       ? { organization_ids:[orgId], person_titles:TITLES }
       : { organization_names:[retailer], person_titles:TITLES };
 
-    console.log(`[search] orgId=${orgId} cursor=${cursor} body=${JSON.stringify(body).slice(0,120)}`);
+    console.log(`[search] retailer="${retailer}" orgId=${orgId} cursor=${cursor} titles=${TITLES.length}`);
 
-    // 2. Fetch 5 pages in parallel — correct endpoint: mixed_people/search
+    // 2. Fetch BATCH pages in parallel
     const start = (cursor - 1) * BATCH + 1;
     const pages = Array.from({length:BATCH}, (_,i) => start+i);
     const results = await Promise.all(pages.map(async pg => {
-      const r = await post("https://api.apollo.io/v1/mixed_people/search", {...body, page:pg, per_page:100});
+      const r = await post("https://api.apollo.io/v1/mixed_people/search", {...searchBody, page:pg, per_page:100});
       const d = await r.json();
       console.log(`[page ${pg}] status=${r.status} people=${d?.people?.length??0} total=${d?.pagination?.total_entries??0} err=${d?.error??'none'}`);
       return { people:d?.people||[], total:d?.pagination?.total_entries||0, pages:d?.pagination?.total_pages||1 };
@@ -84,7 +147,7 @@ export default async function handler(req, res) {
     let   people      = results.flatMap(r => r.people).filter(p => p.first_name);
     console.log(`[raw] ${people.length} people before filter`);
 
-    // 3. Dedupe
+    // 3. Dedupe by full name
     const seen = new Set();
     people = people.filter(p => {
       const k = `${p.first_name}${p.last_name||""}`.toLowerCase().replace(/\s/g,"");
@@ -101,8 +164,11 @@ export default async function handler(req, res) {
       console.log(`[debug] sample titles that got filtered:`, sample);
     }
 
-    const leads = people.map((p,i) => ({
-      id:          `apollo_${cursor}_${i}_${(p.id||"").slice(-6)}`,
+    const leads = people.map(p => ({
+      // Use full Apollo person ID as the stable unique key — scoped to avoid cross-retailer collisions
+      id:          p.id
+                     ? `apollo_${p.id}`
+                     : `apollo_${orgId||retailer.replace(/\s+/g,"_").toLowerCase()}_p${cursor}_${p.first_name}_${p.last_name||""}`.toLowerCase().replace(/\s+/g,"_"),
       apolloId:    p.id || null,
       firstName:   p.first_name  || "",
       lastName:    p.last_name   || "",

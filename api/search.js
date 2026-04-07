@@ -4,11 +4,11 @@ export default async function handler(req, res) {
   const { retailer, personName, titleKeyword, cursor = 1 } = req.body;
   if (!retailer && !personName) return res.status(400).json({ error: "Missing retailer or personName" });
 
-  // Accept either key — APOLLO_API_KEY preferred, APOLLO_ENRICH_KEY as fallback.
-  // Both keys typically have identical permissions on standard Apollo plans.
-  const KEY = process.env.APOLLO_API_KEY || process.env.APOLLO_ENRICH_KEY;
+  // Apollo provides a single API key that works for all endpoints (search + enrich).
+  // Set APOLLO_API_KEY in your Vercel environment variables (or .env locally).
+  const KEY = process.env.APOLLO_API_KEY;
   if (!KEY) {
-    console.error("[fatal] No Apollo API key configured. Set APOLLO_API_KEY or APOLLO_ENRICH_KEY in environment variables.");
+    console.error("[fatal] APOLLO_API_KEY environment variable is not set.");
     return res.status(500).json({ error: "Apollo API key not configured", leads: [] });
   }
 

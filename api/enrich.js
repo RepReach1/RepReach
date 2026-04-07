@@ -4,7 +4,12 @@ export default async function handler(req, res) {
   const { apolloId, firstName, lastName, retailer, linkedin } = req.body;
   if (!apolloId && !firstName) return res.status(400).json({ error: "Missing contact info" });
 
-  const APOLLO_ENRICH_KEY = process.env.APOLLO_ENRICH_KEY || "RDwOP69rbo3M2KQ1iJNLhQ";
+  // Apollo provides a single API key for all endpoints — same key as search.js
+  const APOLLO_ENRICH_KEY = process.env.APOLLO_API_KEY;
+  if (!APOLLO_ENRICH_KEY) {
+    console.error("[fatal] APOLLO_API_KEY environment variable is not set.");
+    return res.status(500).json({ error: "Apollo API key not configured" });
+  }
 
   try {
     const payload = {

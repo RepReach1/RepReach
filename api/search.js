@@ -1,8 +1,8 @@
-// Apollo people search endpoint — api/v1/mixed_people/api_search
-// Uses q_organization_domains for domain-based scoping (most reliable identifier).
-// No org-ID resolution step needed — domain is passed directly.
+// Apollo people search endpoint — v1/mixed_people/search (free-plan compatible).
+// api/v1/mixed_people/api_search requires a paid Apollo plan (API_INACCESSIBLE on free).
+// Uses q_organization_domains for domain-based scoping — no org-ID resolution needed.
 
-const APOLLO_SEARCH_ENDPOINT = "https://api.apollo.io/api/v1/mixed_people/api_search";
+const APOLLO_SEARCH_ENDPOINT = "https://api.apollo.io/v1/mixed_people/search";
 
 export default async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });

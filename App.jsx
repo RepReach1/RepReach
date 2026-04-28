@@ -117,16 +117,12 @@ export default function App() {
       setLeads([]); setHasSearched(false); setNextCursor(null); return;
     }
     setSearching(true);
-    // Clear ALL retailer-specific state so previous retailer's data never bleeds into new results
     setLeads([]); setNextCursor(null); setDepartments({});
-    setEnriched({}); setEmails({}); setLinkedIns({}); setFollowUps({});
-    setSelected(new Set()); setActiveLead(null); setStatuses({}); setNotes({});
     try {
       const res = await fetch("/api/search", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        // Pass titles as an array so the backend can use them directly in the Apollo query
-        body: JSON.stringify({ retailer: company, titleKeyword: titles && titles.length ? titles : null, cursor: 1 }),
+        body: JSON.stringify({ retailer: company, titleKeyword: titles || null, cursor: 1 }),
       });
       const data = await res.json();
       const r = data.leads || [];
@@ -144,8 +140,6 @@ export default function App() {
     if (!name.trim() || name.trim().length < 3) return;
     setSearching(true);
     setLeads([]); setNextCursor(null); setDepartments({});
-    setEnriched({}); setEmails({}); setLinkedIns({}); setFollowUps({});
-    setSelected(new Set()); setActiveLead(null); setStatuses({}); setNotes({});
     try {
       const res = await fetch("/api/search", {
         method: "POST",
@@ -171,7 +165,7 @@ export default function App() {
       const res = await fetch("/api/search", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ retailer: companyInput, titleKeyword: selectedTitles.length ? selectedTitles : null, cursor: nextCursor }),
+        body: JSON.stringify({ retailer: companyInput, titleKeyword: selectedTitles.length ? selectedTitles.join(" ") : null, cursor: nextCursor }),
       });
       const data = await res.json();
       const newLeads = data.leads || [];
@@ -230,14 +224,14 @@ export default function App() {
     clearTimeout(searchTimer.current);
     searchTimer.current = setTimeout(() => {
       if (mode === "person") runPersonSearch(val);
-      else runSearch(val, selectedTitles.length ? selectedTitles : null);
+      else runSearch(val, selectedTitles.length ? selectedTitles.join(" ") : null);
     }, 500);
   };
 
   const toggleTitle = (t) => {
     const next = selectedTitles.includes(t) ? selectedTitles.filter(x=>x!==t) : [...selectedTitles, t];
     setSelectedTitles(next);
-    if (companyInput.trim()) runSearch(companyInput, next.length ? next : null);
+    if (companyInput.trim()) runSearch(companyInput, next.length ? next.join(" ") : null);
   };
 
   const openLead = (lead) => {

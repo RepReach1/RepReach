@@ -48,14 +48,6 @@ const TITLE_OPTIONS = [
 
 const QUICK_COMPANIES = ["Walmart","Sam's Club","Kroger","Target","Costco","Home Depot","CVS","Tractor Supply","Amazon","Lowe's","Publix","Walgreens","Best Buy","Dollar General","Albertsons"];
 
-const OBJECTION_TYPES = [
-  { id: "expensive",     label: "Too Expensive"    },
-  { id: "think",         label: "Need to Think"    },
-  { id: "timing",        label: "Bad Timing"       },
-  { id: "notinterested", label: "Not Interested"   },
-  { id: "vendor",        label: "Have a Vendor"    },
-];
-
 export default function App() {
   const [isSubscribed, setIsSubscribed] = useState(false);
   const [showPaywall,  setShowPaywall]  = useState(false);
@@ -88,10 +80,7 @@ export default function App() {
   const [genEmail,   setGenEmail]   = useState(null);
   const [genLI,      setGenLI]      = useState(null);
   const [genFU,      setGenFU]      = useState(null);
-  const [emailTab,     setEmailTab]     = useState("cold");
-  const [objections,   setObjections]   = useState({});
-  const [genObj,       setGenObj]       = useState(null);
-  const [activeObjType, setActiveObjType] = useState({});
+  const [emailTab,   setEmailTab]   = useState("cold");
   const [variant,    setVariant]    = useState("a");
   const [copied,     setCopied]     = useState(null);
   const [enriching,  setEnriching]  = useState(new Set()); // contact IDs currently being enriched
@@ -260,21 +249,10 @@ export default function App() {
     setGenEmail(lead.id);
     try {
       const r = await generateText(
-        `You are a top-performing CPG sales rep. Write TWO A/B cold email variants to a retail buyer. Sound like a real person — not AI copy, not a template.
-
-Rep: ${repName||"a sales rep"}. Brand: ${brandName}. Product: ${productDesc||brandName}.
+        `Write TWO cold email variants (A/B) from a CPG sales rep to a retail buyer.
+Rep: ${repName||"Sales Rep"}. Brand: ${brandName}. Product: ${productDesc||brandName}.
 Buyer: ${lead.firstName} ${lead.lastName}, ${lead.title} at ${lead.retailer}. Tone: ${emailTone}.
-
-Rules:
-- Subject: pattern interrupt — spark curiosity, NOT salesy (never "Exciting opportunity" or "Wanted to connect")
-- Body opens strong — never "I hope this finds you well" or "My name is..."
-- Short punchy sentences. Get to the point fast.
-- Reference their retailer or role in a specific, real way
-- One clear low-friction ask at the end (15-min call, reply yes/no, quick question)
-- Max 100 words body
-- Zero buzzwords: no leverage, synergy, solution, touch base, reach out, circle back, best-in-class
-- A/B should have meaningfully different angles — different hook, different angle
-
+Max 120 words body. Specific, compelling subjects.
 ONLY JSON: {"a":{"subject":"...","body":"..."},"b":{"subject":"...","body":"..."}}`
       );
       setEmails(p => ({...p,[lead.id]:r}));
@@ -286,22 +264,10 @@ ONLY JSON: {"a":{"subject":"...","body":"..."},"b":{"subject":"...","body":"..."
     setGenLI(lead.id);
     try {
       const r = await generateText(
-        `You're a CPG sales rep writing LinkedIn outreach to a retail buyer. Sound like a real person — not a LinkedIn spam template.
-
-Rep: ${repName||"a sales rep"}. Brand: ${brandName||"our brand"}. Product: ${productDesc||brandName||"our product"}.
+        `LinkedIn outreach, CPG sales rep to retail buyer.
+Rep: ${repName||"Sales Rep"}. Brand: ${brandName||"our brand"}.
 Buyer: ${lead.firstName} ${lead.lastName}, ${lead.title} at ${lead.retailer}.
-
-Connection request (MAX 280 chars):
-- Don't start with "I'd love to connect" or "I came across your profile"
-- Make it feel specific and direct — like you actually know their world
-- Short and confident, not pitch-y
-
-DM after connecting (MAX 450 chars):
-- Get straight to the point — no warm-up paragraph
-- One thing that makes you or your product interesting/relevant to their category
-- End with one easy ask (reply yes, quick call, happy to send samples)
-- Casual tone, like a text message — not a cover letter
-
+Connection note max 300 chars. DM max 500 chars.
 ONLY JSON: {"connection":"...","dm":"..."}`
       );
       setLinkedIns(p => ({...p,[lead.id]:r}));
@@ -313,62 +279,16 @@ ONLY JSON: {"connection":"...","dm":"..."}`
     setGenFU(lead.id);
     try {
       const r = await generateText(
-        `You're following up on a cold email — no reply. Sound confident, not desperate. Like a closer who knows their product is worth it.
-
-Rep: ${repName||"a sales rep"}. Brand: ${brandName||"our brand"}.
-Prior subject: "${emails[lead.id]?.a?.subject||"previous email"}".
+        `Follow-up email, no reply received.
+Rep: ${repName||"Sales Rep"}. Brand: ${brandName||"our brand"}.
+Prior subject: "${emails[lead.id]?.a?.subject||""}".
 Buyer: ${lead.firstName} ${lead.lastName}, ${lead.title} at ${lead.retailer}.
-
-Rules:
-- Open with a pattern interrupt — surprise them (NEVER "Just following up" or "Wanted to check in")
-- 2-4 sentences max — direct and punchy
-- Add one piece of value: a quick insight, a stat, or a light challenge
-- End with a simple yes/no question or easy out ("Worth 10 minutes? If not, totally get it.")
-- Max 65 words body
-- Subject: "Re:" + prior subject OR a new curiosity hook if it fits better
-
-Good opener examples (use as inspiration only, don't copy):
-"Still relevant, or totally wrong timing?"
-"Quick one — should I leave you alone or is this actually worth a chat?"
-"Figured I'd try once more before I move on."
-
+No "just checking in". Add value. Max 80 words. Subject "Re:...".
 ONLY JSON: {"subject":"...","body":"..."}`
       );
       setFollowUps(p => ({...p,[lead.id]:r}));
     } catch(e) { alert("Failed: "+e.message); }
     setGenFU(null);
-  };
-
-  const genObj_ = async (lead, objType) => {
-    if (!brandName) return alert("Enter your brand name in the settings bar first.");
-    setGenObj(lead.id);
-    const objMap = {
-      expensive:      '"It\'s too expensive" / "The price is too high"',
-      think:          '"I need to think about it" / "Let me get back to you"',
-      timing:         '"Now\'s not a good time" / "We\'re not looking right now"',
-      notinterested:  '"I\'m not interested" / "We\'re all set"',
-      vendor:         '"We already have a vendor" / "Happy with our current supplier"',
-    };
-    try {
-      const r = await generateText(
-        `You're a top 1% CPG sales closer. The buyer just said: ${objMap[objType]}.
-
-Rep: ${repName||"the sales rep"}. Brand: ${brandName}. Product: ${productDesc||brandName}.
-Buyer: ${lead.firstName} ${lead.lastName}, ${lead.title} at ${lead.retailer}.
-
-Write a real response — not a sales script. Like a confident closer who's heard this a hundred times:
-- Lead with genuine empathy (1 short sentence — don't fake it)
-- Reframe the objection without arguing or being defensive
-- One sharp insight or pivot that shifts the frame
-- Soft close or an easy next step
-- Max 5 sentences total, conversational tone
-- Read like something you'd actually say on a call or send in a text — real, slightly casual, confident
-
-ONLY JSON: {"response":"..."}`
-      );
-      setObjections(p => ({ ...p, [lead.id]: { ...(p[lead.id]||{}), [objType]: r.response } }));
-    } catch(e) { alert("Failed: "+e.message); }
-    setGenObj(null);
   };
 
   const copy = (text, key) => { navigator.clipboard.writeText(text); setCopied(key); setTimeout(()=>setCopied(null),1800); };
@@ -604,23 +524,6 @@ ONLY JSON: {"response":"..."}`
 
         /* Pro badge */
         .pro-badge{font-size:11px;font-weight:700;color:var(--teal);padding:4px 13px;background:var(--teal-dim);border:1px solid rgba(0,229,192,.18);border-radius:20px;letter-spacing:.02em}
-
-        /* ─── AI TOOLS PANEL ─── */
-        .tool-hint{font-size:11px;color:var(--text3);line-height:1.65;margin-bottom:14px;padding:10px 13px;background:rgba(0,229,192,.035);border-radius:8px;border-left:2px solid rgba(0,229,192,.2);font-weight:500}
-        .email-area{padding:18px 20px;flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:0}
-        .ebox{background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:14px 16px;margin-bottom:10px;transition:.15s}
-        .ebox:hover{border-color:var(--border2)}
-        .elabel{font-size:9px;font-weight:800;color:var(--text3);text-transform:uppercase;letter-spacing:1.1px;margin-bottom:8px;font-family:'Bricolage Grotesque',sans-serif;display:flex;align-items:center;justify-content:space-between}
-        .ebox-meta{font-size:10px;color:var(--text3);font-weight:600;font-family:'Inter',sans-serif;letter-spacing:0}
-        .ebody{font-size:12px;line-height:1.85;color:var(--text2);white-space:pre-wrap;font-weight:400}
-        .gen-actions{display:flex;gap:7px;margin-top:4px;align-items:center}
-        .obj-pills{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:16px}
-        .obj-pill{padding:6px 14px;border-radius:20px;font-size:11px;font-weight:700;cursor:pointer;border:1.5px solid var(--border);background:var(--bg3);color:var(--text3);transition:.12s;letter-spacing:.01em;line-height:1.4}
-        .obj-pill:hover{border-color:var(--teal2);color:var(--teal);background:var(--teal-dim)}
-        .obj-pill.on{border-color:var(--teal);color:var(--teal);background:var(--teal-dim)}
-        .obj-response{background:var(--bg3);border:1px solid rgba(0,229,192,.18);border-radius:10px;padding:16px;margin-bottom:12px}
-        .obj-response .ebody{color:var(--text);line-height:1.8;font-size:12.5px}
-        .ab-row{display:flex;gap:5px;margin-bottom:14px;align-items:center}
       `}</style>
 
       {/* ── PAYWALL ── */}
@@ -1002,148 +905,49 @@ ONLY JSON: {"response":"..."}`
                   <button className={`etab ${emailTab==="cold"?"on":""}`} onClick={()=>setEmailTab("cold")}>Cold Email</button>
                   <button className={`etab ${emailTab==="linkedin"?"on":""}`} onClick={()=>setEmailTab("linkedin")}>LinkedIn</button>
                   <button className={`etab ${emailTab==="followup"?"on":""}`} onClick={()=>setEmailTab("followup")}>Follow-up</button>
-                  <button className={`etab ${emailTab==="objection"?"on":""}`} onClick={()=>setEmailTab("objection")}>Objections</button>
                 </div>
 
                 <div className="email-area">
-
-                  {/* ── Cold Email ── */}
                   {emailTab==="cold" && (!eData
-                    ? <>
-                        <p className="tool-hint">Two A/B variants — different hooks, different angles. Written like a top SDR, not a template. No fluff, one clear ask.</p>
-                        <button className="btn btn-teal" style={{width:"100%",justifyContent:"center"}} disabled={!!genEmail} onClick={()=>genEmail_(activeLead)}>
-                          {genEmail===activeLead.id ? <><span className="spin"/>Writing your emails...</> : "⚡ Generate Cold Emails (A/B)"}
-                        </button>
-                      </>
+                    ? <button className="btn btn-teal" style={{width:"100%",justifyContent:"center"}} disabled={!!genEmail} onClick={()=>genEmail_(activeLead)}>
+                        {genEmail===activeLead.id?<><span className="spin"/>Generating...</>:"⚡ Generate Cold Emails (A/B)"}
+                      </button>
                     : <>
-                        <div className="ab-row">
+                        <div style={{display:"flex",gap:5,marginBottom:12,alignItems:"center"}}>
                           <button className={`vbtn ${variant==="a"?"on":""}`} onClick={()=>setVariant("a")}>Version A</button>
                           <button className={`vbtn ${variant==="b"?"on":""}`} onClick={()=>setVariant("b")}>Version B</button>
-                          <button className="btn btn-outline btn-sm" style={{marginLeft:"auto"}} disabled={!!genEmail} onClick={()=>genEmail_(activeLead)}>
-                            {genEmail===activeLead.id ? <><span className="spin"/>Writing...</> : "↺ Redo"}
-                          </button>
+                          <button className="btn btn-outline btn-sm" style={{marginLeft:"auto"}} disabled={!!genEmail} onClick={()=>genEmail_(activeLead)}>↺ Redo</button>
                         </div>
-                        <div className="ebox">
-                          <div className="elabel">Subject Line</div>
-                          <div className="ebody" style={{fontWeight:700,color:"#f0f2ff",fontSize:13,lineHeight:1.5}}>{eData[variant]?.subject}</div>
-                        </div>
-                        <div className="ebox">
-                          <div className="elabel">
-                            Email Body
-                            <span className="ebox-meta">{eData[variant]?.body?.split(/\s+/).filter(Boolean).length||0} words</span>
-                          </div>
-                          <div className="ebody">{eData[variant]?.body}</div>
-                        </div>
-                        <button className="btn btn-teal btn-sm" style={{width:"100%",justifyContent:"center"}} onClick={()=>copy(`Subject: ${eData[variant]?.subject}\n\n${eData[variant]?.body}`,"ec")}>
-                          {copied==="ec" ? "✓ Copied to clipboard" : "Copy Full Email"}
-                        </button>
+                        <div className="ebox"><div className="elabel">Subject</div><div className="ebody" style={{fontWeight:700,color:"#f1f5f9"}}>{eData[variant]?.subject}</div></div>
+                        <div className="ebox"><div className="elabel">Body</div><div className="ebody">{eData[variant]?.body}</div></div>
+                        <button className="btn btn-outline btn-sm" onClick={()=>copy(`Subject: ${eData[variant]?.subject}\n\n${eData[variant]?.body}`,"ec")}>{copied==="ec"?"✓ Copied!":"Copy Email"}</button>
                       </>
                   )}
 
-                  {/* ── LinkedIn ── */}
                   {emailTab==="linkedin" && (!liData
-                    ? <>
-                        <p className="tool-hint">A connection request + DM that feels real. No "I came across your profile" energy — direct, specific, easy to reply to.</p>
-                        <button className="btn btn-teal" style={{width:"100%",justifyContent:"center"}} disabled={!!genLI} onClick={()=>genLI_(activeLead)}>
-                          {genLI===activeLead.id ? <><span className="spin"/>Writing your messages...</> : "💼 Generate LinkedIn Messages"}
-                        </button>
-                      </>
+                    ? <button className="btn btn-teal" style={{width:"100%",justifyContent:"center"}} disabled={!!genLI} onClick={()=>genLI_(activeLead)}>
+                        {genLI===activeLead.id?<><span className="spin"/>Generating...</>:"💼 Generate LinkedIn Messages"}
+                      </button>
                     : <>
-                        <div style={{display:"flex",justifyContent:"flex-end",marginBottom:12}}>
-                          <button className="btn btn-outline btn-sm" disabled={!!genLI} onClick={()=>genLI_(activeLead)}>
-                            {genLI===activeLead.id ? <><span className="spin"/>Writing...</> : "↺ Redo"}
-                          </button>
-                        </div>
-                        <div className="ebox">
-                          <div className="elabel">
-                            Connection Request
-                            <span className="ebox-meta">{liData.connection?.length||0} / 280</span>
-                          </div>
-                          <div className="ebody" style={{fontSize:11.5}}>{liData.connection}</div>
-                          <div className="gen-actions">
-                            <button className="btn btn-teal btn-sm" style={{flex:1,justifyContent:"center"}} onClick={()=>copy(liData.connection,"lc")}>{copied==="lc"?"✓ Copied":"Copy Note"}</button>
-                          </div>
-                        </div>
-                        <div className="ebox">
-                          <div className="elabel">
-                            Direct Message
-                            <span className="ebox-meta">{liData.dm?.length||0} chars</span>
-                          </div>
-                          <div className="ebody">{liData.dm}</div>
-                          <div className="gen-actions">
-                            <button className="btn btn-teal btn-sm" style={{flex:1,justifyContent:"center"}} onClick={()=>copy(liData.dm,"ld")}>{copied==="ld"?"✓ Copied":"Copy DM"}</button>
-                          </div>
+                        <div className="ebox"><div className="elabel">Connection Request</div><div className="ebody" style={{fontSize:11}}>{liData.connection}</div></div>
+                        <div className="ebox"><div className="elabel">Direct Message</div><div className="ebody">{liData.dm}</div></div>
+                        <div style={{display:"flex",gap:7}}>
+                          <button className="btn btn-outline btn-sm" onClick={()=>copy(liData.connection,"lc")}>{copied==="lc"?"✓":"Copy Note"}</button>
+                          <button className="btn btn-outline btn-sm" onClick={()=>copy(liData.dm,"ld")}>{copied==="ld"?"✓":"Copy DM"}</button>
                         </div>
                       </>
                   )}
 
-                  {/* ── Follow-up ── */}
                   {emailTab==="followup" && (!fuData
-                    ? <>
-                        <p className="tool-hint">A follow-up that doesn't say "just checking in." Confident, punchy, value-forward — and easy to actually reply to.</p>
-                        <button className="btn btn-teal" style={{width:"100%",justifyContent:"center"}} disabled={!!genFU} onClick={()=>genFU_(activeLead)}>
-                          {genFU===activeLead.id ? <><span className="spin"/>Writing your follow-up...</> : "↩ Generate Follow-up"}
-                        </button>
-                      </>
+                    ? <button className="btn btn-teal" style={{width:"100%",justifyContent:"center"}} disabled={!!genFU} onClick={()=>genFU_(activeLead)}>
+                        {genFU===activeLead.id?<><span className="spin"/>Generating...</>:"↩ Generate Follow-up"}
+                      </button>
                     : <>
-                        <div style={{display:"flex",justifyContent:"flex-end",marginBottom:12}}>
-                          <button className="btn btn-outline btn-sm" disabled={!!genFU} onClick={()=>genFU_(activeLead)}>
-                            {genFU===activeLead.id ? <><span className="spin"/>Writing...</> : "↺ Redo"}
-                          </button>
-                        </div>
-                        <div className="ebox">
-                          <div className="elabel">Subject Line</div>
-                          <div className="ebody" style={{fontWeight:700,color:"#f0f2ff",fontSize:13,lineHeight:1.5}}>{fuData.subject}</div>
-                        </div>
-                        <div className="ebox">
-                          <div className="elabel">
-                            Email Body
-                            <span className="ebox-meta">{fuData.body?.split(/\s+/).filter(Boolean).length||0} words</span>
-                          </div>
-                          <div className="ebody">{fuData.body}</div>
-                        </div>
-                        <button className="btn btn-teal btn-sm" style={{width:"100%",justifyContent:"center"}} onClick={()=>copy(`Subject: ${fuData.subject}\n\n${fuData.body}`,"fc")}>
-                          {copied==="fc" ? "✓ Copied to clipboard" : "Copy Follow-up"}
-                        </button>
+                        <div className="ebox"><div className="elabel">Subject</div><div className="ebody" style={{fontWeight:700,color:"#f1f5f9"}}>{fuData.subject}</div></div>
+                        <div className="ebox"><div className="elabel">Body</div><div className="ebody">{fuData.body}</div></div>
+                        <button className="btn btn-outline btn-sm" onClick={()=>copy(`Subject: ${fuData.subject}\n\n${fuData.body}`,"fc")}>{copied==="fc"?"✓ Copied!":"Copy"}</button>
                       </>
                   )}
-
-                  {/* ── Objection Handler ── */}
-                  {emailTab==="objection" && (() => {
-                    const selObj = activeObjType[activeLead.id];
-                    const objResp = selObj && objections[activeLead.id]?.[selObj];
-                    return <>
-                      <p className="tool-hint">Pick the objection you hit. Get a real closer's response — empathy, reframe, soft close. Sounds like you, not a script.</p>
-                      <div className="obj-pills">
-                        {OBJECTION_TYPES.map(o => (
-                          <button key={o.id} className={`obj-pill ${selObj===o.id?"on":""}`}
-                            onClick={()=>setActiveObjType(p=>({...p,[activeLead.id]:o.id}))}>
-                            {o.label}
-                          </button>
-                        ))}
-                      </div>
-                      {selObj && (objResp
-                        ? <>
-                            <div className="obj-response">
-                              <div className="elabel" style={{marginBottom:10,display:"block"}}>Your Response</div>
-                              <div className="ebody" style={{color:"#f0f2ff",lineHeight:1.85}}>{objResp}</div>
-                            </div>
-                            <div className="gen-actions">
-                              <button className="btn btn-teal btn-sm" style={{flex:1,justifyContent:"center"}} onClick={()=>copy(objResp,"oj_"+selObj)}>
-                                {copied==="oj_"+selObj ? "✓ Copied" : "Copy Response"}
-                              </button>
-                              <button className="btn btn-outline btn-sm" disabled={!!genObj} onClick={()=>genObj_(activeLead,selObj)}>
-                                {genObj===activeLead.id ? <><span className="spin"/>Writing...</> : "↺ Redo"}
-                              </button>
-                            </div>
-                          </>
-                        : <button className="btn btn-teal" style={{width:"100%",justifyContent:"center"}} disabled={!!genObj} onClick={()=>genObj_(activeLead,selObj)}>
-                            {genObj===activeLead.id ? <><span className="spin"/>Writing your response...</> : "⚡ Generate Response"}
-                          </button>
-                      )}
-                    </>;
-                  })()}
-
                 </div>
               </div>
             )}

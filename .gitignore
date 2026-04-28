@@ -1,0 +1,8 @@
+node_modules
+dist
+.env
+.env.local
+
+# Keep the empty placeholder tracked but not large seeded versions
+# Uncomment below if data/contacts.json grows too large to commit:
+# data/contacts.json

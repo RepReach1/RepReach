@@ -1,12 +1,128 @@
+import { readFileSync, writeFileSync, existsSync } from "fs";
+import { fileURLToPath } from "url";
+import { dirname, join } from "path";
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
+const DB_PATH   = join(__dirname, "../data/contacts.json");
+
+// Load contacts once — cached across warm invocations
+let _cache = null;
+function getContacts() {
+  if (_cache) return _cache;
+  if (!existsSync(DB_PATH)) {
+    _cache = [];
+    return _cache;
+  }
+  try {
+    _cache = JSON.parse(readFileSync(DB_PATH, "utf8"));
+  } catch {
+    _cache = [];
+  }
+  return _cache;
+}
+
+const KEYWORDS = [
+  "buyer","merchant","category","purchasing","procurement","sourcing",
+  "merchandise","buying","assortment","dmm","gmm","chief merchant",
+  "planner","allocation","director","vp ","head of",
+];
+
 export default async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
 
-  const { retailer, cursor = 1 } = req.body;
-  if (!retailer) return res.status(400).json({ error: "Missing retailer" });
+  const { retailer, titleKeyword, personName, cursor = 1 } = req.body;
+  const PER_PAGE = 25;
+  const contacts = getContacts();
 
-  const KEY       = process.env.APOLLO_ENRICH_KEY || "RDwOP69rbo3M2KQ1iJNLhQ";
-  const BATCH     = 5;
-  const HEADERS   = { "Content-Type": "application/json", "Cache-Control": "no-cache", "X-Api-Key": KEY };
+  // ── Person name search ─────────────────────────────────────────────────────
+  if (personName) {
+    if (contacts.length === 0) return await apolloFallback(req, res);
+
+    const q = personName.trim().toLowerCase();
+    const filtered = contacts.filter(c =>
+      `${c.firstName} ${c.lastName}`.toLowerCase().includes(q)
+    );
+    const page  = Math.max(1, cursor);
+    const start = (page - 1) * PER_PAGE;
+    const leads = filtered.slice(start, start + PER_PAGE).map(stamp);
+    return res.status(200).json({
+      leads,
+      total:       filtered.length,
+      apolloTotal: filtered.length,
+      cursor:      page,
+      nextCursor:  start + PER_PAGE < filtered.length ? page + 1 : null,
+    });
+  }
+
+  // ── Retailer search ────────────────────────────────────────────────────────
+  if (!retailer) return res.status(400).json({ error: "Missing retailer or personName" });
+
+  const q = retailer.trim().toLowerCase();
+
+  // Match on retailerKey (exact), or retailer name contains, or domain contains
+  let filtered = contacts.filter(c =>
+    (c.retailerKey && c.retailerKey.includes(q)) ||
+    c.retailer.toLowerCase().includes(q) ||
+    (c.domain && c.domain.includes(q))
+  );
+
+  // Optional title keyword filter
+  if (titleKeyword && titleKeyword.trim()) {
+    const kws = titleKeyword.trim().toLowerCase().split(/[\s,]+/).filter(Boolean);
+    filtered = filtered.filter(c =>
+      kws.some(kw => c.title.toLowerCase().includes(kw))
+    );
+  }
+
+  // If local DB is empty or no local results for this retailer, fall back to Apollo live search
+  if (contacts.length === 0 || filtered.length === 0) {
+    return await apolloFallback(req, res);
+  }
+
+  const total  = filtered.length;
+  const page   = Math.max(1, cursor);
+  const start  = (page - 1) * PER_PAGE;
+  const leads  = filtered.slice(start, start + PER_PAGE).map(stamp);
+
+  return res.status(200).json({
+    leads,
+    total,
+    apolloTotal: total,
+    cursor:      page,
+    nextCursor:  start + PER_PAGE < total ? page + 1 : null,
+    source:      "local",
+  });
+}
+
+// Stable ID per render (don't mutate stored record)
+function stamp(c, i) {
+  return { ...c, id: c.id || `rr_${i}` };
+}
+
+// ── Persist new Apollo contacts into the local DB ─────────────────────────────
+function cacheToDb(newLeads) {
+  if (!newLeads.length) return;
+  try {
+    const existing = existsSync(DB_PATH)
+      ? JSON.parse(readFileSync(DB_PATH, "utf8"))
+      : [];
+    const knownIds = new Set(existing.map(c => c.apolloId).filter(Boolean));
+    const brandNew = newLeads.filter(c => c.apolloId && !knownIds.has(c.apolloId));
+    if (!brandNew.length) return;
+    const merged = [...existing, ...brandNew].map((c, i) => ({ ...c, id: `rr_${i}` }));
+    _cache = merged; // update in-memory cache first (always works)
+    try { writeFileSync(DB_PATH, JSON.stringify(merged, null, 2)); } catch {} // non-fatal on read-only fs
+  } catch { /* non-fatal */ }
+}
+
+// ── Apollo live fallback (used only when DB is empty) ─────────────────────────
+async function apolloFallback(req, res) {
+  const { retailer, titleKeyword, personName, cursor = 1 } = req.body;
+
+  const KEY      = process.env.APOLLO_API_KEY;
+  const HEADERS  = { "Content-Type": "application/json", "Cache-Control": "no-cache", "X-Api-Key": KEY };
+  const ENRICH_HDR = HEADERS;
+  const BATCH   = 5;
 
   const DOMAINS = {
     "walmart":"walmart.com","sam's club":"samsclub.com","sams club":"samsclub.com",
@@ -32,73 +148,126 @@ export default async function handler(req, res) {
     "merchandise planner","inventory manager","assortment manager",
   ];
 
-  const KEYWORDS = [
+  const KEYWORDS_FB = [
     "buyer","merchant","category","purchasing","procurement","sourcing",
     "merchandise","buying","assortment","dmm","gmm","chief merchant",
     "planner","allocation","director of","vp of","head of",
   ];
 
-  const post = (url, body) =>
-    fetch(url, { method:"POST", headers:HEADERS, body:JSON.stringify(body) });
+  // Try X-Api-Key header first, then api_key in body as fallback
+  const postHeader = (url, body) =>
+    fetch(url, { method: "POST", headers: HEADERS, body: JSON.stringify(body) });
+  const postBody = (url, body) =>
+    fetch(url, { method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ...body, api_key: KEY }) });
+
+  // Returns { people, total, pages, status, error } — never throws
+  const apolloSearch = async (url, body, useBodyAuth = false) => {
+    try {
+      const r = useBodyAuth ? await postBody(url, body) : await postHeader(url, body);
+      const text = await r.text();
+      let d;
+      try { d = JSON.parse(text); } catch { d = { _raw: text.slice(0, 200) }; }
+      const people = d?.people || d?.contacts || [];
+      return {
+        people,
+        total:  d?.pagination?.total_entries || 0,
+        pages:  d?.pagination?.total_pages   || 1,
+        status: r.status,
+        error:  d?.error || (r.status !== 200 ? `HTTP ${r.status}` : null) || d?._raw || null,
+      };
+    } catch(e) {
+      return { people: [], total: 0, pages: 1, status: 0, error: e.message };
+    }
+  };
+
+  const debugLog = [];
 
   try {
-    // 1. Resolve org ID
+    // ── Person name search path ──────────────────────────────────────────────
+    if (personName) {
+      let d = await apolloSearch("https://api.apollo.io/v1/mixed_people/api_search", {
+        q_person_name: personName.trim(), person_titles: TITLES, page: 1, per_page: 25,
+      });
+      if (d.status !== 200 || d.error) {
+        d = await apolloSearch("https://api.apollo.io/v1/mixed_people/api_search", {
+          q_person_name: personName.trim(), page: 1, per_page: 25,
+        }, true);
+      }
+      const leads = d.people.filter(p => p.first_name).map((p, i) => ({
+        id: `apollo_pn_${i}_${(p.id||"").slice(-6)}`, apolloId: p.id || null,
+        firstName: p.first_name || "", lastName: p.last_name || "",
+        title: p.title || "", seniority: p.seniority || "",
+        departments: p.departments || [], retailer: p.organization_name || "",
+        email: p.email || null, phone: p.phone_numbers?.[0]?.sanitized_number || null,
+        location: [p.city, p.state].filter(Boolean).join(", ") || "",
+        country: p.country || null, linkedin: p.linkedin_url || null,
+      }));
+      cacheToDb(leads);
+      return res.status(200).json({ leads, total: leads.length, apolloTotal: d.total || leads.length, cursor: 1, nextCursor: null, source: "apollo_live", _debug: { status: d.status, error: d.error } });
+    }
+
+    // ── Retailer search path ─────────────────────────────────────────────────
     let orgId = null;
     const domain = DOMAINS[retailer.toLowerCase().trim()];
-
     if (domain) {
-      const r = await fetch(`https://api.apollo.io/v1/organizations/enrich?domain=${domain}`, { headers: HEADERS });
-      const d = await r.json();
-      console.log(`[enrich] domain=${domain} status=${r.status} id=${d?.organization?.id} err=${d?.error}`);
-      orgId = d?.organization?.id || null;
+      try {
+        const r = await fetch(`https://api.apollo.io/v1/organizations/enrich?domain=${domain}`, { headers: ENRICH_HDR });
+        const d = await r.json();
+        orgId = d?.organization?.id || null;
+        debugLog.push({ step: "orgEnrich", status: r.status, orgId });
+      } catch(e) { debugLog.push({ step: "orgEnrich", error: e.message }); }
     }
-
     if (!orgId) {
-      const r = await post("https://api.apollo.io/v1/mixed_companies/search",
-        { q_organization_name: retailer, page:1, per_page:5 });
-      const d = await r.json();
-      console.log(`[org search] status=${r.status} count=${d?.organizations?.length} err=${d?.error}`);
-      const orgs = d?.organizations || d?.accounts || [];
-      const best = orgs.find(o => o.name?.toLowerCase()===retailer.toLowerCase()) || orgs[0];
-      if (best?.id) { orgId = best.id; console.log(`[org] picked "${best.name}" ${best.id}`); }
+      try {
+        const r = await postHeader("https://api.apollo.io/v1/mixed_companies/search",
+          { q_organization_name: retailer, page:1, per_page:5 });
+        const d = await r.json();
+        const orgs = d?.organizations || d?.accounts || [];
+        const best = orgs.find(o => o.name?.toLowerCase()===retailer.toLowerCase()) || orgs[0];
+        if (best?.id) orgId = best.id;
+        debugLog.push({ step: "orgSearch", status: r.status, orgId, count: orgs.length });
+      } catch(e) { debugLog.push({ step: "orgSearch", error: e.message }); }
     }
 
-    const body = orgId
-      ? { organization_ids:[orgId], person_titles:TITLES }
-      : { organization_names:[retailer], person_titles:TITLES };
+    // ── Try every combination to find people ─────────────────────────────────
+    const pageStart = (cursor - 1) * BATCH + 1;
+    let best = null;
 
-    console.log(`[search] orgId=${orgId} cursor=${cursor} body=${JSON.stringify(body).slice(0,120)}`);
+    const attempt = async (label, url, body, useBodyAuth = false) => {
+      if (best && best.total > 0) return; // already found results
+      const result = await apolloSearch(url, { ...body, page: pageStart, per_page: 100 }, useBodyAuth);
+      debugLog.push({ step: label, status: result.status, total: result.total, error: result.error });
+      if (result.total > 0 || result.people.length > 0) best = result;
+    };
 
-    // 2. Fetch 5 pages in parallel — correct endpoint: mixed_people/search
-    const start = (cursor - 1) * BATCH + 1;
-    const pages = Array.from({length:BATCH}, (_,i) => start+i);
-    const results = await Promise.all(pages.map(async pg => {
-      const r = await post("https://api.apollo.io/v1/mixed_people/search", {...body, page:pg, per_page:100});
-      const d = await r.json();
-      console.log(`[page ${pg}] status=${r.status} people=${d?.people?.length??0} total=${d?.pagination?.total_entries??0} err=${d?.error??'none'}`);
-      return { people:d?.people||[], total:d?.pagination?.total_entries||0, pages:d?.pagination?.total_pages||1 };
-    }));
+    const SEARCH_URL = "https://api.apollo.io/v1/mixed_people/api_search";
 
-    const apolloTotal = results[0]?.total || 0;
-    const totalPages  = Math.min(results[0]?.pages || 1, 500);
-    let   people      = results.flatMap(r => r.people).filter(p => p.first_name);
-    console.log(`[raw] ${people.length} people before filter`);
+    if (orgId) {
+      await attempt("mixed/orgId+titles",   SEARCH_URL, { organization_ids:[orgId], person_titles:TITLES });
+      await attempt("mixed/orgId+kw",       SEARCH_URL, { organization_ids:[orgId], q_person_title:"buyer merchant category purchasing" });
+      await attempt("mixed/orgId only",     SEARCH_URL, { organization_ids:[orgId] });
+      await attempt("mixed/orgId body",     SEARCH_URL, { organization_ids:[orgId] }, true);
+    }
+    await attempt("mixed/orgName+titles",   SEARCH_URL, { organization_names:[retailer], person_titles:TITLES });
+    await attempt("mixed/orgName+kw",       SEARCH_URL, { organization_names:[retailer], q_person_title:"buyer merchant category" });
+    await attempt("mixed/orgName only",     SEARCH_URL, { organization_names:[retailer] });
+    await attempt("mixed/orgName body",     SEARCH_URL, { organization_names:[retailer] }, true);
+    await attempt("mixed/keyword",          SEARCH_URL, { q_keywords:`${retailer} buyer` });
 
-    // 3. Dedupe
+    const { people: allPeople = [], total: apolloTotal = 0, pages: totalPagesRaw = 1 } = best || {};
+    const totalPages = Math.min(totalPagesRaw, 500);
+
     const seen = new Set();
-    people = people.filter(p => {
+    let people = allPeople.filter(p => p.first_name).filter(p => {
       const k = `${p.first_name}${p.last_name||""}`.toLowerCase().replace(/\s/g,"");
       if (seen.has(k)) return false; seen.add(k); return true;
     });
 
-    // 4. Hard keyword filter
-    const pre = people.length;
-    people = people.filter(p => KEYWORDS.some(kw => (p.title||"").toLowerCase().includes(kw)));
-    console.log(`[filter] ${pre} -> ${people.length} after keyword filter`);
-
-    if (people.length === 0 && pre > 0) {
-      const sample = results.flatMap(r=>r.people).slice(0,8).map(p=>p.title).filter(Boolean);
-      console.log(`[debug] sample titles that got filtered:`, sample);
+    // If user applied a title keyword filter, apply it here
+    if (titleKeyword && titleKeyword.trim()) {
+      const kws = titleKeyword.trim().toLowerCase().split(/[\s,]+/).filter(Boolean);
+      people = people.filter(p => kws.some(kw => (p.title||"").toLowerCase().includes(kw)));
     }
 
     const leads = people.map((p,i) => ({
@@ -117,12 +286,10 @@ export default async function handler(req, res) {
       linkedin:    p.linkedin_url || null,
     }));
 
-    const nextCursor = start + BATCH <= totalPages ? cursor + 1 : null;
-    console.log(`[done] ${leads.length} leads, apolloTotal=${apolloTotal}`);
-    return res.status(200).json({ leads, total:leads.length, apolloTotal, cursor, nextCursor });
-
+    const nextCursor = pageStart + BATCH <= totalPages ? cursor + 1 : null;
+    cacheToDb(leads);
+    return res.status(200).json({ leads, total:leads.length, apolloTotal, cursor, nextCursor, source:"apollo_live", _debug: debugLog });
   } catch(e) {
-    console.error("[fatal]", e.message);
-    return res.status(500).json({ error:e.message, leads:[] });
+    return res.status(500).json({ error: e.message, leads: [], _debug: debugLog });
   }
 }

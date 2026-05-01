@@ -454,15 +454,24 @@ ONLY JSON: {"headline":"...","subheadline":"...","productDescription":"...","key
 
   const genObjLibrary = async () => {
     if (!objLibSearch.trim()) return;
-    setObjLibBusy(true);
+    setObjLibBusy(true); setObjLibResult(null);
     try {
       const r = await fetch("/api/generate", {
         method:"POST", headers:{"Content-Type":"application/json"},
         body: JSON.stringify({ prompt:
-          `Generate 5 retail buyer objections about "${objLibSearch}" and the ideal CPG sales rep responses.
+          `A retail buyer just told a CPG sales rep: "${objLibSearch}"
 Brand: ${brandName||"our brand"}. Product: ${productDesc||"our product"}.
-Vary the phrasing. Each response: 2-3 sentences, empathetic, pivots to value.
-ONLY JSON: {"objections":[{"objection":"...","response":"..."},...]}`
+
+Write one direct, effective response the rep should say right now. It must:
+- Acknowledge the concern without being defensive
+- Address the real underlying worry
+- Pivot back to value with something concrete
+- End with a soft next step or question
+- Sound natural and confident, not scripted — 3-5 sentences max
+
+Also provide a short explanation of the strategy behind the response.
+
+ONLY JSON: {"response":"...","strategy":"..."}`
         }),
       });
       const d = await r.json(); if(d.error) throw new Error(d.error);
@@ -1966,22 +1975,26 @@ ONLY JSON: {"script":"..."}`,
                     </>)}
 
                     {enabTab==="objlib" && (<>
-                      <div className="ai-panel-title">🎯 Objection Library</div>
-                      <div className="ai-panel-sub">Search any objection topic — get 5 variations with ideal responses</div>
-                      <div className="ai-field-label">Objection Topic</div>
-                      <input className="ai-in" placeholder="e.g. price too high, no shelf space, already have a similar product" value={objLibSearch} onChange={e=>setObjLibSearch(e.target.value)} onKeyDown={e=>e.key==="Enter"&&genObjLibrary()} />
+                      <div className="ai-panel-title">🎯 Objection Handler</div>
+                      <div className="ai-panel-sub">Paste exactly what the buyer said — get a real, ready-to-use response</div>
+                      <div className="ai-field-label">What did the buyer say?</div>
+                      <textarea className="ai-in pitch-ta" rows={3} placeholder={'e.g. "Your margins are too thin, we need at least 40% to make this work for us."'} value={objLibSearch} onChange={e=>setObjLibSearch(e.target.value)} />
                       <button className="btn btn-teal" style={{marginTop:14,width:"100%",justifyContent:"center"}} disabled={objLibBusy||!objLibSearch.trim()} onClick={genObjLibrary}>
-                        {objLibBusy?<><span className="spin"/>Generating...</>:"⚡ Find Responses"}
+                        {objLibBusy?<><span className="spin"/>Generating response...</>:"⚡ Get My Response"}
                       </button>
                       {objLibResult && (
-                        <div style={{marginTop:16,display:"flex",flexDirection:"column",gap:10}}>
-                          {(objLibResult.objections||[]).map((o,i)=>(
-                            <div key={i} style={{background:"var(--bg3)",border:"1px solid var(--border)",borderRadius:10,padding:"14px 16px"}}>
-                              <div style={{fontSize:12,fontStyle:"italic",color:"var(--text2)",marginBottom:10,paddingBottom:10,borderBottom:"1px solid var(--border)"}}>"{o.objection}"</div>
-                              <div style={{fontSize:12,color:"var(--text)",lineHeight:1.7}}>{o.response}</div>
-                              <button className="dp-copy" style={{marginTop:8}} onClick={()=>copy(o.response,"obj"+i)}>{copied==="obj"+i?"✓ Copied":"Copy Response"}</button>
+                        <div style={{marginTop:18}}>
+                          <div style={{background:"var(--bg3)",border:"1px solid rgba(0,229,192,.15)",borderRadius:11,padding:"16px 18px",marginBottom:12}}>
+                            <div style={{fontSize:9,fontWeight:800,color:"var(--teal)",textTransform:"uppercase",letterSpacing:"1px",marginBottom:10}}>Say This</div>
+                            <div style={{fontSize:13,color:"var(--text)",lineHeight:1.8,fontWeight:500}}>{objLibResult.response}</div>
+                            <button className="btn btn-teal btn-sm" style={{marginTop:12}} onClick={()=>copy(objLibResult.response,"objresp")}>{copied==="objresp"?"✓ Copied":"Copy Response"}</button>
+                          </div>
+                          {objLibResult.strategy && (
+                            <div style={{background:"var(--bg3)",border:"1px solid var(--border)",borderRadius:11,padding:"14px 16px"}}>
+                              <div style={{fontSize:9,fontWeight:800,color:"var(--text3)",textTransform:"uppercase",letterSpacing:"1px",marginBottom:7}}>Why This Works</div>
+                              <div style={{fontSize:12,color:"var(--text2)",lineHeight:1.7}}>{objLibResult.strategy}</div>
                             </div>
-                          ))}
+                          )}
                         </div>
                       )}
                     </>)}

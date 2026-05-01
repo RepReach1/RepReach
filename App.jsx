@@ -600,6 +600,44 @@ ONLY JSON: {"subject":"...","body":"..."}`
         /* Pro badge */
         .pro-badge{font-size:11px;font-weight:700;color:var(--teal);padding:4px 13px;background:var(--teal-dim);border:1px solid rgba(0,229,192,.18);border-radius:20px;letter-spacing:.02em}
 
+        /* ─── FULL-PAGE VIEWS ─── */
+        .view-wrap{flex:1;overflow-y:auto;padding:28px 28px 40px}
+        .view-hd{margin-bottom:24px}
+        .view-hd h2{font-family:'Bricolage Grotesque',sans-serif;font-size:22px;font-weight:800;color:var(--text);letter-spacing:-.4px;margin-bottom:5px}
+        .view-hd p{font-size:13px;color:var(--text3);font-weight:500;line-height:1.6}
+        .card-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px}
+        .feat-card{background:var(--bg2);border:1px solid var(--border);border-radius:13px;padding:22px;transition:.15s;cursor:pointer}
+        .feat-card:hover{border-color:var(--border2);transform:translateY(-1px);box-shadow:0 8px 24px rgba(0,0,0,.3)}
+        .feat-card-icon{width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:20px;margin-bottom:14px}
+        .feat-card h3{font-family:'Bricolage Grotesque',sans-serif;font-size:14px;font-weight:800;color:var(--text);margin-bottom:6px;letter-spacing:-.2px}
+        .feat-card p{font-size:12px;color:var(--text3);line-height:1.65;margin-bottom:14px}
+        .feat-card-cta{font-size:11px;font-weight:700;letter-spacing:.02em}
+        .cs-badge{display:inline-flex;align-items:center;gap:5px;padding:3px 10px;background:rgba(245,166,35,.08);border:1px solid rgba(245,166,35,.2);border-radius:20px;font-size:10px;font-weight:700;color:var(--amber);letter-spacing:.06em;text-transform:uppercase;margin-bottom:20px}
+        /* Pipeline kanban */
+        .kanban{display:flex;gap:12px;overflow-x:auto;padding-bottom:20px;align-items:flex-start}
+        .k-col{min-width:215px;flex:0 0 215px}
+        .k-col-hd{display:flex;align-items:center;gap:8px;padding:8px 12px;background:rgba(255,255,255,.02);border:1px solid var(--border);border-radius:9px;margin-bottom:9px}
+        .k-col-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+        .k-col-label{font-size:12px;font-weight:700;color:var(--text);flex:1}
+        .k-col-count{font-size:11px;font-weight:800;padding:2px 7px;border-radius:20px}
+        .k-card{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:12px;cursor:pointer;transition:.12s;margin-bottom:8px}
+        .k-card:hover{border-color:var(--border2);background:var(--bg3)}
+        /* Forecasting stats */
+        .stat-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px;margin-bottom:24px}
+        .stat-card{background:var(--bg2);border:1px solid var(--border);border-radius:11px;padding:16px 18px}
+        .stat-card-val{font-family:'Bricolage Grotesque',sans-serif;font-size:28px;font-weight:800;color:var(--text);letter-spacing:-.5px;line-height:1;margin-bottom:3px}
+        .stat-card-label{font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.6px}
+        .funnel-row{display:flex;align-items:center;gap:12px;margin-bottom:8px}
+        .funnel-bar-bg{flex:1;height:10px;background:var(--bg3);border-radius:20px;overflow:hidden;border:1px solid var(--border)}
+        .funnel-bar-fill{height:100%;border-radius:20px;transition:width .6s ease}
+        /* Integrations grid */
+        .int-card{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:18px;display:flex;align-items:center;gap:14px;transition:.15s}
+        .int-card:hover{border-color:var(--border2)}
+        .int-logo{width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0}
+        .int-status{font-size:10px;font-weight:700;padding:2px 9px;border-radius:20px;margin-top:3px;display:inline-block}
+        .int-coming{background:rgba(245,166,35,.1);color:var(--amber);border:1px solid rgba(245,166,35,.2)}
+        .int-live{background:rgba(74,222,128,.1);color:#4ade80;border:1px solid rgba(74,222,128,.2)}
+
         /* ─── PRACTICE ─── */
         .practice-wrap{flex:1;overflow-y:auto;padding:24px;display:flex;flex-direction:column;gap:16px;max-width:800px;margin:0 auto;width:100%}
         .practice-card{background:var(--bg2);border:1px solid var(--border);border-radius:14px;padding:22px;transition:.15s}
@@ -690,10 +728,34 @@ ONLY JSON: {"subject":"...","body":"..."}`
 
           <div className="sb-nav">
             <div className={`sb-item ${view==="people"?"on":""}`} onClick={() => setView("people")}>
-              <span className="sb-item-icon">👥</span> People
+              <span className="sb-item-icon">🔍</span> People Finder
+            </div>
+            <div className={`sb-item ${view==="pipeline"?"on":""}`} onClick={() => setView("pipeline")}>
+              <span className="sb-item-icon">📊</span> Pipeline
+            </div>
+            <div className={`sb-item ${view==="sequences"?"on":""}`} onClick={() => setView("sequences")}>
+              <span className="sb-item-icon">⚡</span> Sequences
+            </div>
+            <div className={`sb-item ${view==="forecasting"?"on":""}`} onClick={() => setView("forecasting")}>
+              <span className="sb-item-icon">📈</span> Forecasting
+            </div>
+            <div className={`sb-item ${view==="aitools"?"on":""}`} onClick={() => setView("aitools")}>
+              <span className="sb-item-icon">🤖</span> AI Tools
+            </div>
+            <div className={`sb-item ${view==="intelligence"?"on":""}`} onClick={() => setView("intelligence")}>
+              <span className="sb-item-icon">🧠</span> Intelligence
+            </div>
+            <div className={`sb-item ${view==="enablement"?"on":""}`} onClick={() => setView("enablement")}>
+              <span className="sb-item-icon">🚀</span> Enablement
+            </div>
+            <div className={`sb-item ${view==="meetings"?"on":""}`} onClick={() => setView("meetings")}>
+              <span className="sb-item-icon">📅</span> Meetings
+            </div>
+            <div className={`sb-item ${view==="integrations"?"on":""}`} onClick={() => setView("integrations")}>
+              <span className="sb-item-icon">🔗</span> Integrations
             </div>
             <div className={`sb-item ${view==="tracker"?"on":""}`} onClick={() => setView("tracker")}>
-              <span className="sb-item-icon">📋</span> Tracker
+              <span className="sb-item-icon">✓</span> Tracker
             </div>
             <div className={`sb-item ${view==="practice"?"on":""}`} onClick={() => setView("practice")}>
               <span className="sb-item-icon">🎯</span> Practice
@@ -1080,6 +1142,265 @@ ONLY JSON: {"subject":"...","body":"..."}`
                     </div>
                   )}
                 </div>
+              ) : view === "pipeline" ? (
+                /* ── PIPELINE ── */
+                <div className="view-wrap">
+                  <div className="view-hd">
+                    <h2>Pipeline</h2>
+                    <p>{leads.length} contacts tracked · drag-and-drop coming soon</p>
+                  </div>
+                  {leads.length === 0
+                    ? <div className="empty"><div className="empty-icon">📊</div><h3>Pipeline is empty</h3><p>Search a retailer in People Finder and contacts will appear here.</p></div>
+                    : <div className="kanban">
+                        {STATUSES.map(col => {
+                          const colLeads = leads.filter(l => (statuses[l.id]||"none") === col.id);
+                          return (
+                            <div key={col.id} className="k-col">
+                              <div className="k-col-hd">
+                                <span className="k-col-dot" style={{background:col.color}}/>
+                                <span className="k-col-label">{col.label}</span>
+                                <span className="k-col-count" style={{background:col.color+"22",color:col.color}}>{colLeads.length}</span>
+                              </div>
+                              {colLeads.map(lead => {
+                                const idx = leads.findIndex(l=>l.id===lead.id);
+                                return (
+                                  <div key={lead.id} className="k-card" onClick={()=>{setView("people");openLead(lead);}}>
+                                    <div style={{display:"flex",gap:8,alignItems:"center",marginBottom:8}}>
+                                      <div className="av" style={{background:AV_COLORS[idx%AV_COLORS.length],width:28,height:28,fontSize:10,flexShrink:0}}>{(lead.firstName?.[0]||"")+(lead.lastName?.[0]||"")}</div>
+                                      <div style={{minWidth:0}}>
+                                        <div style={{fontWeight:700,fontSize:12,color:"var(--text)",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{lead.firstName} {lead.lastName}</div>
+                                        <div style={{fontSize:10,color:"var(--text3)",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{lead.title}</div>
+                                      </div>
+                                    </div>
+                                    <div style={{fontSize:11,fontWeight:700,color:"var(--teal)"}}>{lead.retailer}</div>
+                                    {notes[lead.id] && <div style={{fontSize:10,color:"var(--text3)",marginTop:5,lineHeight:1.5,overflow:"hidden",textOverflow:"ellipsis",display:"-webkit-box",WebkitLineClamp:2,WebkitBoxOrient:"vertical"}}>{notes[lead.id]}</div>}
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          );
+                        })}
+                      </div>
+                  }
+                </div>
+
+              ) : view === "forecasting" ? (
+                /* ── FORECASTING ── */
+                (() => {
+                  const statusCounts = STATUSES.map(s => ({ ...s, count: leads.filter(l=>(statuses[l.id]||"none")===s.id).length }));
+                  const contacted = leads.filter(l=>(statuses[l.id]||"none")!=="none").length;
+                  const meetings  = leads.filter(l=>(statuses[l.id]||"none")==="meeting").length;
+                  const replied   = leads.filter(l=>["replied","meeting"].includes(statuses[l.id]||"none")).length;
+                  return (
+                    <div className="view-wrap">
+                      <div className="view-hd"><h2>Forecasting</h2><p>Live pipeline breakdown based on your tracked contacts</p></div>
+                      <div className="stat-grid">
+                        <div className="stat-card"><div className="stat-card-val">{leads.length}</div><div className="stat-card-label">Total Contacts</div></div>
+                        <div className="stat-card"><div className="stat-card-val" style={{color:"#38bdf8"}}>{contacted}</div><div className="stat-card-label">Contacted</div></div>
+                        <div className="stat-card"><div className="stat-card-val" style={{color:"#4ade80"}}>{replied}</div><div className="stat-card-label">Replied</div></div>
+                        <div className="stat-card"><div className="stat-card-val" style={{color:"#facc15"}}>{meetings}</div><div className="stat-card-label">Meetings Set</div></div>
+                        <div className="stat-card">
+                          <div className="stat-card-val" style={{color:"var(--teal)"}}>{leads.length ? Math.round(contacted/leads.length*100) : 0}%</div>
+                          <div className="stat-card-label">Contact Rate</div>
+                        </div>
+                        <div className="stat-card">
+                          <div className="stat-card-val" style={{color:"#fb923c"}}>{contacted ? Math.round(meetings/contacted*100) : 0}%</div>
+                          <div className="stat-card-label">Meeting Rate</div>
+                        </div>
+                      </div>
+                      <div style={{background:"var(--bg2)",border:"1px solid var(--border)",borderRadius:13,padding:"20px",marginBottom:16}}>
+                        <div style={{fontFamily:"'Bricolage Grotesque',sans-serif",fontWeight:800,fontSize:14,color:"var(--text)",marginBottom:16,letterSpacing:"-.2px"}}>Pipeline by Stage</div>
+                        {statusCounts.map(s => (
+                          <div key={s.id} className="funnel-row">
+                            <span style={{width:110,fontSize:11,fontWeight:700,color:"var(--text2)",flexShrink:0}}>{s.label}</span>
+                            <div className="funnel-bar-bg">
+                              <div className="funnel-bar-fill" style={{width:leads.length?`${Math.max(4,s.count/leads.length*100)}%`:"4%",background:s.color}}/>
+                            </div>
+                            <span style={{width:28,fontSize:12,fontWeight:800,color:s.color,textAlign:"right",flexShrink:0}}>{s.count}</span>
+                          </div>
+                        ))}
+                      </div>
+                      <div style={{background:"var(--bg2)",border:"1px solid rgba(0,229,192,.1)",borderRadius:13,padding:"20px"}}>
+                        <div style={{fontFamily:"'Bricolage Grotesque',sans-serif",fontWeight:800,fontSize:14,color:"var(--text)",marginBottom:8,letterSpacing:"-.2px"}}>Projections</div>
+                        <div style={{fontSize:12,color:"var(--text3)",lineHeight:1.8}}>
+                          Based on your current pipeline, if you maintain a <span style={{color:"var(--teal)",fontWeight:700}}>{contacted?Math.round(meetings/contacted*100):0}% meeting rate</span>, you can expect approximately <span style={{color:"#facc15",fontWeight:700}}>{Math.max(0,Math.round((leads.length - contacted) * (contacted?meetings/contacted:0.05)))} additional meetings</span> from your remaining {leads.length - contacted} uncontacted leads.
+                        </div>
+                        <div className="cs-badge" style={{marginTop:14,marginBottom:0}}>Revenue forecasting coming soon</div>
+                      </div>
+                    </div>
+                  );
+                })()
+
+              ) : view === "aitools" ? (
+                /* ── AI TOOLS ── */
+                <div className="view-wrap">
+                  <div className="view-hd"><h2>AI Tools</h2><p>Claude-powered tools built to help you get more meetings and close more deals</p></div>
+                  <div className="card-grid">
+                    {[
+                      {icon:"✉",title:"Cold Email Generator",desc:"A/B cold emails personalized to each buyer's role, company, and department. Takes 5 seconds.",cta:"Open People Finder",view:"people",color:"#00e5c0"},
+                      {icon:"🎯",title:"Pitch Trainer",desc:"Practice your sales pitch against realistic buyer objections. Get scored 1–10 with coaching after every rep.",cta:"Start Practicing",view:"practice",color:"#8b5cf6"},
+                      {icon:"💼",title:"LinkedIn Outreach",desc:"AI-crafted connection requests (300 chars) and DMs that feel personal, not automated.",cta:"Open People Finder",view:"people",color:"#38bdf8"},
+                      {icon:"↩",title:"Follow-up Engine",desc:"Value-add follow-ups that re-engage silent leads without ever saying 'just checking in'.",cta:"Open People Finder",view:"people",color:"#f59e0b"},
+                      {icon:"🏢",title:"Department Finder",desc:"Automatically identifies which category each buyer owns based on their title and LinkedIn.",cta:"Open People Finder",view:"people",color:"#4ade80"},
+                      {icon:"🔎",title:"Buyer Research",desc:"Deep research on any buyer — recent initiatives, priorities, and what they want to add.",cta:"Coming Soon",view:null,color:"#ec4899"},
+                      {icon:"📧",title:"Sequence Writer",desc:"Multi-touch email sequences tailored to your product category and the buyer's retailer.",cta:"Coming Soon",view:null,color:"#fb923c"},
+                      {icon:"🧠",title:"Objection Library",desc:"500+ pre-written objection responses across price, timing, competition, shelf space, and more.",cta:"Coming Soon",view:null,color:"#a78bfa"},
+                    ].map((t,i) => (
+                      <div key={i} className="feat-card" style={{cursor:t.view?"pointer":"default"}} onClick={()=>t.view&&setView(t.view)}>
+                        <div className="feat-card-icon" style={{background:t.color+"18",border:`1px solid ${t.color}25`}}>{t.icon}</div>
+                        <h3>{t.title}</h3>
+                        <p>{t.desc}</p>
+                        <span className="feat-card-cta" style={{color:t.view?t.color:"var(--text3)"}}>{t.cta}{t.view?" →":""}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+              ) : view === "sequences" ? (
+                /* ── SEQUENCES ── */
+                <div className="view-wrap">
+                  <div className="view-hd"><h2>Sequences</h2><p>Automated multi-touch email sequences for every buyer in your pipeline</p></div>
+                  <div className="cs-badge">Coming Soon</div>
+                  <div className="card-grid">
+                    {[
+                      {icon:"1️⃣",title:"Cold Intro",desc:"Day 1: Personalized cold email introducing your brand and product with a clear value prop."},
+                      {icon:"2️⃣",title:"Value Follow-up",desc:"Day 4: Send a relevant case study, velocity data, or retailer success story."},
+                      {icon:"3️⃣",title:"Social Proof",desc:"Day 8: Share a press mention, award, or DTC sales milestone that builds credibility."},
+                      {icon:"4️⃣",title:"Breakup Email",desc:"Day 14: A respectful final email that often triggers replies from interested-but-busy buyers."},
+                    ].map((s,i)=>(
+                      <div key={i} className="feat-card" style={{cursor:"default"}}>
+                        <div style={{fontSize:26,marginBottom:12}}>{s.icon}</div>
+                        <h3>{s.title}</h3>
+                        <p>{s.desc}</p>
+                      </div>
+                    ))}
+                  </div>
+                  <div style={{background:"var(--bg2)",border:"1px solid var(--border)",borderRadius:13,padding:"20px",marginTop:8}}>
+                    <div style={{fontFamily:"'Bricolage Grotesque',sans-serif",fontWeight:800,fontSize:14,color:"var(--text)",marginBottom:10}}>What's coming</div>
+                    {["Build sequences visually with drag-and-drop steps","Set delays between touchpoints (days/hours)","A/B test subject lines across the whole sequence","Auto-pause when a buyer replies","Sequence analytics — open rate, reply rate, meeting rate per step"].map((f,i)=>(
+                      <div key={i} style={{display:"flex",gap:10,alignItems:"center",padding:"7px 0",borderBottom:i<4?"1px solid var(--border)":"none"}}>
+                        <span style={{color:"var(--teal)",fontWeight:800,flexShrink:0}}>→</span>
+                        <span style={{fontSize:12,color:"var(--text2)",fontWeight:500}}>{f}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+              ) : view === "intelligence" ? (
+                /* ── INTELLIGENCE ── */
+                <div className="view-wrap">
+                  <div className="view-hd"><h2>Intelligence</h2><p>Real-time buyer and market intelligence to help you walk into every call prepared</p></div>
+                  <div className="cs-badge">Coming Soon</div>
+                  <div className="card-grid">
+                    {[
+                      {icon:"🔭",title:"Buyer Research",desc:"Auto-generate a 1-page brief on any buyer — their history, priorities, and what they're actively adding."},
+                      {icon:"🏪",title:"Retailer Trends",desc:"Category performance data for each retailer so you know which aisles are growing and which are shrinking."},
+                      {icon:"📰",title:"News Alerts",desc:"Get notified when a target retailer announces a reset, expansion, or new category initiative."},
+                      {icon:"🥊",title:"Competitor Watch",desc:"Track which brands are expanding into your target retailers so you can get in ahead of them."},
+                      {icon:"💡",title:"Pitch Insights",desc:"See which messaging angles are working best for your category across similar brands."},
+                      {icon:"📍",title:"Store Coverage Map",desc:"Visualize where your brand has distribution and identify whitespace by region."},
+                    ].map((t,i)=>(
+                      <div key={i} className="feat-card" style={{cursor:"default"}}>
+                        <div className="feat-card-icon" style={{background:"rgba(59,130,246,.1)",border:"1px solid rgba(59,130,246,.2)",fontSize:22}}>{t.icon}</div>
+                        <h3>{t.title}</h3>
+                        <p>{t.desc}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+              ) : view === "enablement" ? (
+                /* ── ENABLEMENT ── */
+                <div className="view-wrap">
+                  <div className="view-hd"><h2>Enablement</h2><p>Sales resources, playbooks, and training to help your team perform at their best</p></div>
+                  <div className="cs-badge">Coming Soon</div>
+                  <div className="card-grid">
+                    {[
+                      {icon:"📘",title:"Retail Sales Playbook",desc:"Step-by-step guide to landing shelf space at every major chain — from first email to PO."},
+                      {icon:"🎯",title:"Objection Library",desc:"500+ pre-written responses to the most common retail buyer objections across 20 categories."},
+                      {icon:"🎙",title:"Pitch Templates",desc:"Proven pitch structures for cold calls, trade shows, broker presentations, and buyer meetings."},
+                      {icon:"📊",title:"Sell Sheet Builder",desc:"Generate a professional one-page sell sheet for any buyer meeting in under 60 seconds."},
+                      {icon:"🏆",title:"Leaderboard",desc:"See how your outreach volume and response rates compare across your team."},
+                      {icon:"📹",title:"Training Videos",desc:"Short tactical videos on prospecting, objection handling, and closing retail buyers."},
+                    ].map((t,i)=>(
+                      <div key={i} className="feat-card" style={{cursor:"default"}}>
+                        <div className="feat-card-icon" style={{background:"rgba(139,92,246,.1)",border:"1px solid rgba(139,92,246,.2)",fontSize:22}}>{t.icon}</div>
+                        <h3>{t.title}</h3>
+                        <p>{t.desc}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+              ) : view === "meetings" ? (
+                /* ── MEETINGS ── */
+                <div className="view-wrap">
+                  <div className="view-hd"><h2>Meetings</h2><p>Everything you need to prepare for, run, and follow up on buyer meetings</p></div>
+                  <div className="cs-badge">Coming Soon</div>
+                  {leads.filter(l=>(statuses[l.id]||"none")==="meeting").length > 0 && (
+                    <div style={{background:"var(--bg2)",border:"1px solid rgba(250,204,21,.15)",borderRadius:13,padding:"20px",marginBottom:20}}>
+                      <div style={{fontFamily:"'Bricolage Grotesque',sans-serif",fontWeight:800,fontSize:14,color:"var(--text)",marginBottom:12}}>🗓 Meetings Set ({leads.filter(l=>(statuses[l.id]||"none")==="meeting").length})</div>
+                      {leads.filter(l=>(statuses[l.id]||"none")==="meeting").map(lead => {
+                        const idx = leads.findIndex(l=>l.id===lead.id);
+                        return (
+                          <div key={lead.id} style={{display:"flex",gap:10,alignItems:"center",padding:"10px 0",borderBottom:"1px solid var(--border)"}}>
+                            <div className="av" style={{background:AV_COLORS[idx%AV_COLORS.length],width:32,height:32,fontSize:11,flexShrink:0}}>{(lead.firstName?.[0]||"")+(lead.lastName?.[0]||"")}</div>
+                            <div style={{flex:1,minWidth:0}}>
+                              <div style={{fontWeight:700,fontSize:13,color:"var(--text)"}}>{lead.firstName} {lead.lastName}</div>
+                              <div style={{fontSize:11,color:"var(--text3)"}}>{lead.title} · {lead.retailer}</div>
+                            </div>
+                            <button className="btn btn-teal btn-sm" onClick={()=>{setView("people");openLead(lead);}}>⚡ Prep</button>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                  <div className="card-grid">
+                    {[
+                      {icon:"📋",title:"Meeting Brief",desc:"Auto-generate a pre-meeting brief with buyer background, company priorities, and talking points."},
+                      {icon:"🎤",title:"Agenda Builder",desc:"Structure your meeting agenda around what matters most to each specific buyer."},
+                      {icon:"📝",title:"Live Notes",desc:"Take structured notes during the meeting with auto-suggested follow-up actions."},
+                      {icon:"📤",title:"Follow-up Writer",desc:"Send a personalized recap email within 5 minutes of ending the call."},
+                    ].map((t,i)=>(
+                      <div key={i} className="feat-card" style={{cursor:"default"}}>
+                        <div className="feat-card-icon" style={{background:"rgba(56,189,248,.1)",border:"1px solid rgba(56,189,248,.2)",fontSize:22}}>{t.icon}</div>
+                        <h3>{t.title}</h3>
+                        <p>{t.desc}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+              ) : view === "integrations" ? (
+                /* ── INTEGRATIONS ── */
+                <div className="view-wrap">
+                  <div className="view-hd"><h2>Integrations</h2><p>Connect RepReach to the tools your team already uses</p></div>
+                  <div className="cs-badge">Coming Soon</div>
+                  <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(280px,1fr))",gap:12}}>
+                    {[
+                      {icon:"☁",name:"Salesforce",desc:"Sync contacts, leads, and outreach activity automatically.",status:"coming",bg:"#00a1e0"},
+                      {icon:"🔶",name:"HubSpot",desc:"Push buyer data and track deal stages inside your HubSpot CRM.",status:"coming",bg:"#ff7a59"},
+                      {icon:"💬",name:"Slack",desc:"Get notified in Slack when a buyer replies or a meeting gets set.",status:"coming",bg:"#4a154b"},
+                      {icon:"📧",name:"Gmail / Google Workspace",desc:"Send outreach directly from your Gmail with one click.",status:"coming",bg:"#ea4335"},
+                      {icon:"📮",name:"Outlook / Microsoft 365",desc:"Native Outlook integration for reps who live in Microsoft.",status:"coming",bg:"#0078d4"},
+                      {icon:"📊",name:"Google Sheets",desc:"Export your pipeline and lead data to Sheets for reporting.",status:"coming",bg:"#34a853"},
+                      {icon:"🗓",name:"Calendly",desc:"Embed your booking link directly into outreach emails.",status:"coming",bg:"#006bff"},
+                      {icon:"📱",name:"LinkedIn Sales Nav",desc:"Pull buyer data directly from Sales Navigator.",status:"coming",bg:"#0077b5"},
+                      {icon:"🔔",name:"Apollo.io",desc:"Live — RepReach is already powered by Apollo's contact database.",status:"live",bg:"#6c63ff"},
+                      {icon:"✨",name:"Claude AI",desc:"Live — all AI generation and objection training is powered by Claude.",status:"live",bg:"#c87533"},
+                    ].map((t,i)=>(
+                      <div key={i} className="int-card">
+                        <div className="int-logo" style={{background:t.bg+"22",border:`1px solid ${t.bg}33`,fontSize:22}}>{t.icon}</div>
+                        <div style={{flex:1,minWidth:0}}>
+                          <div style={{fontWeight:700,fontSize:13,color:"var(--text)",marginBottom:3}}>{t.name}</div>
+                          <div style={{fontSize:11,color:"var(--text3)",lineHeight:1.5,marginBottom:5}}>{t.desc}</div>
+                          <span className={`int-status ${t.status==="live"?"int-live":"int-coming"}`}>{t.status==="live"?"● Live":"Coming Soon"}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
               ) : (
                 /* ── TRACKER ── */
                 <div style={{padding:"16px 20px",overflow:"auto",flex:1}}>

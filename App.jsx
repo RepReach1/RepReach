@@ -128,6 +128,43 @@ export default function App() {
   const [intelResult,      setIntelResult]      = useState(null);
   const [intelBusy,        setIntelBusy]        = useState(false);
 
+  // Sequences
+  const [sequences,        setSequences]        = useState([]);
+  const [showNewSeq,       setShowNewSeq]       = useState(false);
+  const [newSeqName,       setNewSeqName]       = useState("");
+  const [newSeqTarget,     setNewSeqTarget]     = useState("");
+  const [newSeqSteps,      setNewSeqSteps]      = useState(4);
+  const [seqBusy,          setSeqBusy]          = useState(false);
+  const [activeSeq,        setActiveSeq]        = useState(null);
+
+  // Enablement
+  const [enabTab,          setEnabTab]          = useState("playbook");
+  const [playbookTarget,   setPlaybookTarget]   = useState("");
+  const [playbookResult,   setPlaybookResult]   = useState(null);
+  const [playbookBusy,     setPlaybookBusy]     = useState(false);
+  const [pitchTplScenario, setPitchTplScenario] = useState("cold_call");
+  const [pitchTplResult,   setPitchTplResult]   = useState("");
+  const [pitchTplBusy,     setPitchTplBusy]     = useState(false);
+  const [sellSheetResult,  setSellSheetResult]  = useState(null);
+  const [sellSheetBusy,    setSellSheetBusy]    = useState(false);
+  const [objLibSearch,     setObjLibSearch]     = useState("");
+  const [objLibResult,     setObjLibResult]     = useState(null);
+  const [objLibBusy,       setObjLibBusy]       = useState(false);
+
+  // Meetings
+  const [meetTab,          setMeetTab]          = useState("brief");
+  const [meetContact,      setMeetContact]      = useState(null);
+  const [meetBriefResult,  setMeetBriefResult]  = useState(null);
+  const [meetBriefBusy,    setMeetBriefBusy]    = useState(false);
+  const [agendaResult,     setAgendaResult]     = useState("");
+  const [agendaBusy,       setAgendaBusy]       = useState(false);
+  const [meetNotes,        setMeetNotes]        = useState({});
+  const [followupResult,   setFollowupResult]   = useState(null);
+  const [followupBusy,     setFollowupBusy]     = useState(false);
+
+  // Forecasting
+  const [dealValue,        setDealValue]        = useState("");
+
   // fetchDepartments must be defined first — used by runSearch, runPersonSearch, loadMore
   const fetchDepartments = useCallback(async (leadList) => {
     if (!leadList || !leadList.length) return;
@@ -326,6 +363,188 @@ ONLY JSON: {"subject":"...","body":"..."}`
       setFollowUps(p => ({...p,[lead.id]:r}));
     } catch(e) { alert("Failed: "+e.message); }
     setGenFU(null);
+  };
+
+  // ── SEQUENCES ──
+  const genSequence = async () => {
+    if (!newSeqName.trim()) return alert("Enter a sequence name.");
+    if (!brandName) return alert("Enter your brand name in the settings bar first.");
+    setSeqBusy(true);
+    try {
+      const r = await fetch("/api/generate", {
+        method:"POST", headers:{"Content-Type":"application/json"},
+        body: JSON.stringify({ prompt:
+          `Create a ${newSeqSteps}-step outreach sequence for a CPG sales rep.
+Brand: ${brandName}. Product: ${productDesc||brandName}. Rep: ${repName||"Sales Rep"}.
+Target: ${newSeqTarget||"retail buyer"}. Vary the approach across steps — change angle, tone, content.
+Include Email and LinkedIn steps. Use natural days (1, 3, 7, 10, 14...).
+ONLY JSON: {"steps":[{"day":1,"type":"Email","subject":"...","body":"..."},{"day":4,"type":"LinkedIn","subject":null,"body":"..."},...]}`
+        }),
+      });
+      const d = await r.json(); if(d.error) throw new Error(d.error);
+      const parsed = JSON.parse(d.result);
+      const seq = { id: Date.now(), name: newSeqName, target: newSeqTarget||"Retail Buyer", steps: parsed.steps||[] };
+      setSequences(prev=>[...prev, seq]);
+      setActiveSeq(seq); setShowNewSeq(false); setNewSeqName(""); setNewSeqTarget("");
+    } catch(e) { alert("Failed: "+e.message); }
+    setSeqBusy(false);
+  };
+
+  // ── ENABLEMENT ──
+  const genPlaybook = async () => {
+    if (!brandName) return alert("Enter your brand name in the settings bar first.");
+    setPlaybookBusy(true);
+    try {
+      const r = await fetch("/api/generate", {
+        method:"POST", headers:{"Content-Type":"application/json"},
+        body: JSON.stringify({ prompt:
+          `Create a retail sales playbook for a CPG brand.
+Brand: ${brandName}. Product: ${productDesc||brandName}. Rep: ${repName||"Sales Rep"}.
+Target retailers: ${playbookTarget||"major retail chains"}.
+Cover these 5 sections: 1) Getting the first meeting 2) The pitch meeting 3) Key objections + responses 4) Follow-up strategy 5) Closing the deal.
+Each section: 3-4 concrete, tactical bullets. No fluff.
+ONLY JSON: {"sections":[{"title":"...","bullets":["...","...","..."]},...]}`
+        }),
+      });
+      const d = await r.json(); if(d.error) throw new Error(d.error);
+      setPlaybookResult(JSON.parse(d.result));
+    } catch(e) { alert("Failed: "+e.message); }
+    setPlaybookBusy(false);
+  };
+
+  const genPitchTemplate = async () => {
+    if (!brandName) return alert("Enter your brand name in the settings bar first.");
+    setPitchTplBusy(true);
+    const scenarios = { cold_call:"a cold phone call to a retail buyer", trade_show:"a trade show meeting with a buyer", broker:"a broker introduction presentation", followup:"a follow-up meeting after initial contact", zoom:"a Zoom demo meeting with a buyer" };
+    try {
+      const r = await fetch("/api/generate", {
+        method:"POST", headers:{"Content-Type":"application/json"},
+        body: JSON.stringify({ prompt:
+          `Write a pitch template for ${scenarios[pitchTplScenario]||"a sales meeting"}.
+Brand: ${brandName}. Product: ${productDesc||brandName}. Rep: ${repName||"Sales Rep"}.
+Use [BUYER NAME], [RETAILER], [CATEGORY] as placeholders where appropriate.
+Label each section clearly. 150 words max. Natural spoken language.
+ONLY JSON: {"template":"..."}`
+        }),
+      });
+      const d = await r.json(); if(d.error) throw new Error(d.error);
+      setPitchTplResult(JSON.parse(d.result).template);
+    } catch(e) { alert("Failed: "+e.message); }
+    setPitchTplBusy(false);
+  };
+
+  const genSellSheet = async () => {
+    if (!brandName) return alert("Enter your brand name in the settings bar first.");
+    setSellSheetBusy(true);
+    try {
+      const r = await fetch("/api/generate", {
+        method:"POST", headers:{"Content-Type":"application/json"},
+        body: JSON.stringify({ prompt:
+          `Write all copy for a one-page CPG sell sheet.
+Brand: ${brandName}. Product: ${productDesc||brandName}.
+Generate every text section a sell sheet needs to land shelf space.
+ONLY JSON: {"headline":"...","subheadline":"...","productDescription":"...","keyBenefits":["...","...","..."],"targetConsumer":"...","velocityStats":"...","retailerBenefits":"...","callToAction":"..."}`
+        }),
+      });
+      const d = await r.json(); if(d.error) throw new Error(d.error);
+      setSellSheetResult(JSON.parse(d.result));
+    } catch(e) { alert("Failed: "+e.message); }
+    setSellSheetBusy(false);
+  };
+
+  const genObjLibrary = async () => {
+    if (!objLibSearch.trim()) return;
+    setObjLibBusy(true);
+    try {
+      const r = await fetch("/api/generate", {
+        method:"POST", headers:{"Content-Type":"application/json"},
+        body: JSON.stringify({ prompt:
+          `Generate 5 retail buyer objections about "${objLibSearch}" and the ideal CPG sales rep responses.
+Brand: ${brandName||"our brand"}. Product: ${productDesc||"our product"}.
+Vary the phrasing. Each response: 2-3 sentences, empathetic, pivots to value.
+ONLY JSON: {"objections":[{"objection":"...","response":"..."},...]}`
+        }),
+      });
+      const d = await r.json(); if(d.error) throw new Error(d.error);
+      setObjLibResult(JSON.parse(d.result));
+    } catch(e) { alert("Failed: "+e.message); }
+    setObjLibBusy(false);
+  };
+
+  // ── MEETINGS ──
+  const genMeetBrief = async (lead) => {
+    setMeetContact(lead); setMeetBriefResult(null); setAgendaResult(""); setFollowupResult(null);
+    setMeetBriefBusy(true);
+    try {
+      const r = await fetch("/api/generate", {
+        method:"POST", headers:{"Content-Type":"application/json"},
+        body: JSON.stringify({ prompt:
+          `Generate a pre-meeting brief for a CPG sales rep.
+Rep: ${repName||"Sales Rep"}. Brand: ${brandName||"our brand"}. Product: ${productDesc||"our product"}.
+Buyer: ${lead.firstName} ${lead.lastName}, ${lead.title} at ${lead.retailer}.
+${departments[lead.id]?"Department: "+departments[lead.id]+".":""}
+Cover: talking points, objections to prepare for, questions to ask, and prep items to bring.
+ONLY JSON: {"talkingPoints":["...","...","..."],"objections":["...","..."],"questionsToAsk":["...","...","..."],"prepItems":["...","..."]}`
+        }),
+      });
+      const d = await r.json(); if(d.error) throw new Error(d.error);
+      setMeetBriefResult(JSON.parse(d.result));
+    } catch(e) { alert("Failed: "+e.message); }
+    setMeetBriefBusy(false);
+  };
+
+  const genAgenda = async () => {
+    if (!meetContact) return;
+    setAgendaBusy(true);
+    try {
+      const r = await fetch("/api/generate", {
+        method:"POST", headers:{"Content-Type":"application/json"},
+        body: JSON.stringify({ prompt:
+          `Write a 30-minute meeting agenda for a CPG sales rep meeting a retail buyer.
+Rep: ${repName||"Sales Rep"}. Brand: ${brandName||"our brand"}. Product: ${productDesc||"our product"}.
+Buyer: ${meetContact.firstName} ${meetContact.lastName}, ${meetContact.title} at ${meetContact.retailer}.
+Include time blocks with clear purpose and transition notes.
+ONLY JSON: {"agenda":"[formatted agenda with labeled time blocks]"}`
+        }),
+      });
+      const d = await r.json(); if(d.error) throw new Error(d.error);
+      setAgendaResult(JSON.parse(d.result).agenda);
+    } catch(e) { alert("Failed: "+e.message); }
+    setAgendaBusy(false);
+  };
+
+  const genMeetFollowup = async () => {
+    if (!meetContact) return;
+    setFollowupBusy(true);
+    const n = meetNotes[meetContact.id]||"";
+    try {
+      const r = await fetch("/api/generate", {
+        method:"POST", headers:{"Content-Type":"application/json"},
+        body: JSON.stringify({ prompt:
+          `Write a post-meeting follow-up email from a CPG rep to a retail buyer.
+Rep: ${repName||"Sales Rep"}. Brand: ${brandName||"our brand"}.
+Buyer: ${meetContact.firstName} ${meetContact.lastName}, ${meetContact.title} at ${meetContact.retailer}.
+${n?"Meeting notes: "+n:""}
+Reference what was discussed, confirm next steps. Under 100 words. Professional but warm.
+ONLY JSON: {"subject":"...","body":"..."}`
+        }),
+      });
+      const d = await r.json(); if(d.error) throw new Error(d.error);
+      setFollowupResult(JSON.parse(d.result));
+    } catch(e) { alert("Failed: "+e.message); }
+    setFollowupBusy(false);
+  };
+
+  // ── CSV EXPORT ──
+  const exportCSV = () => {
+    if (!leads.length) return alert("No contacts to export. Search a retailer first.");
+    const headers = ["First Name","Last Name","Title","Company","Email","Phone","LinkedIn","Department","Status","Notes"];
+    const rows = leads.map(l => [l.firstName,l.lastName,l.title,l.retailer,l.email||"",l.phone||"",l.linkedin||"",departments[l.id]||"",getStatus(l.id).label,(notes[l.id]||"").replace(/[\n,]/g," ")]);
+    const csv = [headers, ...rows].map(r=>r.map(v=>`"${v}"`).join(",")).join("\n");
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(new Blob([csv],{type:"text/csv"}));
+    a.download = `repreach-${new Date().toISOString().slice(0,10)}.csv`;
+    a.click();
   };
 
   // ── AI TOOLS helpers ──
@@ -741,6 +960,31 @@ ONLY JSON: {"script":"..."}`,
         .int-coming{background:rgba(245,166,35,.1);color:var(--amber);border:1px solid rgba(245,166,35,.2)}
         .int-live{background:rgba(74,222,128,.1);color:#4ade80;border:1px solid rgba(74,222,128,.2)}
 
+        /* ─── SEQUENCES ─── */
+        .seq-list{padding:16px 20px;overflow-y:auto;flex:1}
+        .seq-card{background:var(--bg2);border:1px solid var(--border);border-radius:11px;padding:14px 16px;cursor:pointer;transition:.15s;margin-bottom:9px;display:flex;align-items:center;gap:12px}
+        .seq-card:hover{border-color:var(--border2)}
+        .seq-card.active{border-color:var(--teal2);background:var(--teal-dim)}
+        .seq-step{background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:14px 16px;margin-bottom:10px}
+        .seq-step-hd{display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap}
+        .seq-day{font-size:10px;font-weight:800;color:var(--teal);background:var(--teal-dim);border:1px solid rgba(0,229,192,.2);padding:2px 9px;border-radius:20px;text-transform:uppercase;letter-spacing:.05em}
+        .seq-type{font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;background:var(--bg2);border:1px solid var(--border);padding:2px 9px;border-radius:20px}
+        .seq-subject{font-size:12px;font-weight:700;color:var(--text);margin-bottom:5px}
+        .seq-body{font-size:12px;color:var(--text2);line-height:1.75;white-space:pre-wrap}
+        /* ─── ENABLEMENT TABS ─── */
+        .enab-view{display:flex;flex-direction:column;flex:1;overflow:hidden}
+        /* ─── MEETINGS ─── */
+        .meet-layout{display:flex;flex:1;overflow:hidden}
+        .meet-list{width:255px;border-right:1px solid var(--border);overflow-y:auto;flex-shrink:0;display:flex;flex-direction:column}
+        .meet-list-hd{padding:12px 16px;border-bottom:1px solid var(--border);font-size:10px;font-weight:800;color:var(--text3);text-transform:uppercase;letter-spacing:.8px;flex-shrink:0}
+        .meet-row{display:flex;gap:10px;align-items:center;padding:11px 14px;border-bottom:1px solid rgba(26,31,58,.5);cursor:pointer;transition:.12s}
+        .meet-row:hover{background:var(--bg3)}
+        .meet-row.active{background:var(--teal-dim);border-left:2px solid var(--teal)}
+        .meet-tools{flex:1;display:flex;flex-direction:column;overflow:hidden}
+        .meet-tabs{display:flex;border-bottom:1px solid var(--border);background:var(--bg2);flex-shrink:0;padding:0 16px;overflow-x:auto}
+        .meet-tab{padding:10px 13px;font-size:12px;font-weight:600;cursor:pointer;border:none;background:transparent;color:var(--text3);border-bottom:2px solid transparent;margin-bottom:-1px;transition:.15s;white-space:nowrap}
+        .meet-tab.on{color:var(--teal);border-bottom-color:var(--teal)}
+        .meet-content{flex:1;overflow-y:auto;padding:20px 22px}
         /* ─── AI TOOLS TABS ─── */
         .ai-view{display:flex;flex-direction:column;flex:1;overflow:hidden}
         .ai-view-hd{padding:14px 20px 0;background:var(--bg2);flex-shrink:0;border-bottom:1px solid var(--border)}
@@ -1356,11 +1600,33 @@ ONLY JSON: {"script":"..."}`,
                         ))}
                       </div>
                       <div style={{background:"var(--bg2)",border:"1px solid rgba(0,229,192,.1)",borderRadius:13,padding:"20px"}}>
-                        <div style={{fontFamily:"'Bricolage Grotesque',sans-serif",fontWeight:800,fontSize:14,color:"var(--text)",marginBottom:8,letterSpacing:"-.2px"}}>Projections</div>
-                        <div style={{fontSize:12,color:"var(--text3)",lineHeight:1.8}}>
-                          Based on your current pipeline, if you maintain a <span style={{color:"var(--teal)",fontWeight:700}}>{contacted?Math.round(meetings/contacted*100):0}% meeting rate</span>, you can expect approximately <span style={{color:"#facc15",fontWeight:700}}>{Math.max(0,Math.round((leads.length - contacted) * (contacted?meetings/contacted:0.05)))} additional meetings</span> from your remaining {leads.length - contacted} uncontacted leads.
+                        <div style={{fontFamily:"'Bricolage Grotesque',sans-serif",fontWeight:800,fontSize:14,color:"var(--text)",marginBottom:14,letterSpacing:"-.2px"}}>Revenue Forecast</div>
+                        <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:16}}>
+                          <div className="ai-field-label" style={{margin:0,flexShrink:0}}>Avg Deal Value ($)</div>
+                          <input className="ai-in" style={{width:160}} type="number" placeholder="e.g. 50000" value={dealValue} onChange={e=>setDealValue(e.target.value)} />
                         </div>
-                        <div className="cs-badge" style={{marginTop:14,marginBottom:0}}>Revenue forecasting coming soon</div>
+                        {dealValue > 0 ? (<>
+                          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:10,marginBottom:14}}>
+                            {[
+                              {label:"Won (Meetings)",val:meetings,color:"#facc15",rev:meetings*Number(dealValue)},
+                              {label:"In Progress",val:replied-meetings,color:"#4ade80",rev:Math.round((replied-meetings)*Number(dealValue)*0.4)},
+                              {label:"Projected (Pipeline)",val:leads.length-contacted,color:"var(--teal)",rev:Math.round((leads.length-contacted)*(contacted?meetings/contacted:0.05)*Number(dealValue))},
+                            ].map((s,i)=>(
+                              <div key={i} style={{background:"var(--bg3)",border:"1px solid var(--border)",borderRadius:10,padding:"12px 14px"}}>
+                                <div style={{fontSize:10,fontWeight:700,color:s.color,textTransform:"uppercase",letterSpacing:".05em",marginBottom:4}}>{s.label}</div>
+                                <div style={{fontFamily:"'Bricolage Grotesque',sans-serif",fontSize:20,fontWeight:800,color:s.color,letterSpacing:"-.3px"}}>${s.rev.toLocaleString()}</div>
+                                <div style={{fontSize:10,color:"var(--text3)",marginTop:2}}>{s.val} deal{s.val!==1?"s":""}</div>
+                              </div>
+                            ))}
+                          </div>
+                          <div style={{fontSize:12,color:"var(--text3)",lineHeight:1.8}}>
+                            Total pipeline value: <span style={{color:"var(--teal)",fontWeight:700}}>${(meetings*Number(dealValue)+Math.round((replied-meetings)*Number(dealValue)*0.4)+Math.round((leads.length-contacted)*(contacted?meetings/contacted:0.05)*Number(dealValue))).toLocaleString()}</span> projected across {leads.length} contacts.
+                          </div>
+                        </>) : (
+                          <div style={{fontSize:12,color:"var(--text3)",lineHeight:1.8}}>
+                            Enter your average deal value above to see projected revenue across your pipeline. Based on {contacted?Math.round(meetings/contacted*100):0}% meeting rate, you can expect <span style={{color:"#facc15",fontWeight:700}}>{Math.max(0,Math.round((leads.length-contacted)*(contacted?meetings/contacted:0.05)))} more meetings</span> from {leads.length-contacted} uncontacted leads.
+                          </div>
+                        )}
                       </div>
                     </div>
                   );
@@ -1466,12 +1732,81 @@ ONLY JSON: {"script":"..."}`,
                       <div style={{display:"flex",alignItems:"center",gap:7,marginBottom:2}}><span style={{fontSize:14}}>⚡</span><span style={{fontFamily:"'Bricolage Grotesque',sans-serif",fontWeight:800,fontSize:15,color:"var(--text)"}}>Sequences</span></div>
                       <div style={{fontSize:11,color:"var(--text3)",fontWeight:500}}>Automated multi-step outreach</div>
                     </div>
-                    <button className="btn btn-teal btn-sm">+ New Sequence</button>
+                    <button className="btn btn-teal btn-sm" onClick={()=>setShowNewSeq(true)}>+ New Sequence</button>
                   </div>
-                  <div className="empty">
-                    <div className="empty-icon">⚡</div>
-                    <h3>No sequences yet</h3>
-                    <p>Create multi-step outreach sequences with emails, LinkedIn touches, and call reminders.</p>
+
+                  {showNewSeq && (
+                    <div style={{padding:"20px",background:"var(--bg3)",borderBottom:"1px solid var(--border)",flexShrink:0}}>
+                      <div style={{fontFamily:"'Bricolage Grotesque',sans-serif",fontWeight:800,fontSize:14,color:"var(--text)",marginBottom:14}}>New Sequence</div>
+                      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr auto auto",gap:10,alignItems:"end"}}>
+                        <div>
+                          <div className="ai-field-label">Sequence Name</div>
+                          <input className="ai-in" placeholder="e.g. Walmart Outreach" value={newSeqName} onChange={e=>setNewSeqName(e.target.value)} />
+                        </div>
+                        <div>
+                          <div className="ai-field-label">Target Buyer Type</div>
+                          <input className="ai-in" placeholder="e.g. grocery buyer, club buyer" value={newSeqTarget} onChange={e=>setNewSeqTarget(e.target.value)} />
+                        </div>
+                        <div>
+                          <div className="ai-field-label">Steps</div>
+                          <select className="ai-in" style={{width:80}} value={newSeqSteps} onChange={e=>setNewSeqSteps(Number(e.target.value))}>
+                            {[2,3,4,5].map(n=><option key={n} value={n}>{n}</option>)}
+                          </select>
+                        </div>
+                        <div style={{display:"flex",gap:7}}>
+                          <button className="btn btn-teal btn-sm" disabled={seqBusy||!newSeqName.trim()} onClick={genSequence}>
+                            {seqBusy?<><span className="spin"/>Generating...</>:"⚡ Generate"}
+                          </button>
+                          <button className="btn btn-outline btn-sm" onClick={()=>{setShowNewSeq(false);setNewSeqName("");setNewSeqTarget("");}}>Cancel</button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  <div style={{display:"flex",flex:1,overflow:"hidden"}}>
+                    {/* Sequences list */}
+                    <div style={{width:240,borderRight:"1px solid var(--border)",overflow:"auto",padding:"12px",flexShrink:0}}>
+                      {sequences.length===0 ? (
+                        <div style={{padding:"20px 10px",textAlign:"center",color:"var(--text3)",fontSize:12,lineHeight:1.6}}>No sequences yet.<br/>Click "+ New Sequence" to generate one with AI.</div>
+                      ) : sequences.map(s=>(
+                        <div key={s.id} className={`seq-card ${activeSeq?.id===s.id?"active":""}`} onClick={()=>setActiveSeq(s)}>
+                          <span style={{fontSize:18,flexShrink:0}}>⚡</span>
+                          <div style={{minWidth:0}}>
+                            <div style={{fontWeight:700,fontSize:12,color:"var(--text)",marginBottom:2}}>{s.name}</div>
+                            <div style={{fontSize:10,color:"var(--text3)"}}>{s.steps?.length||0} steps · {s.target}</div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                    {/* Steps panel */}
+                    <div style={{flex:1,overflow:"auto",padding:"16px 20px"}}>
+                      {!activeSeq ? (
+                        <div className="empty" style={{minHeight:300}}>
+                          <div className="empty-icon">⚡</div>
+                          <h3>No sequences yet</h3>
+                          <p>Create multi-step outreach sequences with emails, LinkedIn touches, and call reminders.</p>
+                        </div>
+                      ) : (<>
+                        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:16}}>
+                          <div>
+                            <div style={{fontFamily:"'Bricolage Grotesque',sans-serif",fontWeight:800,fontSize:15,color:"var(--text)",marginBottom:2}}>{activeSeq.name}</div>
+                            <div style={{fontSize:11,color:"var(--text3)"}}>{activeSeq.steps?.length} steps · targeting {activeSeq.target}</div>
+                          </div>
+                          <button className="btn btn-outline btn-sm" onClick={()=>setSequences(prev=>prev.filter(s=>s.id!==activeSeq.id))||setActiveSeq(null)}>Delete</button>
+                        </div>
+                        {(activeSeq.steps||[]).map((step,i)=>(
+                          <div key={i} className="seq-step">
+                            <div className="seq-step-hd">
+                              <span className="seq-day">Day {step.day}</span>
+                              <span className="seq-type">{step.type}</span>
+                              {step.subject && <button className="dp-copy" style={{marginLeft:"auto"}} onClick={()=>copy(`Subject: ${step.subject}\n\n${step.body}`,"seq"+i)}>{copied==="seq"+i?"✓ Copied":"Copy"}</button>}
+                            </div>
+                            {step.subject && <div className="seq-subject">Subject: {step.subject}</div>}
+                            <div className="seq-body">{step.body||step.message}</div>
+                          </div>
+                        ))}
+                      </>)}
+                    </div>
                   </div>
                 </div>
 
@@ -1544,90 +1879,249 @@ ONLY JSON: {"script":"..."}`,
 
               ) : view === "enablement" ? (
                 /* ── ENABLEMENT ── */
-                <div className="view-wrap">
-                  <div className="view-hd"><h2>Enablement</h2><p>Sales resources, playbooks, and training to help your team perform at their best</p></div>
-                  <div className="cs-badge">Coming Soon</div>
-                  <div className="card-grid">
-                    {[
-                      {icon:"📘",title:"Retail Sales Playbook",desc:"Step-by-step guide to landing shelf space at every major chain — from first email to PO."},
-                      {icon:"🎯",title:"Objection Library",desc:"500+ pre-written responses to the most common retail buyer objections across 20 categories."},
-                      {icon:"🎙",title:"Pitch Templates",desc:"Proven pitch structures for cold calls, trade shows, broker presentations, and buyer meetings."},
-                      {icon:"📊",title:"Sell Sheet Builder",desc:"Generate a professional one-page sell sheet for any buyer meeting in under 60 seconds."},
-                      {icon:"🏆",title:"Leaderboard",desc:"See how your outreach volume and response rates compare across your team."},
-                      {icon:"📹",title:"Training Videos",desc:"Short tactical videos on prospecting, objection handling, and closing retail buyers."},
-                    ].map((t,i)=>(
-                      <div key={i} className="feat-card" style={{cursor:"default"}}>
-                        <div className="feat-card-icon" style={{background:"rgba(139,92,246,.1)",border:"1px solid rgba(139,92,246,.2)",fontSize:22}}>{t.icon}</div>
-                        <h3>{t.title}</h3>
-                        <p>{t.desc}</p>
-                      </div>
-                    ))}
+                <div className="enab-view">
+                  <div className="ai-view-hd">
+                    <div className="ai-view-hd-top"><span style={{fontSize:15}}>🚀</span><h2>Enablement</h2></div>
+                    <p>Sales resources and AI-generated assets to help you close more deals</p>
+                    <div className="ai-tabs">
+                      {[{id:"playbook",icon:"📘",label:"Sales Playbook"},{id:"pitchtpl",icon:"🎙",label:"Pitch Templates"},{id:"sellsheet",icon:"📊",label:"Sell Sheet Builder"},{id:"objlib",icon:"🎯",label:"Objection Library"}].map(t=>(
+                        <button key={t.id} className={`ai-tab ${enabTab===t.id?"on":""}`} onClick={()=>setEnabTab(t.id)}>{t.icon} {t.label}</button>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="ai-panel">
+                    {enabTab==="playbook" && (<>
+                      <div className="ai-panel-title">📘 Retail Sales Playbook</div>
+                      <div className="ai-panel-sub">Generate a tactical playbook for landing shelf space at your target retailers</div>
+                      <div className="ai-field-label">Target Retailers</div>
+                      <input className="ai-in" placeholder="e.g. Walmart, Target, Kroger" value={playbookTarget} onChange={e=>setPlaybookTarget(e.target.value)} />
+                      <button className="btn btn-teal" style={{marginTop:14,width:"100%",justifyContent:"center"}} disabled={playbookBusy} onClick={genPlaybook}>
+                        {playbookBusy?<><span className="spin"/>Generating Playbook...</>:"⚡ Generate Playbook"}
+                      </button>
+                      {playbookResult && (
+                        <div style={{marginTop:18}}>
+                          {(playbookResult.sections||[]).map((s,i)=>(
+                            <div key={i} style={{background:"var(--bg3)",border:"1px solid var(--border)",borderRadius:10,padding:"14px 16px",marginBottom:10}}>
+                              <div style={{fontFamily:"'Bricolage Grotesque',sans-serif",fontWeight:800,fontSize:13,color:"var(--text)",marginBottom:10}}>{i+1}. {s.title}</div>
+                              {(s.bullets||[]).map((b,j)=>(
+                                <div key={j} style={{display:"flex",gap:9,padding:"5px 0",borderBottom:j<s.bullets.length-1?"1px solid rgba(26,31,58,.5)":"none",fontSize:12,color:"var(--text2)",lineHeight:1.65}}>
+                                  <span style={{color:"var(--teal)",fontWeight:800,flexShrink:0}}>→</span>{b}
+                                </div>
+                              ))}
+                            </div>
+                          ))}
+                          <button className="btn btn-outline btn-sm" onClick={()=>copy((playbookResult.sections||[]).map((s,i)=>`${i+1}. ${s.title}\n${s.bullets.map(b=>`→ ${b}`).join("\n")}`).join("\n\n"),"playbook")}>{copied==="playbook"?"✓ Copied":"Copy Playbook"}</button>
+                        </div>
+                      )}
+                    </>)}
+
+                    {enabTab==="pitchtpl" && (<>
+                      <div className="ai-panel-title">🎙 Pitch Templates</div>
+                      <div className="ai-panel-sub">Proven pitch structures for every sales scenario</div>
+                      <div className="ai-field-label">Scenario</div>
+                      <select className="ai-in" value={pitchTplScenario} onChange={e=>setPitchTplScenario(e.target.value)}>
+                        <option value="cold_call">Cold Phone Call</option>
+                        <option value="trade_show">Trade Show Meeting</option>
+                        <option value="broker">Broker Introduction</option>
+                        <option value="followup">Follow-up Meeting</option>
+                        <option value="zoom">Zoom Demo</option>
+                      </select>
+                      <button className="btn btn-teal" style={{marginTop:14,width:"100%",justifyContent:"center"}} disabled={pitchTplBusy} onClick={genPitchTemplate}>
+                        {pitchTplBusy?<><span className="spin"/>Generating...</>:"⚡ Generate Template"}
+                      </button>
+                      {pitchTplResult && <><div className="ai-result-box">{pitchTplResult}</div><button className="btn btn-outline btn-sm" style={{marginTop:8}} onClick={()=>copy(pitchTplResult,"pitchtpl")}>{copied==="pitchtpl"?"✓ Copied":"Copy Template"}</button></>}
+                    </>)}
+
+                    {enabTab==="sellsheet" && (<>
+                      <div className="ai-panel-title">📊 Sell Sheet Builder</div>
+                      <div className="ai-panel-sub">Generate all copy for a one-page sell sheet in seconds</div>
+                      <button className="btn btn-teal" style={{width:"100%",justifyContent:"center"}} disabled={sellSheetBusy} onClick={genSellSheet}>
+                        {sellSheetBusy?<><span className="spin"/>Building Sell Sheet...</>:"⚡ Generate Sell Sheet"}
+                      </button>
+                      {sellSheetResult && (
+                        <div style={{marginTop:16}}>
+                          {[
+                            {label:"Headline",val:sellSheetResult.headline},
+                            {label:"Subheadline",val:sellSheetResult.subheadline},
+                            {label:"Product Description",val:sellSheetResult.productDescription},
+                            {label:"Target Consumer",val:sellSheetResult.targetConsumer},
+                            {label:"Velocity / Stats",val:sellSheetResult.velocityStats},
+                            {label:"Retailer Benefits",val:sellSheetResult.retailerBenefits},
+                            {label:"Call to Action",val:sellSheetResult.callToAction},
+                          ].map((row,i)=>row.val&&(
+                            <div key={i} style={{background:"var(--bg3)",border:"1px solid var(--border)",borderRadius:9,padding:"12px 14px",marginBottom:9}}>
+                              <div style={{fontSize:9,fontWeight:800,color:"var(--text3)",textTransform:"uppercase",letterSpacing:"1px",marginBottom:5}}>{row.label}</div>
+                              <div style={{fontSize:13,color:"var(--text2)",lineHeight:1.65}}>{row.val}</div>
+                              <button className="dp-copy" style={{marginTop:6}} onClick={()=>copy(row.val,"ss"+i)}>{copied==="ss"+i?"✓":"Copy"}</button>
+                            </div>
+                          ))}
+                          {sellSheetResult.keyBenefits?.length>0&&(
+                            <div style={{background:"var(--bg3)",border:"1px solid var(--border)",borderRadius:9,padding:"12px 14px",marginBottom:9}}>
+                              <div style={{fontSize:9,fontWeight:800,color:"var(--text3)",textTransform:"uppercase",letterSpacing:"1px",marginBottom:8}}>Key Benefits</div>
+                              {sellSheetResult.keyBenefits.map((b,i)=><div key={i} style={{display:"flex",gap:8,padding:"4px 0",fontSize:12,color:"var(--text2)"}}><span style={{color:"var(--teal)",fontWeight:800}}>→</span>{b}</div>)}
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </>)}
+
+                    {enabTab==="objlib" && (<>
+                      <div className="ai-panel-title">🎯 Objection Library</div>
+                      <div className="ai-panel-sub">Search any objection topic — get 5 variations with ideal responses</div>
+                      <div className="ai-field-label">Objection Topic</div>
+                      <input className="ai-in" placeholder="e.g. price too high, no shelf space, already have a similar product" value={objLibSearch} onChange={e=>setObjLibSearch(e.target.value)} onKeyDown={e=>e.key==="Enter"&&genObjLibrary()} />
+                      <button className="btn btn-teal" style={{marginTop:14,width:"100%",justifyContent:"center"}} disabled={objLibBusy||!objLibSearch.trim()} onClick={genObjLibrary}>
+                        {objLibBusy?<><span className="spin"/>Generating...</>:"⚡ Find Responses"}
+                      </button>
+                      {objLibResult && (
+                        <div style={{marginTop:16,display:"flex",flexDirection:"column",gap:10}}>
+                          {(objLibResult.objections||[]).map((o,i)=>(
+                            <div key={i} style={{background:"var(--bg3)",border:"1px solid var(--border)",borderRadius:10,padding:"14px 16px"}}>
+                              <div style={{fontSize:12,fontStyle:"italic",color:"var(--text2)",marginBottom:10,paddingBottom:10,borderBottom:"1px solid var(--border)"}}>"{o.objection}"</div>
+                              <div style={{fontSize:12,color:"var(--text)",lineHeight:1.7}}>{o.response}</div>
+                              <button className="dp-copy" style={{marginTop:8}} onClick={()=>copy(o.response,"obj"+i)}>{copied==="obj"+i?"✓ Copied":"Copy Response"}</button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </>)}
                   </div>
                 </div>
 
               ) : view === "meetings" ? (
                 /* ── MEETINGS ── */
-                <div className="view-wrap">
-                  <div className="view-hd"><h2>Meetings</h2><p>Everything you need to prepare for, run, and follow up on buyer meetings</p></div>
-                  <div className="cs-badge">Coming Soon</div>
-                  {leads.filter(l=>(statuses[l.id]||"none")==="meeting").length > 0 && (
-                    <div style={{background:"var(--bg2)",border:"1px solid rgba(250,204,21,.15)",borderRadius:13,padding:"20px",marginBottom:20}}>
-                      <div style={{fontFamily:"'Bricolage Grotesque',sans-serif",fontWeight:800,fontSize:14,color:"var(--text)",marginBottom:12}}>🗓 Meetings Set ({leads.filter(l=>(statuses[l.id]||"none")==="meeting").length})</div>
-                      {leads.filter(l=>(statuses[l.id]||"none")==="meeting").map(lead => {
-                        const idx = leads.findIndex(l=>l.id===lead.id);
-                        return (
-                          <div key={lead.id} style={{display:"flex",gap:10,alignItems:"center",padding:"10px 0",borderBottom:"1px solid var(--border)"}}>
-                            <div className="av" style={{background:AV_COLORS[idx%AV_COLORS.length],width:32,height:32,fontSize:11,flexShrink:0}}>{(lead.firstName?.[0]||"")+(lead.lastName?.[0]||"")}</div>
-                            <div style={{flex:1,minWidth:0}}>
-                              <div style={{fontWeight:700,fontSize:13,color:"var(--text)"}}>{lead.firstName} {lead.lastName}</div>
-                              <div style={{fontSize:11,color:"var(--text3)"}}>{lead.title} · {lead.retailer}</div>
+                (() => {
+                  const meetLeads = leads.filter(l=>(statuses[l.id]||"none")==="meeting");
+                  return (
+                    <div className="meet-layout">
+                      {/* Contact list */}
+                      <div className="meet-list">
+                        <div className="meet-list-hd">Meetings Set ({meetLeads.length})</div>
+                        {meetLeads.length===0 ? (
+                          <div style={{padding:"20px 14px",textAlign:"center",color:"var(--text3)",fontSize:11,lineHeight:1.7}}>No meetings set yet.<br/>Mark contacts as "Meeting Set" in Tracker or People Finder.</div>
+                        ) : meetLeads.map(lead=>{
+                          const idx=leads.findIndex(l=>l.id===lead.id);
+                          return (
+                            <div key={lead.id} className={`meet-row ${meetContact?.id===lead.id?"active":""}`} onClick={()=>genMeetBrief(lead)}>
+                              <div className="av" style={{background:AV_COLORS[idx%AV_COLORS.length],width:30,height:30,fontSize:10,flexShrink:0}}>{(lead.firstName?.[0]||"")+(lead.lastName?.[0]||"")}</div>
+                              <div style={{minWidth:0}}>
+                                <div style={{fontWeight:700,fontSize:12,color:"var(--text)"}}>{lead.firstName} {lead.lastName}</div>
+                                <div style={{fontSize:10,color:"var(--text3)",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{lead.retailer}</div>
+                              </div>
                             </div>
-                            <button className="btn btn-teal btn-sm" onClick={()=>{setView("people");openLead(lead);}}>⚡ Prep</button>
+                          );
+                        })}
+                        {meetLeads.length===0&&(
+                          <div style={{padding:"0 14px 14px",marginTop:4}}>
+                            <button className="btn btn-outline btn-sm" style={{width:"100%",justifyContent:"center"}} onClick={()=>setView("tracker")}>Open Tracker →</button>
                           </div>
-                        );
-                      })}
-                    </div>
-                  )}
-                  <div className="card-grid">
-                    {[
-                      {icon:"📋",title:"Meeting Brief",desc:"Auto-generate a pre-meeting brief with buyer background, company priorities, and talking points."},
-                      {icon:"🎤",title:"Agenda Builder",desc:"Structure your meeting agenda around what matters most to each specific buyer."},
-                      {icon:"📝",title:"Live Notes",desc:"Take structured notes during the meeting with auto-suggested follow-up actions."},
-                      {icon:"📤",title:"Follow-up Writer",desc:"Send a personalized recap email within 5 minutes of ending the call."},
-                    ].map((t,i)=>(
-                      <div key={i} className="feat-card" style={{cursor:"default"}}>
-                        <div className="feat-card-icon" style={{background:"rgba(56,189,248,.1)",border:"1px solid rgba(56,189,248,.2)",fontSize:22}}>{t.icon}</div>
-                        <h3>{t.title}</h3>
-                        <p>{t.desc}</p>
+                        )}
                       </div>
-                    ))}
-                  </div>
-                </div>
+                      {/* Tools panel */}
+                      <div className="meet-tools">
+                        {!meetContact ? (
+                          <div className="empty">
+                            <div className="empty-icon">📅</div>
+                            <h3>Select a meeting</h3>
+                            <p>Click a contact on the left to generate a meeting brief, agenda, notes, and follow-up email.</p>
+                          </div>
+                        ) : (<>
+                          <div className="meet-tabs">
+                            {[{id:"brief",label:"📋 Brief"},{id:"agenda",label:"🗓 Agenda"},{id:"notes",label:"📝 Notes"},{id:"followup",label:"📤 Follow-up"}].map(t=>(
+                              <button key={t.id} className={`meet-tab ${meetTab===t.id?"on":""}`} onClick={()=>setMeetTab(t.id)}>{t.label}</button>
+                            ))}
+                            <div style={{marginLeft:"auto",display:"flex",alignItems:"center",padding:"0 4px"}}>
+                              <span style={{fontSize:12,fontWeight:700,color:"var(--teal)"}}>{meetContact.firstName} {meetContact.lastName} · {meetContact.retailer}</span>
+                            </div>
+                          </div>
+                          <div className="meet-content">
+                            {meetTab==="brief" && (
+                              meetBriefBusy ? <div className="empty" style={{minHeight:200}}><span className="spin spin-lg"/><p style={{marginTop:16}}>Generating brief...</p></div>
+                              : meetBriefResult ? (<>
+                                {[
+                                  {label:"Key Talking Points",key:"talkingPoints",icon:"💬"},
+                                  {label:"Objections to Prepare For",key:"objections",icon:"🛡"},
+                                  {label:"Questions to Ask",key:"questionsToAsk",icon:"❓"},
+                                  {label:"What to Bring / Send Ahead",key:"prepItems",icon:"📦"},
+                                ].map(s=>meetBriefResult[s.key]?.length>0&&(
+                                  <div key={s.key} style={{marginBottom:16}}>
+                                    <div style={{fontSize:10,fontWeight:800,color:"var(--text3)",textTransform:"uppercase",letterSpacing:"1px",marginBottom:8}}>{s.icon} {s.label}</div>
+                                    {meetBriefResult[s.key].map((item,i)=>(
+                                      <div key={i} style={{display:"flex",gap:8,padding:"6px 0",borderBottom:"1px solid rgba(26,31,58,.5)",fontSize:12,color:"var(--text2)",lineHeight:1.6}}>
+                                        <span style={{color:"var(--teal)",fontWeight:800,flexShrink:0}}>→</span>{item}
+                                      </div>
+                                    ))}
+                                  </div>
+                                ))}
+                              </>) : <div className="empty" style={{minHeight:200}}><p>Click a contact to generate their brief.</p></div>
+                            )}
+                            {meetTab==="agenda" && (<>
+                              <button className="btn btn-teal" style={{width:"100%",justifyContent:"center",marginBottom:14}} disabled={agendaBusy} onClick={genAgenda}>
+                                {agendaBusy?<><span className="spin"/>Building Agenda...</>:"⚡ Generate 30-Min Agenda"}
+                              </button>
+                              {agendaResult && <><div className="ai-result-box">{agendaResult}</div><button className="btn btn-outline btn-sm" style={{marginTop:8}} onClick={()=>copy(agendaResult,"agenda")}>{copied==="agenda"?"✓ Copied":"Copy Agenda"}</button></>}
+                            </>)}
+                            {meetTab==="notes" && (<>
+                              <div style={{fontSize:10,fontWeight:800,color:"var(--text3)",textTransform:"uppercase",letterSpacing:"1px",marginBottom:8}}>Meeting Notes</div>
+                              <textarea className="pitch-ta" style={{minHeight:200}} placeholder="Take notes during the meeting here..." value={meetNotes[meetContact.id]||""} onChange={e=>setMeetNotes(p=>({...p,[meetContact.id]:e.target.value}))} />
+                              <button className="btn btn-outline btn-sm" style={{marginTop:8}} onClick={()=>copy(meetNotes[meetContact.id]||"","notes")}>{copied==="notes"?"✓ Copied":"Copy Notes"}</button>
+                            </>)}
+                            {meetTab==="followup" && (<>
+                              <button className="btn btn-teal" style={{width:"100%",justifyContent:"center",marginBottom:14}} disabled={followupBusy} onClick={genMeetFollowup}>
+                                {followupBusy?<><span className="spin"/>Writing Email...</>:"⚡ Generate Follow-up Email"}
+                              </button>
+                              {followupResult && (<>
+                                <div style={{background:"var(--bg3)",border:"1px solid var(--border)",borderRadius:9,padding:"12px 14px",marginBottom:9}}>
+                                  <div style={{fontSize:9,fontWeight:800,color:"var(--text3)",textTransform:"uppercase",letterSpacing:"1px",marginBottom:5}}>Subject</div>
+                                  <div style={{fontSize:13,fontWeight:700,color:"var(--text)"}}>{followupResult.subject}</div>
+                                </div>
+                                <div className="ai-result-box">{followupResult.body}</div>
+                                <button className="btn btn-outline btn-sm" style={{marginTop:8}} onClick={()=>copy(`Subject: ${followupResult.subject}\n\n${followupResult.body}`,"followup")}>{copied==="followup"?"✓ Copied":"Copy Email"}</button>
+                              </>)}
+                            </>)}
+                          </div>
+                        </>)}
+                      </div>
+                    </div>
+                  );
+                })()
 
               ) : view === "integrations" ? (
                 /* ── INTEGRATIONS ── */
                 <div className="view-wrap">
                   <div className="view-hd"><h2>Integrations</h2><p>Connect RepReach to the tools your team already uses</p></div>
-                  <div className="cs-badge">Coming Soon</div>
+                  {/* CSV Export — live */}
+                  <div style={{background:"var(--bg2)",border:"1px solid rgba(0,229,192,.2)",borderRadius:13,padding:"18px 20px",marginBottom:16,display:"flex",alignItems:"center",gap:16}}>
+                    <div style={{width:44,height:44,borderRadius:11,background:"rgba(0,229,192,.1)",border:"1px solid rgba(0,229,192,.2)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:22,flexShrink:0}}>📥</div>
+                    <div style={{flex:1}}>
+                      <div style={{fontWeight:700,fontSize:13,color:"var(--text)",marginBottom:3}}>CSV Export</div>
+                      <div style={{fontSize:11,color:"var(--text3)",lineHeight:1.5}}>{leads.length} contacts ready — name, title, company, email, phone, status, notes, department.</div>
+                    </div>
+                    <span className="int-status int-live" style={{flexShrink:0}}>● Live</span>
+                    <button className="btn btn-teal btn-sm" onClick={exportCSV} disabled={!leads.length}>{leads.length?"⬇ Export CSV":"No contacts yet"}</button>
+                  </div>
                   <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(280px,1fr))",gap:12}}>
                     {[
-                      {icon:"☁",name:"Salesforce",desc:"Sync contacts, leads, and outreach activity automatically.",status:"coming",bg:"#00a1e0"},
-                      {icon:"🔶",name:"HubSpot",desc:"Push buyer data and track deal stages inside your HubSpot CRM.",status:"coming",bg:"#ff7a59"},
-                      {icon:"💬",name:"Slack",desc:"Get notified in Slack when a buyer replies or a meeting gets set.",status:"coming",bg:"#4a154b"},
-                      {icon:"📧",name:"Gmail / Google Workspace",desc:"Send outreach directly from your Gmail with one click.",status:"coming",bg:"#ea4335"},
-                      {icon:"📮",name:"Outlook / Microsoft 365",desc:"Native Outlook integration for reps who live in Microsoft.",status:"coming",bg:"#0078d4"},
-                      {icon:"📊",name:"Google Sheets",desc:"Export your pipeline and lead data to Sheets for reporting.",status:"coming",bg:"#34a853"},
-                      {icon:"🗓",name:"Calendly",desc:"Embed your booking link directly into outreach emails.",status:"coming",bg:"#006bff"},
-                      {icon:"📱",name:"LinkedIn Sales Nav",desc:"Pull buyer data directly from Sales Navigator.",status:"coming",bg:"#0077b5"},
-                      {icon:"🔔",name:"Apollo.io",desc:"Live — RepReach is already powered by Apollo's contact database.",status:"live",bg:"#6c63ff"},
-                      {icon:"✨",name:"Claude AI",desc:"Live — all AI generation and objection training is powered by Claude.",status:"live",bg:"#c87533"},
+                      {icon:"☁",name:"Salesforce",desc:"Sync contacts, leads, and outreach activity automatically.",bg:"#00a1e0"},
+                      {icon:"🔶",name:"HubSpot",desc:"Push buyer data and track deal stages inside your HubSpot CRM.",bg:"#ff7a59"},
+                      {icon:"💬",name:"Slack",desc:"Get notified in Slack when a buyer replies or a meeting gets set.",bg:"#4a154b"},
+                      {icon:"📧",name:"Gmail",desc:"Send outreach directly from your Gmail with one click.",bg:"#ea4335"},
+                      {icon:"📮",name:"Outlook / Microsoft 365",desc:"Native Outlook integration for reps who live in Microsoft.",bg:"#0078d4"},
+                      {icon:"📊",name:"Google Sheets",desc:"Export your pipeline and lead data to Sheets for reporting.",bg:"#34a853"},
+                      {icon:"🗓",name:"Calendly",desc:"Embed your booking link directly into outreach emails.",bg:"#006bff"},
+                      {icon:"📱",name:"LinkedIn Sales Nav",desc:"Pull buyer data directly from Sales Navigator.",bg:"#0077b5"},
+                      {icon:"🔔",name:"Apollo.io",desc:"RepReach is already powered by Apollo's contact database.",bg:"#6c63ff",live:true},
+                      {icon:"✨",name:"Claude AI",desc:"All AI generation, scoring, and research is powered by Claude.",bg:"#c87533",live:true},
                     ].map((t,i)=>(
                       <div key={i} className="int-card">
                         <div className="int-logo" style={{background:t.bg+"22",border:`1px solid ${t.bg}33`,fontSize:22}}>{t.icon}</div>
                         <div style={{flex:1,minWidth:0}}>
                           <div style={{fontWeight:700,fontSize:13,color:"var(--text)",marginBottom:3}}>{t.name}</div>
-                          <div style={{fontSize:11,color:"var(--text3)",lineHeight:1.5,marginBottom:5}}>{t.desc}</div>
-                          <span className={`int-status ${t.status==="live"?"int-live":"int-coming"}`}>{t.status==="live"?"● Live":"Coming Soon"}</span>
+                          <div style={{fontSize:11,color:"var(--text3)",lineHeight:1.5,marginBottom:6}}>{t.desc}</div>
+                          {t.live
+                            ? <span className="int-status int-live">● Live</span>
+                            : <button className="btn btn-outline btn-sm" style={{fontSize:10,padding:"3px 12px"}} onClick={()=>alert(`${t.name} integration coming soon. We'll notify you when it's ready.`)}>Connect</button>
+                          }
                         </div>
                       </div>
                     ))}

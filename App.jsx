@@ -106,6 +106,28 @@ export default function App() {
   const pitchRecRef    = useRef(null);
   const responseRecRef = useRef(null);
 
+  // AI Tools tabs
+  const [aiTab,            setAiTab]            = useState("pitch");
+  const [pitchCtx,         setPitchCtx]         = useState("");
+  const [pitchRes,         setPitchRes]         = useState("");
+  const [pitchBusy,        setPitchBusy]        = useState(false);
+  const [objInput,         setObjInput]         = useState("");
+  const [objRes,           setObjRes]           = useState("");
+  const [objBusy,          setObjBusy]          = useState(false);
+  const [subjInput,        setSubjInput]        = useState("");
+  const [subjRes,          setSubjRes]          = useState(null);
+  const [subjBusy,         setSubjBusy]         = useState(false);
+  const [valRes,           setValRes]           = useState(null);
+  const [valBusy,          setValBusy]          = useState(false);
+  const [callCtx,          setCallCtx]          = useState("");
+  const [callRes,          setCallRes]          = useState("");
+  const [callBusy,         setCallBusy]         = useState(false);
+
+  // Intelligence
+  const [intelQuery,       setIntelQuery]       = useState("");
+  const [intelResult,      setIntelResult]      = useState(null);
+  const [intelBusy,        setIntelBusy]        = useState(false);
+
   // fetchDepartments must be defined first — used by runSearch, runPersonSearch, loadMore
   const fetchDepartments = useCallback(async (leadList) => {
     if (!leadList || !leadList.length) return;
@@ -304,6 +326,87 @@ ONLY JSON: {"subject":"...","body":"..."}`
       setFollowUps(p => ({...p,[lead.id]:r}));
     } catch(e) { alert("Failed: "+e.message); }
     setGenFU(null);
+  };
+
+  // ── AI TOOLS helpers ──
+  const aiGenerate = async (prompt, onResult, setBusy) => {
+    setBusy(true);
+    try {
+      const r = await fetch("/api/generate", { method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify({ prompt }) });
+      const d = await r.json();
+      if (d.error) throw new Error(d.error);
+      onResult(JSON.parse(d.result));
+    } catch(e) { alert("Failed: " + e.message); }
+    setBusy(false);
+  };
+
+  const genPitch = () => {
+    if (!brandName) return alert("Enter your brand name in the settings bar first.");
+    aiGenerate(
+      `Write a 60-second spoken sales pitch for a CPG rep calling on a retail buyer.
+Rep: ${repName||"Sales Rep"}. Brand: ${brandName}. Product: ${productDesc||brandName}. Retail context: ${pitchCtx||"general retail"}.
+Structure: hook → problem/opportunity → solution → proof point → ask. Under 100 words. Natural spoken tone.
+ONLY JSON: {"pitch":"..."}`,
+      d => setPitchRes(d.pitch), setPitchBusy
+    );
+  };
+
+  const genObjHandler = () => {
+    if (!objInput.trim()) return;
+    aiGenerate(
+      `A retail buyer just said: "${objInput}"
+Brand: ${brandName||"our brand"}. Product: ${productDesc||"our product"}.
+Write a confident, empathetic response: acknowledge the concern, pivot to value, keep conversation moving. 2-4 sentences.
+ONLY JSON: {"response":"..."}`,
+      d => setObjRes(d.response), setObjBusy
+    );
+  };
+
+  const genSubjectTest = () => {
+    if (!subjInput.trim()) return;
+    aiGenerate(
+      `Analyze this cold email subject line for a CPG rep emailing a retail buyer: "${subjInput}"
+Score it 1–10. Give brief feedback and 3 improved alternatives.
+ONLY JSON: {"score":7,"feedback":"...","alternatives":["...","...","..."]}`,
+      d => setSubjRes(d), setSubjBusy
+    );
+  };
+
+  const genValueProp = () => {
+    if (!brandName) return alert("Enter your brand name in the settings bar first.");
+    aiGenerate(
+      `Create 3 value proposition statements for a CPG brand, each tailored for retail buyer conversations.
+Brand: ${brandName}. Product: ${productDesc||brandName}.
+Each focused on margin, velocity, consumer demand, or category growth. Under 30 words each.
+ONLY JSON: {"props":["...","...","..."]}`,
+      d => setValRes(d.props), setValBusy
+    );
+  };
+
+  const genCallScript = () => {
+    if (!brandName) return alert("Enter your brand name in the settings bar first.");
+    aiGenerate(
+      `Write a cold call script for a CPG rep calling a retail buyer.
+Rep: ${repName||"Sales Rep"}. Brand: ${brandName}. Product: ${productDesc||brandName}. Context: ${callCtx||"general retail buyer"}.
+Include labeled stages: [OPENER] [HOOK] [VALUE PROP] [HANDLE BRUSH-OFF] [ASK FOR MEETING]. Under 150 words.
+ONLY JSON: {"script":"..."}`,
+      d => setCallRes(d.script), setCallBusy
+    );
+  };
+
+  const runIntelResearch = async () => {
+    if (!intelQuery.trim()) return;
+    setIntelBusy(true); setIntelResult(null);
+    try {
+      const r = await fetch("/api/intelligence", {
+        method: "POST", headers: {"Content-Type":"application/json"},
+        body: JSON.stringify({ query: intelQuery, brand: brandName, product: productDesc }),
+      });
+      const d = await r.json();
+      if (d.error) throw new Error(d.error);
+      setIntelResult(d);
+    } catch(e) { alert("Research failed: " + e.message); }
+    setIntelBusy(false);
   };
 
   // ── PRACTICE helpers ──
@@ -637,6 +740,38 @@ ONLY JSON: {"subject":"...","body":"..."}`
         .int-status{font-size:10px;font-weight:700;padding:2px 9px;border-radius:20px;margin-top:3px;display:inline-block}
         .int-coming{background:rgba(245,166,35,.1);color:var(--amber);border:1px solid rgba(245,166,35,.2)}
         .int-live{background:rgba(74,222,128,.1);color:#4ade80;border:1px solid rgba(74,222,128,.2)}
+
+        /* ─── AI TOOLS TABS ─── */
+        .ai-view{display:flex;flex-direction:column;flex:1;overflow:hidden}
+        .ai-view-hd{padding:14px 20px 0;background:var(--bg2);flex-shrink:0;border-bottom:1px solid var(--border)}
+        .ai-view-hd-top{display:flex;align-items:center;gap:8px;margin-bottom:2px}
+        .ai-view-hd h2{font-family:'Bricolage Grotesque',sans-serif;font-size:15px;font-weight:800;color:var(--text);letter-spacing:-.2px}
+        .ai-view-hd p{font-size:11px;color:var(--text3);font-weight:500;margin-bottom:10px}
+        .ai-tabs{display:flex;gap:0;overflow-x:auto}
+        .ai-tab{padding:10px 15px;font-size:12px;font-weight:600;cursor:pointer;border:none;background:transparent;color:var(--text3);border-bottom:2px solid transparent;margin-bottom:-1px;transition:.15s;white-space:nowrap;letter-spacing:.02em;display:flex;align-items:center;gap:5px}
+        .ai-tab.on{color:var(--teal);border-bottom-color:var(--teal)}
+        .ai-tab:hover:not(.on){color:var(--text2)}
+        .ai-panel{flex:1;overflow-y:auto;padding:22px 24px}
+        .ai-panel-title{font-family:'Bricolage Grotesque',sans-serif;font-size:15px;font-weight:800;color:var(--text);letter-spacing:-.2px;margin-bottom:3px;display:flex;align-items:center;gap:7px}
+        .ai-panel-sub{font-size:12px;color:var(--text3);margin-bottom:20px;font-weight:500}
+        .ai-field-label{font-size:9px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px}
+        .ai-in{width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:9px;padding:10px 14px;font-size:13px;color:var(--text);outline:none;font-family:'Inter',sans-serif;transition:.15s}
+        .ai-in::placeholder{color:var(--text3)}
+        .ai-in:focus{border-color:var(--teal2);box-shadow:0 0 0 3px rgba(0,229,192,.07)}
+        .ai-result-box{background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:16px;margin-top:16px;font-size:13px;color:var(--text2);line-height:1.8;white-space:pre-wrap;font-weight:500}
+        .ai-score-pill{display:inline-flex;align-items:center;gap:5px;padding:4px 12px;border-radius:20px;font-size:12px;font-weight:800;margin-bottom:10px}
+        /* Intelligence */
+        .intel-view{display:flex;flex-direction:column;flex:1;overflow:hidden}
+        .intel-hd{padding:14px 20px;background:var(--bg2);border-bottom:1px solid var(--border);flex-shrink:0}
+        .intel-hd h2{font-family:'Bricolage Grotesque',sans-serif;font-size:15px;font-weight:800;color:var(--text);letter-spacing:-.2px;margin-bottom:2px}
+        .intel-hd p{font-size:11px;color:var(--text3);font-weight:500}
+        .intel-search{padding:12px 20px;background:var(--bg2);border-bottom:1px solid var(--border);flex-shrink:0;display:flex;gap:10px;align-items:center}
+        .intel-body{flex:1;overflow-y:auto;padding:20px 24px}
+        .intel-card{background:var(--bg2);border:1px solid var(--border);border-radius:13px;padding:20px;margin-bottom:14px}
+        .intel-card h3{font-family:'Bricolage Grotesque',sans-serif;font-size:12px;font-weight:800;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:10px}
+        .intel-item{display:flex;gap:9px;padding:5px 0;font-size:12px;color:var(--text2);line-height:1.6;font-weight:500;border-bottom:1px solid rgba(26,31,58,.5)}
+        .intel-item:last-child{border-bottom:none}
+        .intel-item::before{content:'→';color:var(--teal);font-weight:800;flex-shrink:0;margin-top:1px}
 
         /* ─── PRACTICE ─── */
         .practice-wrap{flex:1;overflow-y:auto;padding:24px;display:flex;flex-direction:column;gap:16px;max-width:800px;margin:0 auto;width:100%}
@@ -1233,79 +1368,177 @@ ONLY JSON: {"subject":"...","body":"..."}`
 
               ) : view === "aitools" ? (
                 /* ── AI TOOLS ── */
-                <div className="view-wrap">
-                  <div className="view-hd"><h2>AI Tools</h2><p>Claude-powered tools built to help you get more meetings and close more deals</p></div>
-                  <div className="card-grid">
-                    {[
-                      {icon:"✉",title:"Cold Email Generator",desc:"A/B cold emails personalized to each buyer's role, company, and department. Takes 5 seconds.",cta:"Open People Finder",view:"people",color:"#00e5c0"},
-                      {icon:"🎯",title:"Pitch Trainer",desc:"Practice your sales pitch against realistic buyer objections. Get scored 1–10 with coaching after every rep.",cta:"Start Practicing",view:"practice",color:"#8b5cf6"},
-                      {icon:"💼",title:"LinkedIn Outreach",desc:"AI-crafted connection requests (300 chars) and DMs that feel personal, not automated.",cta:"Open People Finder",view:"people",color:"#38bdf8"},
-                      {icon:"↩",title:"Follow-up Engine",desc:"Value-add follow-ups that re-engage silent leads without ever saying 'just checking in'.",cta:"Open People Finder",view:"people",color:"#f59e0b"},
-                      {icon:"🏢",title:"Department Finder",desc:"Automatically identifies which category each buyer owns based on their title and LinkedIn.",cta:"Open People Finder",view:"people",color:"#4ade80"},
-                      {icon:"🔎",title:"Buyer Research",desc:"Deep research on any buyer — recent initiatives, priorities, and what they want to add.",cta:"Coming Soon",view:null,color:"#ec4899"},
-                      {icon:"📧",title:"Sequence Writer",desc:"Multi-touch email sequences tailored to your product category and the buyer's retailer.",cta:"Coming Soon",view:null,color:"#fb923c"},
-                      {icon:"🧠",title:"Objection Library",desc:"500+ pre-written objection responses across price, timing, competition, shelf space, and more.",cta:"Coming Soon",view:null,color:"#a78bfa"},
-                    ].map((t,i) => (
-                      <div key={i} className="feat-card" style={{cursor:t.view?"pointer":"default"}} onClick={()=>t.view&&setView(t.view)}>
-                        <div className="feat-card-icon" style={{background:t.color+"18",border:`1px solid ${t.color}25`}}>{t.icon}</div>
-                        <h3>{t.title}</h3>
-                        <p>{t.desc}</p>
-                        <span className="feat-card-cta" style={{color:t.view?t.color:"var(--text3)"}}>{t.cta}{t.view?" →":""}</span>
-                      </div>
-                    ))}
+                <div className="ai-view">
+                  <div className="ai-view-hd">
+                    <div className="ai-view-hd-top"><span style={{fontSize:15}}>🤖</span><h2>AI Tools</h2></div>
+                    <p>AI-powered sales assets</p>
+                    <div className="ai-tabs">
+                      {[{id:"pitch",icon:"🎤",label:"Pitch Builder"},{id:"objection",icon:"🛡",label:"Objection Handler"},{id:"subject",icon:"✉",label:"Subject Line Tester"},{id:"value",icon:"💡",label:"Value Proposition"},{id:"callscript",icon:"📞",label:"Call Script"}].map(t=>(
+                        <button key={t.id} className={`ai-tab ${aiTab===t.id?"on":""}`} onClick={()=>setAiTab(t.id)}>{t.icon} {t.label}</button>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="ai-panel">
+                    {aiTab === "pitch" && (<>
+                      <div className="ai-panel-title">🎤 Pitch Builder</div>
+                      <div className="ai-panel-sub">Generate a tailored pitch for any buyer</div>
+                      <div className="ai-field-label">Retail Context</div>
+                      <input className="ai-in" placeholder="e.g. grocery, mass, club" value={pitchCtx} onChange={e=>setPitchCtx(e.target.value)} onKeyDown={e=>e.key==="Enter"&&genPitch()} />
+                      <button className="btn btn-teal" style={{marginTop:14,width:"100%",justifyContent:"center"}} disabled={pitchBusy} onClick={genPitch}>
+                        {pitchBusy?<><span className="spin"/>Generating...</>:"⚡ Generate"}
+                      </button>
+                      {pitchRes && <><div className="ai-result-box">{pitchRes}</div><button className="btn btn-outline btn-sm" style={{marginTop:8}} onClick={()=>copy(pitchRes,"pitch")}>{copied==="pitch"?"✓ Copied":"Copy Pitch"}</button></>}
+                    </>)}
+
+                    {aiTab === "objection" && (<>
+                      <div className="ai-panel-title">🛡 Objection Handler</div>
+                      <div className="ai-panel-sub">Enter a buyer objection and get a confident, ready-to-use response</div>
+                      <div className="ai-field-label">Buyer Objection</div>
+                      <textarea className="ai-in pitch-ta" placeholder='e.g. "Your margins are too thin for us to make money on this."' rows={3} value={objInput} onChange={e=>setObjInput(e.target.value)} />
+                      <button className="btn btn-teal" style={{marginTop:14,width:"100%",justifyContent:"center"}} disabled={objBusy||!objInput.trim()} onClick={genObjHandler}>
+                        {objBusy?<><span className="spin"/>Generating...</>:"⚡ Generate Response"}
+                      </button>
+                      {objRes && <><div className="ai-result-box">{objRes}</div><button className="btn btn-outline btn-sm" style={{marginTop:8}} onClick={()=>copy(objRes,"obj")}>{copied==="obj"?"✓ Copied":"Copy Response"}</button></>}
+                    </>)}
+
+                    {aiTab === "subject" && (<>
+                      <div className="ai-panel-title">✉ Subject Line Tester</div>
+                      <div className="ai-panel-sub">Score your subject line and get 3 stronger alternatives</div>
+                      <div className="ai-field-label">Email Subject Line</div>
+                      <input className="ai-in" placeholder='e.g. "Quick question about your protein bar set"' value={subjInput} onChange={e=>setSubjInput(e.target.value)} onKeyDown={e=>e.key==="Enter"&&genSubjectTest()} />
+                      <button className="btn btn-teal" style={{marginTop:14,width:"100%",justifyContent:"center"}} disabled={subjBusy||!subjInput.trim()} onClick={genSubjectTest}>
+                        {subjBusy?<><span className="spin"/>Analyzing...</>:"⚡ Test Subject Line"}
+                      </button>
+                      {subjRes && (
+                        <div style={{marginTop:16}}>
+                          <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:10}}>
+                            <span className="ai-score-pill" style={{background:subjRes.score>=7?"rgba(74,222,128,.12)":subjRes.score>=5?"rgba(251,146,60,.12)":"rgba(248,113,113,.12)",color:subjRes.score>=7?"#4ade80":subjRes.score>=5?"#fb923c":"#f87171",border:`1px solid ${subjRes.score>=7?"rgba(74,222,128,.25)":subjRes.score>=5?"rgba(251,146,60,.25)":"rgba(248,113,113,.25)"}`}}>{subjRes.score}/10</span>
+                            <span style={{fontSize:12,color:"var(--text2)"}}>{subjRes.feedback}</span>
+                          </div>
+                          <div className="ai-field-label" style={{marginBottom:8}}>Stronger Alternatives</div>
+                          {(subjRes.alternatives||[]).map((a,i)=>(
+                            <div key={i} style={{display:"flex",alignItems:"center",gap:8,padding:"9px 12px",background:"var(--bg3)",border:"1px solid var(--border)",borderRadius:8,marginBottom:7,fontSize:12,color:"var(--text2)"}}>
+                              <span style={{flex:1}}>{a}</span>
+                              <button className="dp-copy" onClick={()=>copy(a,"subj"+i)}>{copied==="subj"+i?"✓":"Copy"}</button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </>)}
+
+                    {aiTab === "value" && (<>
+                      <div className="ai-panel-title">💡 Value Proposition</div>
+                      <div className="ai-panel-sub">Generate 3 buyer-focused value prop statements for your brand</div>
+                      <button className="btn btn-teal" style={{width:"100%",justifyContent:"center"}} disabled={valBusy} onClick={genValueProp}>
+                        {valBusy?<><span className="spin"/>Generating...</>:"⚡ Generate Value Props"}
+                      </button>
+                      {valRes && (
+                        <div style={{marginTop:16,display:"flex",flexDirection:"column",gap:10}}>
+                          {valRes.map((v,i)=>(
+                            <div key={i} style={{background:"var(--bg3)",border:"1px solid var(--border)",borderRadius:10,padding:"14px 16px",display:"flex",alignItems:"flex-start",gap:12}}>
+                              <span style={{width:22,height:22,borderRadius:"50%",background:"var(--teal-dim)",border:"1px solid rgba(0,229,192,.2)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,fontWeight:800,color:"var(--teal)",flexShrink:0}}>{i+1}</span>
+                              <span style={{flex:1,fontSize:13,color:"var(--text2)",lineHeight:1.65,fontWeight:500}}>{v}</span>
+                              <button className="dp-copy" onClick={()=>copy(v,"val"+i)}>{copied==="val"+i?"✓":"Copy"}</button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </>)}
+
+                    {aiTab === "callscript" && (<>
+                      <div className="ai-panel-title">📞 Call Script</div>
+                      <div className="ai-panel-sub">Get a cold call script tailored to your brand and the buyer's context</div>
+                      <div className="ai-field-label">Call Context</div>
+                      <input className="ai-in" placeholder="e.g. club buyer, natural grocery, mass merchant" value={callCtx} onChange={e=>setCallCtx(e.target.value)} onKeyDown={e=>e.key==="Enter"&&genCallScript()} />
+                      <button className="btn btn-teal" style={{marginTop:14,width:"100%",justifyContent:"center"}} disabled={callBusy} onClick={genCallScript}>
+                        {callBusy?<><span className="spin"/>Generating...</>:"⚡ Generate Call Script"}
+                      </button>
+                      {callRes && <><div className="ai-result-box">{callRes}</div><button className="btn btn-outline btn-sm" style={{marginTop:8}} onClick={()=>copy(callRes,"call")}>{copied==="call"?"✓ Copied":"Copy Script"}</button></>}
+                    </>)}
                   </div>
                 </div>
 
               ) : view === "sequences" ? (
                 /* ── SEQUENCES ── */
-                <div className="view-wrap">
-                  <div className="view-hd"><h2>Sequences</h2><p>Automated multi-touch email sequences for every buyer in your pipeline</p></div>
-                  <div className="cs-badge">Coming Soon</div>
-                  <div className="card-grid">
-                    {[
-                      {icon:"1️⃣",title:"Cold Intro",desc:"Day 1: Personalized cold email introducing your brand and product with a clear value prop."},
-                      {icon:"2️⃣",title:"Value Follow-up",desc:"Day 4: Send a relevant case study, velocity data, or retailer success story."},
-                      {icon:"3️⃣",title:"Social Proof",desc:"Day 8: Share a press mention, award, or DTC sales milestone that builds credibility."},
-                      {icon:"4️⃣",title:"Breakup Email",desc:"Day 14: A respectful final email that often triggers replies from interested-but-busy buyers."},
-                    ].map((s,i)=>(
-                      <div key={i} className="feat-card" style={{cursor:"default"}}>
-                        <div style={{fontSize:26,marginBottom:12}}>{s.icon}</div>
-                        <h3>{s.title}</h3>
-                        <p>{s.desc}</p>
-                      </div>
-                    ))}
+                <div style={{display:"flex",flexDirection:"column",flex:1,overflow:"hidden"}}>
+                  <div style={{padding:"14px 20px",background:"var(--bg2)",borderBottom:"1px solid var(--border)",flexShrink:0,display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+                    <div>
+                      <div style={{display:"flex",alignItems:"center",gap:7,marginBottom:2}}><span style={{fontSize:14}}>⚡</span><span style={{fontFamily:"'Bricolage Grotesque',sans-serif",fontWeight:800,fontSize:15,color:"var(--text)"}}>Sequences</span></div>
+                      <div style={{fontSize:11,color:"var(--text3)",fontWeight:500}}>Automated multi-step outreach</div>
+                    </div>
+                    <button className="btn btn-teal btn-sm">+ New Sequence</button>
                   </div>
-                  <div style={{background:"var(--bg2)",border:"1px solid var(--border)",borderRadius:13,padding:"20px",marginTop:8}}>
-                    <div style={{fontFamily:"'Bricolage Grotesque',sans-serif",fontWeight:800,fontSize:14,color:"var(--text)",marginBottom:10}}>What's coming</div>
-                    {["Build sequences visually with drag-and-drop steps","Set delays between touchpoints (days/hours)","A/B test subject lines across the whole sequence","Auto-pause when a buyer replies","Sequence analytics — open rate, reply rate, meeting rate per step"].map((f,i)=>(
-                      <div key={i} style={{display:"flex",gap:10,alignItems:"center",padding:"7px 0",borderBottom:i<4?"1px solid var(--border)":"none"}}>
-                        <span style={{color:"var(--teal)",fontWeight:800,flexShrink:0}}>→</span>
-                        <span style={{fontSize:12,color:"var(--text2)",fontWeight:500}}>{f}</span>
-                      </div>
-                    ))}
+                  <div className="empty">
+                    <div className="empty-icon">⚡</div>
+                    <h3>No sequences yet</h3>
+                    <p>Create multi-step outreach sequences with emails, LinkedIn touches, and call reminders.</p>
                   </div>
                 </div>
 
               ) : view === "intelligence" ? (
                 /* ── INTELLIGENCE ── */
-                <div className="view-wrap">
-                  <div className="view-hd"><h2>Intelligence</h2><p>Real-time buyer and market intelligence to help you walk into every call prepared</p></div>
-                  <div className="cs-badge">Coming Soon</div>
-                  <div className="card-grid">
-                    {[
-                      {icon:"🔭",title:"Buyer Research",desc:"Auto-generate a 1-page brief on any buyer — their history, priorities, and what they're actively adding."},
-                      {icon:"🏪",title:"Retailer Trends",desc:"Category performance data for each retailer so you know which aisles are growing and which are shrinking."},
-                      {icon:"📰",title:"News Alerts",desc:"Get notified when a target retailer announces a reset, expansion, or new category initiative."},
-                      {icon:"🥊",title:"Competitor Watch",desc:"Track which brands are expanding into your target retailers so you can get in ahead of them."},
-                      {icon:"💡",title:"Pitch Insights",desc:"See which messaging angles are working best for your category across similar brands."},
-                      {icon:"📍",title:"Store Coverage Map",desc:"Visualize where your brand has distribution and identify whitespace by region."},
-                    ].map((t,i)=>(
-                      <div key={i} className="feat-card" style={{cursor:"default"}}>
-                        <div className="feat-card-icon" style={{background:"rgba(59,130,246,.1)",border:"1px solid rgba(59,130,246,.2)",fontSize:22}}>{t.icon}</div>
-                        <h3>{t.title}</h3>
-                        <p>{t.desc}</p>
+                <div className="intel-view">
+                  <div className="intel-hd">
+                    <div style={{display:"flex",alignItems:"center",gap:7,marginBottom:2}}><span style={{fontSize:14}}>🧠</span><h2>Intelligence</h2></div>
+                    <p>AI-powered retailer &amp; buyer research</p>
+                  </div>
+                  <div className="intel-search">
+                    <input className="ai-in" style={{flex:1}} placeholder="Enter retailer or buyer name to research..."
+                      value={intelQuery} onChange={e=>setIntelQuery(e.target.value)}
+                      onKeyDown={e=>e.key==="Enter"&&runIntelResearch()} />
+                    <button className="btn btn-teal" disabled={intelBusy||!intelQuery.trim()} onClick={runIntelResearch}>
+                      {intelBusy?<><span className="spin"/>Researching...</>:"🔭 Research"}
+                    </button>
+                  </div>
+                  <div className="intel-body">
+                    {!intelResult && !intelBusy && (
+                      <div className="empty">
+                        <div className="empty-icon">🔭</div>
+                        <h3>Retailer Intelligence</h3>
+                        <p>Enter any retailer or buyer name to get AI-powered insights: vendor policies, buying priorities, category focus, and tips for getting the meeting.</p>
                       </div>
-                    ))}
+                    )}
+                    {intelBusy && (
+                      <div className="empty"><span className="spin spin-lg"/><h3 style={{marginTop:18}}>Researching {intelQuery}...</h3><p>Scanning the web for buyer intelligence</p></div>
+                    )}
+                    {intelResult && !intelBusy && (
+                      <>
+                        <div className="intel-card" style={{borderColor:"rgba(0,229,192,.12)"}}>
+                          <h3>Overview</h3>
+                          <div style={{fontSize:13,color:"var(--text2)",lineHeight:1.75,fontWeight:500}}>{intelResult.summary}</div>
+                        </div>
+                        {intelResult.priorities?.length > 0 && (
+                          <div className="intel-card">
+                            <h3>Buying Priorities</h3>
+                            {intelResult.priorities.map((p,i)=><div key={i} className="intel-item">{p}</div>)}
+                          </div>
+                        )}
+                        {intelResult.process?.length > 0 && (
+                          <div className="intel-card">
+                            <h3>Buying Process</h3>
+                            {intelResult.process.map((p,i)=><div key={i} className="intel-item">{p}</div>)}
+                          </div>
+                        )}
+                        {intelResult.categories?.length > 0 && (
+                          <div className="intel-card">
+                            <h3>Active Categories</h3>
+                            {intelResult.categories.map((c,i)=><div key={i} className="intel-item">{c}</div>)}
+                          </div>
+                        )}
+                        {intelResult.recentNews && (
+                          <div className="intel-card">
+                            <h3>Recent News</h3>
+                            <div style={{fontSize:12,color:"var(--text2)",lineHeight:1.75}}>{intelResult.recentNews}</div>
+                          </div>
+                        )}
+                        {intelResult.tips?.length > 0 && (
+                          <div className="intel-card" style={{borderColor:"rgba(0,229,192,.12)"}}>
+                            <h3>Tips for Getting the Meeting</h3>
+                            {intelResult.tips.map((t,i)=><div key={i} className="intel-item">{t}</div>)}
+                          </div>
+                        )}
+                      </>
+                    )}
                   </div>
                 </div>
 

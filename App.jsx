@@ -91,6 +91,21 @@ export default function App() {
   const [departments, setDepartments] = useState({});
   const [loadingDepts, setLoadingDepts] = useState(false);
 
+  // Practice tab
+  const [pitchText,          setPitchText]          = useState("");
+  const [isRecordingPitch,   setIsRecordingPitch]   = useState(false);
+  const [isRecordingResp,    setIsRecordingResp]    = useState(false);
+  const [currentObjection,   setCurrentObjection]   = useState(null);
+  const [objResp,            setObjResp]            = useState("");
+  const [scoringResult,      setScoringResult]      = useState(null);
+  const [genObjection,       setGenObjection]       = useState(false);
+  const [scoringResp,        setScoringResp]        = useState(false);
+  const [practiceHistory,    setPracticeHistory]    = useState([]);
+  const [prevObjections,     setPrevObjections]     = useState([]);
+  const [practiceStarted,    setPracticeStarted]    = useState(false);
+  const pitchRecRef    = useRef(null);
+  const responseRecRef = useRef(null);
+
   // fetchDepartments must be defined first — used by runSearch, runPersonSearch, loadMore
   const fetchDepartments = useCallback(async (leadList) => {
     if (!leadList || !leadList.length) return;
@@ -289,6 +304,66 @@ ONLY JSON: {"subject":"...","body":"..."}`
       setFollowUps(p => ({...p,[lead.id]:r}));
     } catch(e) { alert("Failed: "+e.message); }
     setGenFU(null);
+  };
+
+  // ── PRACTICE helpers ──
+  const startSpeech = (onText, setActive, recRef) => {
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SR) { alert("Voice recording requires Chrome or Edge. Please type instead."); return; }
+    const r = new SR();
+    r.continuous = true; r.interimResults = true; r.lang = "en-US";
+    let final = "";
+    r.onresult = e => {
+      let interim = "";
+      for (let i = e.resultIndex; i < e.results.length; i++) {
+        if (e.results[i].isFinal) final += e.results[i][0].transcript + " ";
+        else interim += e.results[i][0].transcript;
+      }
+      onText(final + interim);
+    };
+    r.onerror = () => { setActive(false); recRef.current = null; };
+    r.onend   = () => { setActive(false); recRef.current = null; };
+    r.start(); setActive(true); recRef.current = r;
+  };
+
+  const stopSpeech = (setActive, recRef) => {
+    if (recRef.current) { recRef.current.stop(); recRef.current = null; }
+    setActive(false);
+  };
+
+  const generateObjection = async () => {
+    if (!pitchText.trim()) return alert("Enter or record your sales pitch first.");
+    setGenObjection(true); setScoringResult(null); setObjResp("");
+    try {
+      const r = await fetch("/api/objection", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "generate", pitch: pitchText, brand: brandName, product: productDesc, previousObjections: prevObjections }),
+      });
+      const d = await r.json();
+      if (d.error) throw new Error(d.error);
+      setCurrentObjection(d);
+      setPracticeStarted(true);
+    } catch(e) { alert("Failed to generate objection: " + e.message); }
+    setGenObjection(false);
+  };
+
+  const scoreResponse = async () => {
+    if (!objResp.trim()) return alert("Enter your response first.");
+    setScoringResp(true);
+    try {
+      const r = await fetch("/api/objection", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "score", objection: currentObjection.objection, response: objResp, brand: brandName, product: productDesc }),
+      });
+      const d = await r.json();
+      if (d.error) throw new Error(d.error);
+      setScoringResult(d);
+      setPracticeHistory(prev => [...prev, { objection: currentObjection, response: objResp, score: d.score }]);
+      setPrevObjections(prev => [...prev, currentObjection.objection]);
+    } catch(e) { alert("Failed to score response: " + e.message); }
+    setScoringResp(false);
   };
 
   const copy = (text, key) => { navigator.clipboard.writeText(text); setCopied(key); setTimeout(()=>setCopied(null),1800); };
@@ -524,6 +599,45 @@ ONLY JSON: {"subject":"...","body":"..."}`
 
         /* Pro badge */
         .pro-badge{font-size:11px;font-weight:700;color:var(--teal);padding:4px 13px;background:var(--teal-dim);border:1px solid rgba(0,229,192,.18);border-radius:20px;letter-spacing:.02em}
+
+        /* ─── PRACTICE ─── */
+        .practice-wrap{flex:1;overflow-y:auto;padding:24px;display:flex;flex-direction:column;gap:16px;max-width:800px;margin:0 auto;width:100%}
+        .practice-card{background:var(--bg2);border:1px solid var(--border);border-radius:14px;padding:22px;transition:.15s}
+        .practice-card:hover{border-color:var(--border2)}
+        .prac-title{font-family:'Bricolage Grotesque',sans-serif;font-size:15px;font-weight:800;color:var(--text);margin-bottom:4px;letter-spacing:-.2px}
+        .prac-sub{font-size:12px;color:var(--text3);margin-bottom:14px;font-weight:500;line-height:1.6}
+        .pitch-ta{width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:14px;font-size:13px;color:var(--text);outline:none;resize:vertical;min-height:110px;font-family:'Inter',sans-serif;line-height:1.7;transition:.15s}
+        .pitch-ta::placeholder{color:var(--text3)}
+        .pitch-ta:focus{border-color:var(--teal2);box-shadow:0 0 0 3px rgba(0,229,192,.07)}
+        .rec-btn{display:inline-flex;align-items:center;gap:7px;padding:8px 16px;border-radius:9px;font-size:12px;font-weight:700;cursor:pointer;border:none;transition:.15s;font-family:'Inter',sans-serif;letter-spacing:.02em}
+        .rec-idle{background:var(--bg3);color:var(--text2);border:1px solid var(--border)}
+        .rec-idle:hover{border-color:var(--teal2);color:var(--teal)}
+        .rec-active{background:rgba(248,113,113,.1);color:#f87171;border:1px solid rgba(248,113,113,.3)}
+        @keyframes recpulse{0%,100%{box-shadow:0 0 0 0 rgba(248,113,113,.35)}70%{box-shadow:0 0 0 9px rgba(248,113,113,0)}}
+        .rec-active{animation:recpulse 1.4s ease-in-out infinite}
+        .obj-card{background:linear-gradient(135deg,var(--bg3),#0d1124);border:1px solid var(--border2);border-radius:12px;padding:20px;margin-bottom:16px;position:relative;overflow:hidden}
+        .obj-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--teal),var(--teal2))}
+        .obj-badges{display:flex;gap:7px;margin-bottom:12px;flex-wrap:wrap}
+        .obj-badge{padding:3px 10px;border-radius:20px;font-size:10px;font-weight:700;letter-spacing:.04em;text-transform:uppercase}
+        .obj-badge-type{background:rgba(0,229,192,.1);color:var(--teal);border:1px solid rgba(0,229,192,.2)}
+        .obj-badge-easy{background:rgba(74,222,128,.1);color:#4ade80;border:1px solid rgba(74,222,128,.2)}
+        .obj-badge-medium{background:rgba(251,146,60,.1);color:#fb923c;border:1px solid rgba(251,146,60,.2)}
+        .obj-badge-hard{background:rgba(248,113,113,.1);color:#f87171;border:1px solid rgba(248,113,113,.2)}
+        .obj-text{font-size:15px;color:var(--text);line-height:1.65;font-weight:500;font-style:italic}
+        .score-wrap{display:flex;align-items:center;gap:16px;margin-bottom:16px}
+        .score-num{font-family:'Bricolage Grotesque',sans-serif;font-size:52px;font-weight:800;letter-spacing:-2px;line-height:1;flex-shrink:0}
+        .score-bar-bg{flex:1;height:8px;background:var(--bg3);border-radius:20px;overflow:hidden;border:1px solid var(--border)}
+        .score-bar-fill{height:100%;border-radius:20px;transition:width .8s cubic-bezier(.4,0,.2,1)}
+        .feedback-sec{margin-bottom:13px}
+        .feedback-label{font-size:9px;font-weight:800;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:5px;font-family:'Bricolage Grotesque',sans-serif}
+        .feedback-text{font-size:12px;color:var(--text2);line-height:1.7;font-weight:500}
+        .model-answer{background:var(--bg3);border:1px solid rgba(0,229,192,.12);border-radius:9px;padding:14px;font-size:12px;color:var(--text2);line-height:1.8;font-weight:500}
+        .prac-stats{display:flex;gap:10px;flex-wrap:wrap}
+        .prac-stat{background:var(--bg2);border:1px solid var(--border);border-radius:11px;padding:13px 18px;flex:1;min-width:80px}
+        .prac-stat-val{font-family:'Bricolage Grotesque',sans-serif;font-size:24px;font-weight:800;color:var(--text);letter-spacing:-.5px;line-height:1;margin-bottom:3px}
+        .prac-stat-label{font-size:10px;color:var(--text3);font-weight:700;text-transform:uppercase;letter-spacing:.6px}
+        .hist-row{display:flex;align-items:flex-start;gap:12px;padding:10px 12px;background:var(--bg3);border-radius:9px;border:1px solid var(--border)}
+        .hist-score{font-family:'Bricolage Grotesque',sans-serif;font-size:20px;font-weight:800;flex-shrink:0;min-width:26px;line-height:1.2}
       `}</style>
 
       {/* ── PAYWALL ── */}
@@ -580,6 +694,9 @@ ONLY JSON: {"subject":"...","body":"..."}`
             </div>
             <div className={`sb-item ${view==="tracker"?"on":""}`} onClick={() => setView("tracker")}>
               <span className="sb-item-icon">📋</span> Tracker
+            </div>
+            <div className={`sb-item ${view==="practice"?"on":""}`} onClick={() => setView("practice")}>
+              <span className="sb-item-icon">🎯</span> Practice
             </div>
           </div>
 
@@ -800,7 +917,170 @@ ONLY JSON: {"subject":"...","body":"..."}`
                   )}
                   </div>
                 )}
-              </>) : (
+              </>) : view === "practice" ? (
+                /* ── PRACTICE ── */
+                <div className="practice-wrap">
+
+                  {/* Session stats bar */}
+                  {practiceHistory.length > 0 && (
+                    <div className="prac-stats">
+                      <div className="prac-stat">
+                        <div className="prac-stat-val">{practiceHistory.length}</div>
+                        <div className="prac-stat-label">Answered</div>
+                      </div>
+                      <div className="prac-stat">
+                        <div className="prac-stat-val">{(practiceHistory.reduce((a,b)=>a+b.score,0)/practiceHistory.length).toFixed(1)}</div>
+                        <div className="prac-stat-label">Avg Score</div>
+                      </div>
+                      <div className="prac-stat">
+                        <div className="prac-stat-val">{Math.max(...practiceHistory.map(h=>h.score))}</div>
+                        <div className="prac-stat-label">Best Score</div>
+                      </div>
+                      <div className="prac-stat">
+                        <div className="prac-stat-val" style={{color:practiceHistory[practiceHistory.length-1]?.score>=7?"#4ade80":practiceHistory[practiceHistory.length-1]?.score>=5?"#fb923c":"#f87171"}}>
+                          {practiceHistory[practiceHistory.length-1]?.score ?? "—"}
+                        </div>
+                        <div className="prac-stat-label">Last Score</div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Pitch input */}
+                  <div className="practice-card">
+                    <div className="prac-title">Your Sales Pitch</div>
+                    <div className="prac-sub">Type or record what you'd say to a retail buyer in the first 60 seconds. The more specific you are, the more realistic the objections.</div>
+                    <textarea className="pitch-ta"
+                      placeholder={`e.g. "Hi Sarah, I'm ${repName||"Jamie"} from ${brandName||"NutriBlend"}. We make ${productDesc||"protein bars with 20g protein and zero sugar"}. We're already in 800 Whole Foods and growing 40% YoY — I'd love to talk about getting us into your health & wellness aisle..."`}
+                      value={pitchText} onChange={e => setPitchText(e.target.value)} rows={5} />
+                    <div style={{display:"flex",alignItems:"center",gap:8,marginTop:10,flexWrap:"wrap"}}>
+                      <button className={`rec-btn ${isRecordingPitch?"rec-active":"rec-idle"}`}
+                        onClick={() => isRecordingPitch
+                          ? stopSpeech(setIsRecordingPitch, pitchRecRef)
+                          : startSpeech(t => setPitchText(t), setIsRecordingPitch, pitchRecRef)
+                        }>
+                        {isRecordingPitch
+                          ? <><span style={{width:8,height:8,borderRadius:"50%",background:"#f87171",flexShrink:0,display:"inline-block"}}/>Stop Recording</>
+                          : <>🎙 Record Pitch</>}
+                      </button>
+                      {pitchText && <span style={{fontSize:11,color:"var(--text3)",fontWeight:600}}>{pitchText.trim().split(/\s+/).length} words</span>}
+                      {pitchText && <button className="btn btn-outline btn-sm" style={{marginLeft:"auto"}} onClick={()=>{setPitchText("");setPracticeStarted(false);setCurrentObjection(null);setScoringResult(null);setObjResp("");setPracticeHistory([]);setPrevObjections([]);}}>Reset Session</button>}
+                    </div>
+                  </div>
+
+                  {/* Generate / Next objection */}
+                  <button className="btn btn-teal" style={{width:"100%",justifyContent:"center",paddingTop:13,paddingBottom:13,fontSize:14}}
+                    disabled={genObjection||!pitchText.trim()} onClick={generateObjection}>
+                    {genObjection
+                      ? <><span className="spin"/>Generating objection...</>
+                      : practiceStarted ? "⚡ Next Objection" : "⚡ Start Practice Session"}
+                  </button>
+
+                  {/* Objection + response + feedback */}
+                  {currentObjection && (
+                    <div className="practice-card" style={{borderColor:"rgba(0,229,192,.14)"}}>
+                      <div className="prac-title" style={{marginBottom:14}}>Buyer's Objection</div>
+                      <div className="obj-card">
+                        <div className="obj-badges">
+                          <span className="obj-badge obj-badge-type">{currentObjection.type}</span>
+                          <span className={`obj-badge obj-badge-${(currentObjection.difficulty||"medium").toLowerCase()}`}>{currentObjection.difficulty}</span>
+                        </div>
+                        <div className="obj-text">"{currentObjection.objection}"</div>
+                      </div>
+
+                      {!scoringResult ? (
+                        <>
+                          <div className="prac-sub" style={{marginBottom:8}}>How do you respond? Speak naturally — don't read from a script.</div>
+                          <textarea className="pitch-ta" placeholder="Handle the objection out loud or type your response..."
+                            value={objResp} onChange={e => setObjResp(e.target.value)} rows={4} />
+                          <div style={{display:"flex",alignItems:"center",gap:8,marginTop:10,flexWrap:"wrap"}}>
+                            <button className={`rec-btn ${isRecordingResp?"rec-active":"rec-idle"}`}
+                              onClick={() => isRecordingResp
+                                ? stopSpeech(setIsRecordingResp, responseRecRef)
+                                : startSpeech(t => setObjResp(t), setIsRecordingResp, responseRecRef)
+                              }>
+                              {isRecordingResp
+                                ? <><span style={{width:8,height:8,borderRadius:"50%",background:"#f87171",flexShrink:0,display:"inline-block"}}/>Stop Recording</>
+                                : <>🎙 Record Response</>}
+                            </button>
+                            <button className="btn btn-teal btn-sm" style={{marginLeft:"auto"}} disabled={scoringResp||!objResp.trim()} onClick={scoreResponse}>
+                              {scoringResp ? <><span className="spin"/>Scoring...</> : "Submit Response →"}
+                            </button>
+                          </div>
+                        </>
+                      ) : (
+                        <div style={{marginTop:4}}>
+                          <div className="score-wrap">
+                            <div className="score-num" style={{color:scoringResult.score>=8?"#4ade80":scoringResult.score>=6?"#fb923c":"#f87171"}}>
+                              {scoringResult.score}<span style={{fontSize:22,color:"var(--text3)",fontWeight:600}}>/10</span>
+                            </div>
+                            <div style={{flex:1}}>
+                              <div style={{marginBottom:6,fontSize:11,color:"var(--text3)",fontWeight:700}}>{scoringResult.score>=8?"Strong response":"Room to improve"}</div>
+                              <div className="score-bar-bg">
+                                <div className="score-bar-fill" style={{
+                                  width:`${scoringResult.score*10}%`,
+                                  background:scoringResult.score>=8?"linear-gradient(90deg,#4ade80,#00e5c0)":scoringResult.score>=6?"linear-gradient(90deg,#fb923c,#f59e0b)":"linear-gradient(90deg,#f87171,#ef4444)"
+                                }}/>
+                              </div>
+                            </div>
+                          </div>
+                          <div className="feedback-sec">
+                            <div className="feedback-label">What you did well</div>
+                            <div className="feedback-text">✓ {scoringResult.strengths}</div>
+                          </div>
+                          <div className="feedback-sec">
+                            <div className="feedback-label">What to improve</div>
+                            <div className="feedback-text">↗ {scoringResult.improvements}</div>
+                          </div>
+                          <div className="feedback-sec">
+                            <div className="feedback-label">Model Answer — how a top rep handles this</div>
+                            <div className="model-answer">{scoringResult.modelAnswer}</div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Session history */}
+                  {practiceHistory.length > 0 && (
+                    <div className="practice-card">
+                      <div className="prac-title" style={{marginBottom:12}}>Session History</div>
+                      <div style={{display:"flex",flexDirection:"column",gap:7}}>
+                        {[...practiceHistory].reverse().map((h,i) => (
+                          <div key={i} className="hist-row">
+                            <span className="hist-score" style={{color:h.score>=8?"#4ade80":h.score>=6?"#fb923c":"#f87171"}}>{h.score}</span>
+                            <div style={{flex:1,minWidth:0}}>
+                              <div style={{fontSize:10,fontWeight:700,color:"var(--text3)",marginBottom:2,textTransform:"uppercase",letterSpacing:".04em"}}>{h.objection.type} · {h.objection.difficulty}</div>
+                              <div style={{fontSize:11,color:"var(--text2)",lineHeight:1.5,overflow:"hidden",textOverflow:"ellipsis",display:"-webkit-box",WebkitLineClamp:2,WebkitBoxOrient:"vertical"}}>"{h.objection.objection}"</div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {!practiceStarted && (
+                    <div className="practice-card" style={{borderColor:"rgba(0,229,192,.08)"}}>
+                      <div className="prac-title" style={{marginBottom:8}}>How it works</div>
+                      <div style={{display:"flex",flexDirection:"column",gap:10}}>
+                        {[
+                          ["1","Record or type your pitch","Tell the buyer who you are, what you sell, and why they should care."],
+                          ["2","Get a real objection","Claude plays a skeptical buyer and throws a realistic objection at you."],
+                          ["3","Handle it","Speak or type your response — just like you would in a real meeting."],
+                          ["4","Get scored","See your score 1–10, specific feedback, and a model answer from a top rep."],
+                        ].map(([n,title,desc]) => (
+                          <div key={n} style={{display:"flex",gap:12,alignItems:"flex-start"}}>
+                            <span style={{width:22,height:22,borderRadius:"50%",background:"var(--teal-dim)",border:"1px solid rgba(0,229,192,.2)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,fontWeight:800,color:"var(--teal)",flexShrink:0}}>{n}</span>
+                            <div>
+                              <div style={{fontSize:12,fontWeight:700,color:"var(--text)",marginBottom:2}}>{title}</div>
+                              <div style={{fontSize:11,color:"var(--text3)",lineHeight:1.6}}>{desc}</div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ) : (
                 /* ── TRACKER ── */
                 <div style={{padding:"16px 20px",overflow:"auto",flex:1}}>
                   <div style={{marginBottom:16}}>

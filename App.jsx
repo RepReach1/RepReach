@@ -690,13 +690,37 @@ ONLY JSON: {"subject":"...","body":"..."}`
 
           <div className="sb-nav">
             <div className={`sb-item ${view==="people"?"on":""}`} onClick={() => setView("people")}>
-              <span className="sb-item-icon">👥</span> People
+              <span className="sb-item-icon">🔍</span> People Finder
+            </div>
+            <div className={`sb-item ${view==="pipeline"?"on":""}`} onClick={() => setView("pipeline")}>
+              <span className="sb-item-icon">📊</span> Deal Board
+            </div>
+            <div className={`sb-item ${view==="sequences"?"on":""}`} onClick={() => setView("sequences")}>
+              <span className="sb-item-icon">⚡</span> Email Sequences
+            </div>
+            <div className={`sb-item ${view==="forecasting"?"on":""}`} onClick={() => setView("forecasting")}>
+              <span className="sb-item-icon">📈</span> My Numbers
+            </div>
+            <div className={`sb-item ${view==="aitools"?"on":""}`} onClick={() => setView("aitools")}>
+              <span className="sb-item-icon">🤖</span> Write with AI
+            </div>
+            <div className={`sb-item ${view==="intelligence"?"on":""}`} onClick={() => setView("intelligence")}>
+              <span className="sb-item-icon">🧠</span> Buyer Research
+            </div>
+            <div className={`sb-item ${view==="enablement"?"on":""}`} onClick={() => setView("enablement")}>
+              <span className="sb-item-icon">🚀</span> Sales Toolkit
+            </div>
+            <div className={`sb-item ${view==="meetings"?"on":""}`} onClick={() => setView("meetings")}>
+              <span className="sb-item-icon">📅</span> Meeting Prep
+            </div>
+            <div className={`sb-item ${view==="integrations"?"on":""}`} onClick={() => setView("integrations")}>
+              <span className="sb-item-icon">🔗</span> Connect Tools
             </div>
             <div className={`sb-item ${view==="tracker"?"on":""}`} onClick={() => setView("tracker")}>
-              <span className="sb-item-icon">📋</span> Tracker
+              <span className="sb-item-icon">✓</span> Outreach Tracker
             </div>
             <div className={`sb-item ${view==="practice"?"on":""}`} onClick={() => setView("practice")}>
-              <span className="sb-item-icon">🎯</span> Practice
+              <span className="sb-item-icon">🎯</span> Objection Trainer
             </div>
           </div>
 
@@ -1080,12 +1104,623 @@ ONLY JSON: {"subject":"...","body":"..."}`
                     </div>
                   )}
                 </div>
+              ) : view === "pipeline" ? (
+                /* ── PIPELINE ── */
+                <div className="view-wrap">
+                  <div className="view-hd">
+                    <h2>Deal Board</h2>
+                    <p>{leads.length} contacts tracked · drag-and-drop coming soon</p>
+                  </div>
+                  {leads.length === 0
+                    ? <div className="empty"><div className="empty-icon">📊</div><h3>Deal Board is empty</h3><p>Search a retailer in People Finder and contacts will appear here.</p></div>
+                    : <div className="kanban">
+                        {STATUSES.map(col => {
+                          const colLeads = leads.filter(l => (statuses[l.id]||"none") === col.id);
+                          return (
+                            <div key={col.id} className="k-col">
+                              <div className="k-col-hd">
+                                <span className="k-col-dot" style={{background:col.color}}/>
+                                <span className="k-col-label">{col.label}</span>
+                                <span className="k-col-count" style={{background:col.color+"22",color:col.color}}>{colLeads.length}</span>
+                              </div>
+                              {colLeads.map(lead => {
+                                const idx = leads.findIndex(l=>l.id===lead.id);
+                                return (
+                                  <div key={lead.id} className="k-card" onClick={()=>{setView("people");openLead(lead);}}>
+                                    <div style={{display:"flex",gap:8,alignItems:"center",marginBottom:8}}>
+                                      <div className="av" style={{background:AV_COLORS[idx%AV_COLORS.length],width:28,height:28,fontSize:10,flexShrink:0}}>{(lead.firstName?.[0]||"")+(lead.lastName?.[0]||"")}</div>
+                                      <div style={{minWidth:0}}>
+                                        <div style={{fontWeight:700,fontSize:12,color:"var(--text)",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{lead.firstName} {lead.lastName}</div>
+                                        <div style={{fontSize:10,color:"var(--text3)",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{lead.title}</div>
+                                      </div>
+                                    </div>
+                                    <div style={{fontSize:11,fontWeight:700,color:"var(--teal)"}}>{lead.retailer}</div>
+                                    {notes[lead.id] && <div style={{fontSize:10,color:"var(--text3)",marginTop:5,lineHeight:1.5,overflow:"hidden",textOverflow:"ellipsis",display:"-webkit-box",WebkitLineClamp:2,WebkitBoxOrient:"vertical"}}>{notes[lead.id]}</div>}
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          );
+                        })}
+                      </div>
+                  }
+                </div>
+
+              ) : view === "forecasting" ? (
+                /* ── FORECASTING ── */
+                (() => {
+                  const statusCounts = STATUSES.map(s => ({ ...s, count: leads.filter(l=>(statuses[l.id]||"none")===s.id).length }));
+                  const contacted = leads.filter(l=>(statuses[l.id]||"none")!=="none").length;
+                  const meetings  = leads.filter(l=>(statuses[l.id]||"none")==="meeting").length;
+                  const replied   = leads.filter(l=>["replied","meeting"].includes(statuses[l.id]||"none")).length;
+                  return (
+                    <div className="view-wrap">
+                      <div className="view-hd"><h2>My Numbers</h2><p>Live breakdown of your pipeline and projected revenue</p></div>
+                      <div className="stat-grid">
+                        <div className="stat-card"><div className="stat-card-val">{leads.length}</div><div className="stat-card-label">Total Contacts</div></div>
+                        <div className="stat-card"><div className="stat-card-val" style={{color:"#38bdf8"}}>{contacted}</div><div className="stat-card-label">Contacted</div></div>
+                        <div className="stat-card"><div className="stat-card-val" style={{color:"#4ade80"}}>{replied}</div><div className="stat-card-label">Replied</div></div>
+                        <div className="stat-card"><div className="stat-card-val" style={{color:"#facc15"}}>{meetings}</div><div className="stat-card-label">Meetings Set</div></div>
+                        <div className="stat-card">
+                          <div className="stat-card-val" style={{color:"var(--teal)"}}>{leads.length ? Math.round(contacted/leads.length*100) : 0}%</div>
+                          <div className="stat-card-label">Contact Rate</div>
+                        </div>
+                        <div className="stat-card">
+                          <div className="stat-card-val" style={{color:"#fb923c"}}>{contacted ? Math.round(meetings/contacted*100) : 0}%</div>
+                          <div className="stat-card-label">Meeting Rate</div>
+                        </div>
+                      </div>
+                      <div style={{background:"var(--bg2)",border:"1px solid var(--border)",borderRadius:13,padding:"20px",marginBottom:16}}>
+                        <div style={{fontFamily:"'Bricolage Grotesque',sans-serif",fontWeight:800,fontSize:14,color:"var(--text)",marginBottom:16,letterSpacing:"-.2px"}}>Pipeline by Stage</div>
+                        {statusCounts.map(s => (
+                          <div key={s.id} className="funnel-row">
+                            <span style={{width:110,fontSize:11,fontWeight:700,color:"var(--text2)",flexShrink:0}}>{s.label}</span>
+                            <div className="funnel-bar-bg">
+                              <div className="funnel-bar-fill" style={{width:leads.length?`${Math.max(4,s.count/leads.length*100)}%`:"4%",background:s.color}}/>
+                            </div>
+                            <span style={{width:28,fontSize:12,fontWeight:800,color:s.color,textAlign:"right",flexShrink:0}}>{s.count}</span>
+                          </div>
+                        ))}
+                      </div>
+                      <div style={{background:"var(--bg2)",border:"1px solid rgba(0,229,192,.1)",borderRadius:13,padding:"20px"}}>
+                        <div style={{fontFamily:"'Bricolage Grotesque',sans-serif",fontWeight:800,fontSize:14,color:"var(--text)",marginBottom:14,letterSpacing:"-.2px"}}>Revenue Forecast</div>
+                        <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:16}}>
+                          <div className="ai-field-label" style={{margin:0,flexShrink:0}}>Avg Deal Value ($)</div>
+                          <input className="ai-in" style={{width:160}} type="number" placeholder="e.g. 50000" value={dealValue} onChange={e=>setDealValue(e.target.value)} />
+                        </div>
+                        {dealValue > 0 ? (<>
+                          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:10,marginBottom:14}}>
+                            {[
+                              {label:"Won (Meetings)",val:meetings,color:"#facc15",rev:meetings*Number(dealValue)},
+                              {label:"In Progress",val:replied-meetings,color:"#4ade80",rev:Math.round((replied-meetings)*Number(dealValue)*0.4)},
+                              {label:"Projected (Pipeline)",val:leads.length-contacted,color:"var(--teal)",rev:Math.round((leads.length-contacted)*(contacted?meetings/contacted:0.05)*Number(dealValue))},
+                            ].map((s,i)=>(
+                              <div key={i} style={{background:"var(--bg3)",border:"1px solid var(--border)",borderRadius:10,padding:"12px 14px"}}>
+                                <div style={{fontSize:10,fontWeight:700,color:s.color,textTransform:"uppercase",letterSpacing:".05em",marginBottom:4}}>{s.label}</div>
+                                <div style={{fontFamily:"'Bricolage Grotesque',sans-serif",fontSize:20,fontWeight:800,color:s.color,letterSpacing:"-.3px"}}>${s.rev.toLocaleString()}</div>
+                                <div style={{fontSize:10,color:"var(--text3)",marginTop:2}}>{s.val} deal{s.val!==1?"s":""}</div>
+                              </div>
+                            ))}
+                          </div>
+                          <div style={{fontSize:12,color:"var(--text3)",lineHeight:1.8}}>
+                            Total pipeline value: <span style={{color:"var(--teal)",fontWeight:700}}>${(meetings*Number(dealValue)+Math.round((replied-meetings)*Number(dealValue)*0.4)+Math.round((leads.length-contacted)*(contacted?meetings/contacted:0.05)*Number(dealValue))).toLocaleString()}</span> projected across {leads.length} contacts.
+                          </div>
+                        </>) : (
+                          <div style={{fontSize:12,color:"var(--text3)",lineHeight:1.8}}>
+                            Enter your average deal value above to see projected revenue across your pipeline. Based on {contacted?Math.round(meetings/contacted*100):0}% meeting rate, you can expect <span style={{color:"#facc15",fontWeight:700}}>{Math.max(0,Math.round((leads.length-contacted)*(contacted?meetings/contacted:0.05)))} more meetings</span> from {leads.length-contacted} uncontacted leads.
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })()
+
+              ) : view === "aitools" ? (
+                /* ── AI TOOLS ── */
+                <div className="ai-view">
+                  <div className="ai-view-hd">
+                    <div className="ai-view-hd-top"><span style={{fontSize:15}}>🤖</span><h2>Write with AI</h2></div>
+                    <p>Generate pitches, emails, scripts, and call openers in seconds</p>
+                    <div className="ai-tabs">
+                      {[{id:"pitch",icon:"🎤",label:"Pitch Builder"},{id:"objection",icon:"🛡",label:"Objection Handler"},{id:"subject",icon:"✉",label:"Subject Line Tester"},{id:"value",icon:"💡",label:"Value Proposition"},{id:"callscript",icon:"📞",label:"Call Script"}].map(t=>(
+                        <button key={t.id} className={`ai-tab ${aiTab===t.id?"on":""}`} onClick={()=>setAiTab(t.id)}>{t.icon} {t.label}</button>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="ai-panel">
+                    {aiTab === "pitch" && (<>
+                      <div className="ai-panel-title">🎤 Pitch Builder</div>
+                      <div className="ai-panel-sub">Generate a tailored pitch for any buyer</div>
+                      <div className="ai-field-label">Retail Context</div>
+                      <input className="ai-in" placeholder="e.g. grocery, mass, club" value={pitchCtx} onChange={e=>setPitchCtx(e.target.value)} onKeyDown={e=>e.key==="Enter"&&genPitch()} />
+                      <button className="btn btn-teal" style={{marginTop:14,width:"100%",justifyContent:"center"}} disabled={pitchBusy} onClick={genPitch}>
+                        {pitchBusy?<><span className="spin"/>Generating...</>:"⚡ Generate"}
+                      </button>
+                      {pitchRes && <><div className="ai-result-box">{pitchRes}</div><button className="btn btn-outline btn-sm" style={{marginTop:8}} onClick={()=>copy(pitchRes,"pitch")}>{copied==="pitch"?"✓ Copied":"Copy Pitch"}</button></>}
+                    </>)}
+
+                    {aiTab === "objection" && (<>
+                      <div className="ai-panel-title">🛡 Objection Handler</div>
+                      <div className="ai-panel-sub">Enter a buyer objection and get a confident, ready-to-use response</div>
+                      <div className="ai-field-label">Buyer Objection</div>
+                      <textarea className="ai-in pitch-ta" placeholder='e.g. "Your margins are too thin for us to make money on this."' rows={3} value={objInput} onChange={e=>setObjInput(e.target.value)} />
+                      <button className="btn btn-teal" style={{marginTop:14,width:"100%",justifyContent:"center"}} disabled={objBusy||!objInput.trim()} onClick={genObjHandler}>
+                        {objBusy?<><span className="spin"/>Generating...</>:"⚡ Generate Response"}
+                      </button>
+                      {objRes && <><div className="ai-result-box">{objRes}</div><button className="btn btn-outline btn-sm" style={{marginTop:8}} onClick={()=>copy(objRes,"obj")}>{copied==="obj"?"✓ Copied":"Copy Response"}</button></>}
+                    </>)}
+
+                    {aiTab === "subject" && (<>
+                      <div className="ai-panel-title">✉ Subject Line Tester</div>
+                      <div className="ai-panel-sub">Score your subject line and get 3 stronger alternatives</div>
+                      <div className="ai-field-label">Email Subject Line</div>
+                      <input className="ai-in" placeholder='e.g. "Quick question about your protein bar set"' value={subjInput} onChange={e=>setSubjInput(e.target.value)} onKeyDown={e=>e.key==="Enter"&&genSubjectTest()} />
+                      <button className="btn btn-teal" style={{marginTop:14,width:"100%",justifyContent:"center"}} disabled={subjBusy||!subjInput.trim()} onClick={genSubjectTest}>
+                        {subjBusy?<><span className="spin"/>Analyzing...</>:"⚡ Test Subject Line"}
+                      </button>
+                      {subjRes && (
+                        <div style={{marginTop:16}}>
+                          <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:10}}>
+                            <span className="ai-score-pill" style={{background:subjRes.score>=7?"rgba(74,222,128,.12)":subjRes.score>=5?"rgba(251,146,60,.12)":"rgba(248,113,113,.12)",color:subjRes.score>=7?"#4ade80":subjRes.score>=5?"#fb923c":"#f87171",border:`1px solid ${subjRes.score>=7?"rgba(74,222,128,.25)":subjRes.score>=5?"rgba(251,146,60,.25)":"rgba(248,113,113,.25)"}`}}>{subjRes.score}/10</span>
+                            <span style={{fontSize:12,color:"var(--text2)"}}>{subjRes.feedback}</span>
+                          </div>
+                          <div className="ai-field-label" style={{marginBottom:8}}>Stronger Alternatives</div>
+                          {(subjRes.alternatives||[]).map((a,i)=>(
+                            <div key={i} style={{display:"flex",alignItems:"center",gap:8,padding:"9px 12px",background:"var(--bg3)",border:"1px solid var(--border)",borderRadius:8,marginBottom:7,fontSize:12,color:"var(--text2)"}}>
+                              <span style={{flex:1}}>{a}</span>
+                              <button className="dp-copy" onClick={()=>copy(a,"subj"+i)}>{copied==="subj"+i?"✓":"Copy"}</button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </>)}
+
+                    {aiTab === "value" && (<>
+                      <div className="ai-panel-title">💡 Value Proposition</div>
+                      <div className="ai-panel-sub">Generate 3 buyer-focused value prop statements for your brand</div>
+                      <button className="btn btn-teal" style={{width:"100%",justifyContent:"center"}} disabled={valBusy} onClick={genValueProp}>
+                        {valBusy?<><span className="spin"/>Generating...</>:"⚡ Generate Value Props"}
+                      </button>
+                      {valRes && (
+                        <div style={{marginTop:16,display:"flex",flexDirection:"column",gap:10}}>
+                          {valRes.map((v,i)=>(
+                            <div key={i} style={{background:"var(--bg3)",border:"1px solid var(--border)",borderRadius:10,padding:"14px 16px",display:"flex",alignItems:"flex-start",gap:12}}>
+                              <span style={{width:22,height:22,borderRadius:"50%",background:"var(--teal-dim)",border:"1px solid rgba(0,229,192,.2)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,fontWeight:800,color:"var(--teal)",flexShrink:0}}>{i+1}</span>
+                              <span style={{flex:1,fontSize:13,color:"var(--text2)",lineHeight:1.65,fontWeight:500}}>{v}</span>
+                              <button className="dp-copy" onClick={()=>copy(v,"val"+i)}>{copied==="val"+i?"✓":"Copy"}</button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </>)}
+
+                    {aiTab === "callscript" && (<>
+                      <div className="ai-panel-title">📞 Call Script</div>
+                      <div className="ai-panel-sub">Get a cold call script tailored to your brand and the buyer's context</div>
+                      <div className="ai-field-label">Call Context</div>
+                      <input className="ai-in" placeholder="e.g. club buyer, natural grocery, mass merchant" value={callCtx} onChange={e=>setCallCtx(e.target.value)} onKeyDown={e=>e.key==="Enter"&&genCallScript()} />
+                      <button className="btn btn-teal" style={{marginTop:14,width:"100%",justifyContent:"center"}} disabled={callBusy} onClick={genCallScript}>
+                        {callBusy?<><span className="spin"/>Generating...</>:"⚡ Generate Call Script"}
+                      </button>
+                      {callRes && <><div className="ai-result-box">{callRes}</div><button className="btn btn-outline btn-sm" style={{marginTop:8}} onClick={()=>copy(callRes,"call")}>{copied==="call"?"✓ Copied":"Copy Script"}</button></>}
+                    </>)}
+                  </div>
+                </div>
+
+              ) : view === "sequences" ? (
+                /* ── SEQUENCES ── */
+                <div style={{display:"flex",flexDirection:"column",flex:1,overflow:"hidden"}}>
+                  <div style={{padding:"14px 20px",background:"var(--bg2)",borderBottom:"1px solid var(--border)",flexShrink:0,display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+                    <div>
+                      <div style={{display:"flex",alignItems:"center",gap:7,marginBottom:2}}><span style={{fontSize:14}}>⚡</span><span style={{fontFamily:"'Bricolage Grotesque',sans-serif",fontWeight:800,fontSize:15,color:"var(--text)"}}>Email Sequences</span></div>
+                      <div style={{fontSize:11,color:"var(--text3)",fontWeight:500}}>Build multi-step outreach sequences and generate every email with AI</div>
+                    </div>
+                    <button className="btn btn-teal btn-sm" onClick={()=>setShowNewSeq(true)}>+ New Sequence</button>
+                  </div>
+
+                  {showNewSeq && (
+                    <div style={{padding:"20px",background:"var(--bg3)",borderBottom:"1px solid var(--border)",flexShrink:0}}>
+                      <div style={{fontFamily:"'Bricolage Grotesque',sans-serif",fontWeight:800,fontSize:14,color:"var(--text)",marginBottom:14}}>New Sequence</div>
+                      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr auto auto",gap:10,alignItems:"end"}}>
+                        <div>
+                          <div className="ai-field-label">Sequence Name</div>
+                          <input className="ai-in" placeholder="e.g. Walmart Outreach" value={newSeqName} onChange={e=>setNewSeqName(e.target.value)} />
+                        </div>
+                        <div>
+                          <div className="ai-field-label">Target Buyer Type</div>
+                          <input className="ai-in" placeholder="e.g. grocery buyer, club buyer" value={newSeqTarget} onChange={e=>setNewSeqTarget(e.target.value)} />
+                        </div>
+                        <div>
+                          <div className="ai-field-label">Steps</div>
+                          <select className="ai-in" style={{width:80}} value={newSeqSteps} onChange={e=>setNewSeqSteps(Number(e.target.value))}>
+                            {[2,3,4,5].map(n=><option key={n} value={n}>{n}</option>)}
+                          </select>
+                        </div>
+                        <div style={{display:"flex",gap:7}}>
+                          <button className="btn btn-teal btn-sm" disabled={seqBusy||!newSeqName.trim()} onClick={genSequence}>
+                            {seqBusy?<><span className="spin"/>Generating...</>:"⚡ Generate"}
+                          </button>
+                          <button className="btn btn-outline btn-sm" onClick={()=>{setShowNewSeq(false);setNewSeqName("");setNewSeqTarget("");}}>Cancel</button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  <div style={{display:"flex",flex:1,overflow:"hidden"}}>
+                    {/* Sequences list */}
+                    <div style={{width:240,borderRight:"1px solid var(--border)",overflow:"auto",padding:"12px",flexShrink:0}}>
+                      {sequences.length===0 ? (
+                        <div style={{padding:"20px 10px",textAlign:"center",color:"var(--text3)",fontSize:12,lineHeight:1.6}}>No sequences yet.<br/>Click "+ New Sequence" to generate one with AI.</div>
+                      ) : sequences.map(s=>(
+                        <div key={s.id} className={`seq-card ${activeSeq?.id===s.id?"active":""}`} onClick={()=>setActiveSeq(s)}>
+                          <span style={{fontSize:18,flexShrink:0}}>⚡</span>
+                          <div style={{minWidth:0}}>
+                            <div style={{fontWeight:700,fontSize:12,color:"var(--text)",marginBottom:2}}>{s.name}</div>
+                            <div style={{fontSize:10,color:"var(--text3)"}}>{s.steps?.length||0} steps · {s.target}</div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                    {/* Steps panel */}
+                    <div style={{flex:1,overflow:"auto",padding:"16px 20px"}}>
+                      {!activeSeq ? (
+                        <div className="empty" style={{minHeight:300}}>
+                          <div className="empty-icon">⚡</div>
+                          <h3>No sequences yet</h3>
+                          <p>Create multi-step outreach sequences with emails, LinkedIn touches, and call reminders.</p>
+                        </div>
+                      ) : (<>
+                        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:16}}>
+                          <div>
+                            <div style={{fontFamily:"'Bricolage Grotesque',sans-serif",fontWeight:800,fontSize:15,color:"var(--text)",marginBottom:2}}>{activeSeq.name}</div>
+                            <div style={{fontSize:11,color:"var(--text3)"}}>{activeSeq.steps?.length} steps · targeting {activeSeq.target}</div>
+                          </div>
+                          <button className="btn btn-outline btn-sm" onClick={()=>setSequences(prev=>prev.filter(s=>s.id!==activeSeq.id))||setActiveSeq(null)}>Delete</button>
+                        </div>
+                        {(activeSeq.steps||[]).map((step,i)=>(
+                          <div key={i} className="seq-step">
+                            <div className="seq-step-hd">
+                              <span className="seq-day">Day {step.day}</span>
+                              <span className="seq-type">{step.type}</span>
+                              {step.subject && <button className="dp-copy" style={{marginLeft:"auto"}} onClick={()=>copy(`Subject: ${step.subject}\n\n${step.body}`,"seq"+i)}>{copied==="seq"+i?"✓ Copied":"Copy"}</button>}
+                            </div>
+                            {step.subject && <div className="seq-subject">Subject: {step.subject}</div>}
+                            <div className="seq-body">{step.body||step.message}</div>
+                          </div>
+                        ))}
+                      </>)}
+                    </div>
+                  </div>
+                </div>
+
+              ) : view === "intelligence" ? (
+                /* ── INTELLIGENCE ── */
+                <div className="intel-view">
+                  <div className="intel-hd">
+                    <div style={{display:"flex",alignItems:"center",gap:7,marginBottom:2}}><span style={{fontSize:14}}>🧠</span><h2>Buyer Research</h2></div>
+                    <p>Look up any retailer or buyer — get their priorities, buying process, and tips for getting the meeting</p>
+                  </div>
+                  <div className="intel-search">
+                    <input className="ai-in" style={{flex:1}} placeholder="Enter retailer or buyer name to research..."
+                      value={intelQuery} onChange={e=>setIntelQuery(e.target.value)}
+                      onKeyDown={e=>e.key==="Enter"&&runIntelResearch()} />
+                    <button className="btn btn-teal" disabled={intelBusy||!intelQuery.trim()} onClick={runIntelResearch}>
+                      {intelBusy?<><span className="spin"/>Researching...</>:"🔭 Research"}
+                    </button>
+                  </div>
+                  <div className="intel-body">
+                    {!intelResult && !intelBusy && (
+                      <div className="empty">
+                        <div className="empty-icon">🔭</div>
+                        <h3>Buyer Research</h3>
+                        <p>Type any retailer or buyer name above. Get their buying priorities, how their vendor process works, what categories they're growing, and exactly how to get the meeting.</p>
+                      </div>
+                    )}
+                    {intelBusy && (
+                      <div className="empty"><span className="spin spin-lg"/><h3 style={{marginTop:18}}>Researching {intelQuery}...</h3><p>Scanning the web for buyer intelligence</p></div>
+                    )}
+                    {intelResult && !intelBusy && (
+                      <>
+                        <div className="intel-card" style={{borderColor:"rgba(0,229,192,.12)"}}>
+                          <h3>Overview</h3>
+                          <div style={{fontSize:13,color:"var(--text2)",lineHeight:1.75,fontWeight:500}}>{intelResult.summary}</div>
+                        </div>
+                        {intelResult.priorities?.length > 0 && (
+                          <div className="intel-card">
+                            <h3>Buying Priorities</h3>
+                            {intelResult.priorities.map((p,i)=><div key={i} className="intel-item">{p}</div>)}
+                          </div>
+                        )}
+                        {intelResult.process?.length > 0 && (
+                          <div className="intel-card">
+                            <h3>Buying Process</h3>
+                            {intelResult.process.map((p,i)=><div key={i} className="intel-item">{p}</div>)}
+                          </div>
+                        )}
+                        {intelResult.categories?.length > 0 && (
+                          <div className="intel-card">
+                            <h3>Active Categories</h3>
+                            {intelResult.categories.map((c,i)=><div key={i} className="intel-item">{c}</div>)}
+                          </div>
+                        )}
+                        {intelResult.recentNews && (
+                          <div className="intel-card">
+                            <h3>Recent News</h3>
+                            <div style={{fontSize:12,color:"var(--text2)",lineHeight:1.75}}>{intelResult.recentNews}</div>
+                          </div>
+                        )}
+                        {intelResult.tips?.length > 0 && (
+                          <div className="intel-card" style={{borderColor:"rgba(0,229,192,.12)"}}>
+                            <h3>Tips for Getting the Meeting</h3>
+                            {intelResult.tips.map((t,i)=><div key={i} className="intel-item">{t}</div>)}
+                          </div>
+                        )}
+                      </>
+                    )}
+                  </div>
+                </div>
+
+              ) : view === "enablement" ? (
+                /* ── ENABLEMENT ── */
+                <div className="enab-view">
+                  <div className="ai-view-hd">
+                    <div className="ai-view-hd-top"><span style={{fontSize:15}}>🚀</span><h2>Sales Toolkit</h2></div>
+                    <p>Playbooks, pitch templates, sell sheets, and objection responses — all built for your brand</p>
+                    <div className="ai-tabs">
+                      {[{id:"playbook",icon:"📘",label:"Sales Playbook"},{id:"pitchtpl",icon:"🎙",label:"Pitch Templates"},{id:"sellsheet",icon:"📊",label:"Sell Sheet Builder"},{id:"objlib",icon:"🎯",label:"Objection Library"}].map(t=>(
+                        <button key={t.id} className={`ai-tab ${enabTab===t.id?"on":""}`} onClick={()=>setEnabTab(t.id)}>{t.icon} {t.label}</button>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="ai-panel">
+                    {enabTab==="playbook" && (<>
+                      <div className="ai-panel-title">📘 Retail Sales Playbook</div>
+                      <div className="ai-panel-sub">Generate a tactical playbook for landing shelf space at your target retailers</div>
+                      <div className="ai-field-label">Target Retailers</div>
+                      <input className="ai-in" placeholder="e.g. Walmart, Target, Kroger" value={playbookTarget} onChange={e=>setPlaybookTarget(e.target.value)} />
+                      <button className="btn btn-teal" style={{marginTop:14,width:"100%",justifyContent:"center"}} disabled={playbookBusy} onClick={genPlaybook}>
+                        {playbookBusy?<><span className="spin"/>Generating Playbook...</>:"⚡ Generate Playbook"}
+                      </button>
+                      {playbookResult && (
+                        <div style={{marginTop:18}}>
+                          {(playbookResult.sections||[]).map((s,i)=>(
+                            <div key={i} style={{background:"var(--bg3)",border:"1px solid var(--border)",borderRadius:10,padding:"14px 16px",marginBottom:10}}>
+                              <div style={{fontFamily:"'Bricolage Grotesque',sans-serif",fontWeight:800,fontSize:13,color:"var(--text)",marginBottom:10}}>{i+1}. {s.title}</div>
+                              {(s.bullets||[]).map((b,j)=>(
+                                <div key={j} style={{display:"flex",gap:9,padding:"5px 0",borderBottom:j<s.bullets.length-1?"1px solid rgba(26,31,58,.5)":"none",fontSize:12,color:"var(--text2)",lineHeight:1.65}}>
+                                  <span style={{color:"var(--teal)",fontWeight:800,flexShrink:0}}>→</span>{b}
+                                </div>
+                              ))}
+                            </div>
+                          ))}
+                          <button className="btn btn-outline btn-sm" onClick={()=>copy((playbookResult.sections||[]).map((s,i)=>`${i+1}. ${s.title}\n${s.bullets.map(b=>`→ ${b}`).join("\n")}`).join("\n\n"),"playbook")}>{copied==="playbook"?"✓ Copied":"Copy Playbook"}</button>
+                        </div>
+                      )}
+                    </>)}
+
+                    {enabTab==="pitchtpl" && (<>
+                      <div className="ai-panel-title">🎙 Pitch Templates</div>
+                      <div className="ai-panel-sub">Proven pitch structures for every sales scenario</div>
+                      <div className="ai-field-label">Scenario</div>
+                      <select className="ai-in" value={pitchTplScenario} onChange={e=>setPitchTplScenario(e.target.value)}>
+                        <option value="cold_call">Cold Phone Call</option>
+                        <option value="trade_show">Trade Show Meeting</option>
+                        <option value="broker">Broker Introduction</option>
+                        <option value="followup">Follow-up Meeting</option>
+                        <option value="zoom">Zoom Demo</option>
+                      </select>
+                      <button className="btn btn-teal" style={{marginTop:14,width:"100%",justifyContent:"center"}} disabled={pitchTplBusy} onClick={genPitchTemplate}>
+                        {pitchTplBusy?<><span className="spin"/>Generating...</>:"⚡ Generate Template"}
+                      </button>
+                      {pitchTplResult && <><div className="ai-result-box">{pitchTplResult}</div><button className="btn btn-outline btn-sm" style={{marginTop:8}} onClick={()=>copy(pitchTplResult,"pitchtpl")}>{copied==="pitchtpl"?"✓ Copied":"Copy Template"}</button></>}
+                    </>)}
+
+                    {enabTab==="sellsheet" && (<>
+                      <div className="ai-panel-title">📊 Sell Sheet Builder</div>
+                      <div className="ai-panel-sub">Generate all copy for a one-page sell sheet in seconds</div>
+                      <button className="btn btn-teal" style={{width:"100%",justifyContent:"center"}} disabled={sellSheetBusy} onClick={genSellSheet}>
+                        {sellSheetBusy?<><span className="spin"/>Building Sell Sheet...</>:"⚡ Generate Sell Sheet"}
+                      </button>
+                      {sellSheetResult && (
+                        <div style={{marginTop:16}}>
+                          {[
+                            {label:"Headline",val:sellSheetResult.headline},
+                            {label:"Subheadline",val:sellSheetResult.subheadline},
+                            {label:"Product Description",val:sellSheetResult.productDescription},
+                            {label:"Target Consumer",val:sellSheetResult.targetConsumer},
+                            {label:"Velocity / Stats",val:sellSheetResult.velocityStats},
+                            {label:"Retailer Benefits",val:sellSheetResult.retailerBenefits},
+                            {label:"Call to Action",val:sellSheetResult.callToAction},
+                          ].map((row,i)=>row.val&&(
+                            <div key={i} style={{background:"var(--bg3)",border:"1px solid var(--border)",borderRadius:9,padding:"12px 14px",marginBottom:9}}>
+                              <div style={{fontSize:9,fontWeight:800,color:"var(--text3)",textTransform:"uppercase",letterSpacing:"1px",marginBottom:5}}>{row.label}</div>
+                              <div style={{fontSize:13,color:"var(--text2)",lineHeight:1.65}}>{row.val}</div>
+                              <button className="dp-copy" style={{marginTop:6}} onClick={()=>copy(row.val,"ss"+i)}>{copied==="ss"+i?"✓":"Copy"}</button>
+                            </div>
+                          ))}
+                          {sellSheetResult.keyBenefits?.length>0&&(
+                            <div style={{background:"var(--bg3)",border:"1px solid var(--border)",borderRadius:9,padding:"12px 14px",marginBottom:9}}>
+                              <div style={{fontSize:9,fontWeight:800,color:"var(--text3)",textTransform:"uppercase",letterSpacing:"1px",marginBottom:8}}>Key Benefits</div>
+                              {sellSheetResult.keyBenefits.map((b,i)=><div key={i} style={{display:"flex",gap:8,padding:"4px 0",fontSize:12,color:"var(--text2)"}}><span style={{color:"var(--teal)",fontWeight:800}}>→</span>{b}</div>)}
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </>)}
+
+                    {enabTab==="objlib" && (<>
+                      <div className="ai-panel-title">🎯 Objection Handler</div>
+                      <div className="ai-panel-sub">Paste exactly what the buyer said — get a real, ready-to-use response</div>
+                      <div className="ai-field-label">What did the buyer say?</div>
+                      <textarea className="ai-in pitch-ta" rows={3} placeholder={'e.g. "Your margins are too thin, we need at least 40% to make this work for us."'} value={objLibSearch} onChange={e=>setObjLibSearch(e.target.value)} />
+                      <button className="btn btn-teal" style={{marginTop:14,width:"100%",justifyContent:"center"}} disabled={objLibBusy||!objLibSearch.trim()} onClick={genObjLibrary}>
+                        {objLibBusy?<><span className="spin"/>Generating response...</>:"⚡ Get My Response"}
+                      </button>
+                      {objLibResult && (
+                        <div style={{marginTop:18}}>
+                          <div style={{background:"var(--bg3)",border:"1px solid rgba(0,229,192,.15)",borderRadius:11,padding:"16px 18px",marginBottom:12}}>
+                            <div style={{fontSize:9,fontWeight:800,color:"var(--teal)",textTransform:"uppercase",letterSpacing:"1px",marginBottom:10}}>Say This</div>
+                            <div style={{fontSize:13,color:"var(--text)",lineHeight:1.8,fontWeight:500}}>{objLibResult.response}</div>
+                            <button className="btn btn-teal btn-sm" style={{marginTop:12}} onClick={()=>copy(objLibResult.response,"objresp")}>{copied==="objresp"?"✓ Copied":"Copy Response"}</button>
+                          </div>
+                          {objLibResult.strategy && (
+                            <div style={{background:"var(--bg3)",border:"1px solid var(--border)",borderRadius:11,padding:"14px 16px"}}>
+                              <div style={{fontSize:9,fontWeight:800,color:"var(--text3)",textTransform:"uppercase",letterSpacing:"1px",marginBottom:7}}>Why This Works</div>
+                              <div style={{fontSize:12,color:"var(--text2)",lineHeight:1.7}}>{objLibResult.strategy}</div>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </>)}
+                  </div>
+                </div>
+
+              ) : view === "meetings" ? (
+                /* ── MEETINGS ── */
+                (() => {
+                  const meetLeads = leads.filter(l=>(statuses[l.id]||"none")==="meeting");
+                  return (
+                    <div className="meet-layout">
+                      {/* Contact list */}
+                      <div className="meet-list">
+                        <div className="meet-list-hd">Your Meetings ({meetLeads.length})</div>
+                        {meetLeads.length===0 ? (
+                          <div style={{padding:"20px 14px",textAlign:"center",color:"var(--text3)",fontSize:11,lineHeight:1.7}}>No meetings yet.<br/>Mark contacts as "Meeting Set" in Outreach Tracker or People Finder.</div>
+                        ) : meetLeads.map(lead=>{
+                          const idx=leads.findIndex(l=>l.id===lead.id);
+                          return (
+                            <div key={lead.id} className={`meet-row ${meetContact?.id===lead.id?"active":""}`} onClick={()=>genMeetBrief(lead)}>
+                              <div className="av" style={{background:AV_COLORS[idx%AV_COLORS.length],width:30,height:30,fontSize:10,flexShrink:0}}>{(lead.firstName?.[0]||"")+(lead.lastName?.[0]||"")}</div>
+                              <div style={{minWidth:0}}>
+                                <div style={{fontWeight:700,fontSize:12,color:"var(--text)"}}>{lead.firstName} {lead.lastName}</div>
+                                <div style={{fontSize:10,color:"var(--text3)",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{lead.retailer}</div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                        {meetLeads.length===0&&(
+                          <div style={{padding:"0 14px 14px",marginTop:4}}>
+                            <button className="btn btn-outline btn-sm" style={{width:"100%",justifyContent:"center"}} onClick={()=>setView("tracker")}>Open Tracker →</button>
+                          </div>
+                        )}
+                      </div>
+                      {/* Tools panel */}
+                      <div className="meet-tools">
+                        {!meetContact ? (
+                          <div className="empty">
+                            <div className="empty-icon">📅</div>
+                            <h3>Pick a contact to prep</h3>
+                            <p>Click any contact on the left to generate a meeting brief, agenda, live notes, and follow-up email.</p>
+                          </div>
+                        ) : (<>
+                          <div className="meet-tabs">
+                            {[{id:"brief",label:"📋 Brief"},{id:"agenda",label:"🗓 Agenda"},{id:"notes",label:"📝 Notes"},{id:"followup",label:"📤 Follow-up"}].map(t=>(
+                              <button key={t.id} className={`meet-tab ${meetTab===t.id?"on":""}`} onClick={()=>setMeetTab(t.id)}>{t.label}</button>
+                            ))}
+                            <div style={{marginLeft:"auto",display:"flex",alignItems:"center",padding:"0 4px"}}>
+                              <span style={{fontSize:12,fontWeight:700,color:"var(--teal)"}}>{meetContact.firstName} {meetContact.lastName} · {meetContact.retailer}</span>
+                            </div>
+                          </div>
+                          <div className="meet-content">
+                            {meetTab==="brief" && (
+                              meetBriefBusy ? <div className="empty" style={{minHeight:200}}><span className="spin spin-lg"/><p style={{marginTop:16}}>Generating brief...</p></div>
+                              : meetBriefResult ? (<>
+                                {[
+                                  {label:"Key Talking Points",key:"talkingPoints",icon:"💬"},
+                                  {label:"Objections to Prepare For",key:"objections",icon:"🛡"},
+                                  {label:"Questions to Ask",key:"questionsToAsk",icon:"❓"},
+                                  {label:"What to Bring / Send Ahead",key:"prepItems",icon:"📦"},
+                                ].map(s=>meetBriefResult[s.key]?.length>0&&(
+                                  <div key={s.key} style={{marginBottom:16}}>
+                                    <div style={{fontSize:10,fontWeight:800,color:"var(--text3)",textTransform:"uppercase",letterSpacing:"1px",marginBottom:8}}>{s.icon} {s.label}</div>
+                                    {meetBriefResult[s.key].map((item,i)=>(
+                                      <div key={i} style={{display:"flex",gap:8,padding:"6px 0",borderBottom:"1px solid rgba(26,31,58,.5)",fontSize:12,color:"var(--text2)",lineHeight:1.6}}>
+                                        <span style={{color:"var(--teal)",fontWeight:800,flexShrink:0}}>→</span>{item}
+                                      </div>
+                                    ))}
+                                  </div>
+                                ))}
+                              </>) : <div className="empty" style={{minHeight:200}}><p>Click a contact to generate their brief.</p></div>
+                            )}
+                            {meetTab==="agenda" && (<>
+                              <button className="btn btn-teal" style={{width:"100%",justifyContent:"center",marginBottom:14}} disabled={agendaBusy} onClick={genAgenda}>
+                                {agendaBusy?<><span className="spin"/>Building Agenda...</>:"⚡ Generate 30-Min Agenda"}
+                              </button>
+                              {agendaResult && <><div className="ai-result-box">{agendaResult}</div><button className="btn btn-outline btn-sm" style={{marginTop:8}} onClick={()=>copy(agendaResult,"agenda")}>{copied==="agenda"?"✓ Copied":"Copy Agenda"}</button></>}
+                            </>)}
+                            {meetTab==="notes" && (<>
+                              <div style={{fontSize:10,fontWeight:800,color:"var(--text3)",textTransform:"uppercase",letterSpacing:"1px",marginBottom:8}}>Meeting Notes</div>
+                              <textarea className="pitch-ta" style={{minHeight:200}} placeholder="Take notes during the meeting here..." value={meetNotes[meetContact.id]||""} onChange={e=>setMeetNotes(p=>({...p,[meetContact.id]:e.target.value}))} />
+                              <button className="btn btn-outline btn-sm" style={{marginTop:8}} onClick={()=>copy(meetNotes[meetContact.id]||"","notes")}>{copied==="notes"?"✓ Copied":"Copy Notes"}</button>
+                            </>)}
+                            {meetTab==="followup" && (<>
+                              <button className="btn btn-teal" style={{width:"100%",justifyContent:"center",marginBottom:14}} disabled={followupBusy} onClick={genMeetFollowup}>
+                                {followupBusy?<><span className="spin"/>Writing Email...</>:"⚡ Generate Follow-up Email"}
+                              </button>
+                              {followupResult && (<>
+                                <div style={{background:"var(--bg3)",border:"1px solid var(--border)",borderRadius:9,padding:"12px 14px",marginBottom:9}}>
+                                  <div style={{fontSize:9,fontWeight:800,color:"var(--text3)",textTransform:"uppercase",letterSpacing:"1px",marginBottom:5}}>Subject</div>
+                                  <div style={{fontSize:13,fontWeight:700,color:"var(--text)"}}>{followupResult.subject}</div>
+                                </div>
+                                <div className="ai-result-box">{followupResult.body}</div>
+                                <button className="btn btn-outline btn-sm" style={{marginTop:8}} onClick={()=>copy(`Subject: ${followupResult.subject}\n\n${followupResult.body}`,"followup")}>{copied==="followup"?"✓ Copied":"Copy Email"}</button>
+                              </>)}
+                            </>)}
+                          </div>
+                        </>)}
+                      </div>
+                    </div>
+                  );
+                })()
+
+              ) : view === "integrations" ? (
+                /* ── INTEGRATIONS ── */
+                <div className="view-wrap">
+                  <div className="view-hd"><h2>Connect Tools</h2><p>Export your contacts or connect RepReach to your CRM, email, and calendar</p></div>
+                  {/* CSV Export — live */}
+                  <div style={{background:"var(--bg2)",border:"1px solid rgba(0,229,192,.2)",borderRadius:13,padding:"18px 20px",marginBottom:16,display:"flex",alignItems:"center",gap:16}}>
+                    <div style={{width:44,height:44,borderRadius:11,background:"rgba(0,229,192,.1)",border:"1px solid rgba(0,229,192,.2)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:22,flexShrink:0}}>📥</div>
+                    <div style={{flex:1}}>
+                      <div style={{fontWeight:700,fontSize:13,color:"var(--text)",marginBottom:3}}>CSV Export</div>
+                      <div style={{fontSize:11,color:"var(--text3)",lineHeight:1.5}}>{leads.length} contacts ready — name, title, company, email, phone, status, notes, department.</div>
+                    </div>
+                    <span className="int-status int-live" style={{flexShrink:0}}>● Live</span>
+                    <button className="btn btn-teal btn-sm" onClick={exportCSV} disabled={!leads.length}>{leads.length?"⬇ Export CSV":"No contacts yet"}</button>
+                  </div>
+                  <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(280px,1fr))",gap:12}}>
+                    {[
+                      {icon:"☁",name:"Salesforce",desc:"Sync contacts, leads, and outreach activity automatically.",bg:"#00a1e0"},
+                      {icon:"🔶",name:"HubSpot",desc:"Push buyer data and track deal stages inside your HubSpot CRM.",bg:"#ff7a59"},
+                      {icon:"💬",name:"Slack",desc:"Get notified in Slack when a buyer replies or a meeting gets set.",bg:"#4a154b"},
+                      {icon:"📧",name:"Gmail",desc:"Send outreach directly from your Gmail with one click.",bg:"#ea4335"},
+                      {icon:"📮",name:"Outlook / Microsoft 365",desc:"Native Outlook integration for reps who live in Microsoft.",bg:"#0078d4"},
+                      {icon:"📊",name:"Google Sheets",desc:"Export your pipeline and lead data to Sheets for reporting.",bg:"#34a853"},
+                      {icon:"🗓",name:"Calendly",desc:"Embed your booking link directly into outreach emails.",bg:"#006bff"},
+                      {icon:"📱",name:"LinkedIn Sales Nav",desc:"Pull buyer data directly from Sales Navigator.",bg:"#0077b5"},
+                      {icon:"🔔",name:"Apollo.io",desc:"RepReach is already powered by Apollo's contact database.",bg:"#6c63ff",live:true},
+                      {icon:"✨",name:"Claude AI",desc:"All AI generation, scoring, and research is powered by Claude.",bg:"#c87533",live:true},
+                    ].map((t,i)=>(
+                      <div key={i} className="int-card">
+                        <div className="int-logo" style={{background:t.bg+"22",border:`1px solid ${t.bg}33`,fontSize:22}}>{t.icon}</div>
+                        <div style={{flex:1,minWidth:0}}>
+                          <div style={{fontWeight:700,fontSize:13,color:"var(--text)",marginBottom:3}}>{t.name}</div>
+                          <div style={{fontSize:11,color:"var(--text3)",lineHeight:1.5,marginBottom:6}}>{t.desc}</div>
+                          {t.live
+                            ? <span className="int-status int-live">● Live</span>
+                            : <button className="btn btn-outline btn-sm" style={{fontSize:10,padding:"3px 12px"}} onClick={()=>alert(`${t.name} integration coming soon. We'll notify you when it's ready.`)}>Connect</button>
+                          }
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
               ) : (
                 /* ── TRACKER ── */
                 <div style={{padding:"16px 20px",overflow:"auto",flex:1}}>
                   <div style={{marginBottom:16}}>
                     <div style={{fontFamily:"'Syne',sans-serif",fontWeight:800,fontSize:16,color:"#f1f5f9",marginBottom:3,letterSpacing:"-.2px"}}>Outreach Tracker</div>
-                    <div style={{fontSize:12,color:"#334155"}}>{leads.length} contacts · {companyInput||"no search"}</div>
+                    <div style={{fontSize:12,color:"#334155"}}>{leads.length} contacts tracked · {companyInput||"no search yet"}</div>
                   </div>
                   {leads.length === 0
                     ? <div className="empty"><div className="empty-icon">📋</div><h3>No contacts yet</h3><p>Search a retailer in People view first.</p></div>

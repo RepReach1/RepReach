@@ -1,4 +1,5 @@
 import { useState, useCallback, useRef } from "react";
+import LandingPage from "./LandingPage.jsx";
 
 const PAYMENT_LINK = "https://buy.stripe.com/8x200j5GZaO9aYZb7A2Ji00";
 const ACCESS_CODE  = "Championsucks";
@@ -49,6 +50,7 @@ const TITLE_OPTIONS = [
 const QUICK_COMPANIES = ["Walmart","Sam's Club","Kroger","Target","Costco","Home Depot","CVS","Tractor Supply","Amazon","Lowe's","Publix","Walgreens","Best Buy","Dollar General","Albertsons"];
 
 export default function App() {
+  const [showLanding, setShowLanding] = useState(true);
   const [isSubscribed, setIsSubscribed] = useState(false);
   const [showPaywall,  setShowPaywall]  = useState(false);
   const [accessCode,   setAccessCode]   = useState("");
@@ -373,6 +375,10 @@ ONLY JSON: {"subject":"...","body":"..."}`
   const eData  = activeLead && emails[activeLead.id];
   const liData = activeLead && linkedIns[activeLead.id];
   const fuData = activeLead && followUps[activeLead.id];
+
+  if (showLanding) {
+    return <LandingPage onEnter={() => setShowLanding(false)} />;
+  }
 
   return (
     <>

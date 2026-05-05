@@ -53,6 +53,7 @@ export default function App() {
   const [showLanding, setShowLanding] = useState(true);
   const [isSubscribed, setIsSubscribed] = useState(false);
   const [showPaywall,  setShowPaywall]  = useState(false);
+  const [selectedPlan, setSelectedPlan] = useState("pro");
   const [accessCode,   setAccessCode]   = useState("");
   const [codeError,    setCodeError]    = useState("");
 
@@ -1046,10 +1047,27 @@ Return ONLY valid JSON: {"subject":"...","body":"..."}`);
         .pw-head h2{font-family:var(--font-hd);font-size:23px;font-weight:700;color:var(--text);margin-bottom:8px;letter-spacing:-.4px}
         .pw-head p{font-size:13px;color:var(--text2);line-height:1.65;max-width:300px;margin:0 auto;font-weight:500}
         .pw-body{padding:26px}
-        .pw-price{text-align:center;margin-bottom:20px;padding-bottom:18px;border-bottom:1px solid var(--border)}
-        .pw-amt{font-family:var(--font-hd);font-size:48px;font-weight:800;color:var(--text);line-height:1;letter-spacing:-2px}
-        .pw-per{font-size:13px;color:var(--text2);margin-top:4px;font-weight:500}
-        .pw-disc{font-size:12px;color:var(--orange);font-weight:700;margin-top:5px;letter-spacing:.02em}
+        .pw-price{margin-bottom:20px;padding-bottom:18px;border-bottom:1px solid var(--border)}
+        .pw-plans{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:0}
+        .pw-plan{
+          border:1px solid var(--border2);border-radius:12px;padding:14px 12px;
+          text-align:center;cursor:pointer;transition:all .15s;position:relative;
+          background:var(--bg3);
+        }
+        .pw-plan:hover{border-color:var(--border3)}
+        .pw-plan.selected{border-color:var(--orange);background:var(--orange-dim)}
+        .pw-plan-badge{
+          position:absolute;top:-9px;left:50%;transform:translateX(-50%);
+          background:var(--orange);color:#fff;
+          font-size:9px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;
+          padding:2px 9px;border-radius:20px;white-space:nowrap;font-family:var(--font-hd);
+        }
+        .pw-plan-name{font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px;font-family:var(--font-hd)}
+        .pw-plan-amt{font-family:var(--font-hd);font-size:28px;font-weight:800;color:var(--text);letter-spacing:-1px;line-height:1}
+        .pw-plan-mo{font-size:11px;font-weight:600;color:var(--text2);margin-top:1px}
+        .pw-plan-annual{font-size:10px;color:var(--text3);margin-top:4px;font-weight:400;letter-spacing:.01em}
+        .pw-plan.selected .pw-plan-amt{color:var(--orange)}
+        .pw-plan.selected .pw-plan-name{color:var(--orange)}
         .pw-feats{display:flex;flex-direction:column;gap:10px;margin-bottom:22px}
         .pw-feat{display:flex;align-items:center;gap:10px;font-size:13px;color:var(--text2);font-weight:500}
         .pw-feat:before{content:'→';color:var(--green);font-weight:800;flex-shrink:0;font-size:15px}
@@ -1352,19 +1370,32 @@ Return ONLY valid JSON: {"subject":"...","body":"..."}`);
             </div>
             <div className="pw-body">
               <div className="pw-price">
-                <div className="pw-amt">$2,000</div>
-                <div className="pw-per">per month</div>
-                <div className="pw-disc">First month: $1,500 — save $500 today</div>
+                <div className="pw-plans">
+                  {[
+                    {id:"starter", name:"Starter", mo:29,  annual:348,  credits:"5,000"},
+                    {id:"pro",     name:"Pro",     mo:59,  annual:708,  credits:"20,000", popular:true},
+                    {id:"team",    name:"Team",    mo:99,  annual:1188, credits:"50,000"},
+                  ].map(p => (
+                    <div key={p.id} className={`pw-plan ${selectedPlan===p.id?"selected":""}`} onClick={()=>setSelectedPlan(p.id)}>
+                      {p.popular && <span className="pw-plan-badge">Most Popular</span>}
+                      <div className="pw-plan-name">{p.name}</div>
+                      <div className="pw-plan-amt">${p.mo}</div>
+                      <div className="pw-plan-mo">/ month</div>
+                      <div className="pw-plan-annual">Billed annually · ${p.annual}/yr</div>
+                    </div>
+                  ))}
+                </div>
               </div>
               <div className="pw-feats">
                 <div className="pw-feat">Live buyer search for any retailer in seconds</div>
                 <div className="pw-feat">Direct email + phone on every contact</div>
                 <div className="pw-feat">AI cold emails, LinkedIn & follow-ups</div>
                 <div className="pw-feat">Outreach tracker — know where every deal stands</div>
-                <div className="pw-feat">Up to 500 contacts per search</div>
+                <div className="pw-feat">{selectedPlan==="starter"?"5,000":selectedPlan==="pro"?"20,000":"50,000"} credits/yr · Up to 500 contacts per search</div>
               </div>
               <a href={PAYMENT_LINK} target="_blank" rel="noreferrer"
-                style={{display:"block",width:"100%",padding:"13px",borderRadius:9,background:"linear-gradient(135deg,#f97316,#ea6c0a)",color:"#fff",fontWeight:800,fontSize:14,textAlign:"center",textDecoration:"none",letterSpacing:".02em",boxShadow:"0 4px 20px rgba(249,115,22,.4)"}}>                Get Access — $1,500 First Month →
+                style={{display:"block",width:"100%",padding:"13px",borderRadius:9,background:"linear-gradient(135deg,#f97316,#ea6c0a)",color:"#fff",fontWeight:800,fontSize:14,textAlign:"center",textDecoration:"none",letterSpacing:".02em",boxShadow:"0 4px 20px rgba(249,115,22,.4)"}}>
+                Get {selectedPlan==="starter"?"Starter":selectedPlan==="pro"?"Pro":"Team"} — ${selectedPlan==="starter"?348:selectedPlan==="pro"?708:1188}/yr →
               </a>
               <div className="pw-divider">— or enter access code —</div>
               <div className="code-wrap">

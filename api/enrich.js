@@ -4,7 +4,7 @@ export default async function handler(req, res) {
   const { apolloId, firstName, lastName, retailer, linkedin } = req.body;
   if (!apolloId && !firstName) return res.status(400).json({ error: "Missing contact info" });
 
-  const APOLLO_ENRICH_KEY = process.env.APOLLO_ENRICH_KEY || "RDwOP69rbo3M2KQ1iJNLhQ";
+  const APOLLO_ENRICH_KEY = process.env.APOLLO_API_KEY || "3LBzFfcpFsLRVm4f-JznYw";
 
   try {
     const payload = {
@@ -42,8 +42,8 @@ export default async function handler(req, res) {
       email:            p.email || null,
       emailStatus:      p.email_status || null,
       personalEmails:   p.personal_emails || [],
-      phone:            p.phone_numbers?.[0]?.sanitized_number || null,
-      allPhones:        (p.phone_numbers || []).map(ph => ({ number: ph.sanitized_number, type: ph.type })),
+      phone:            p.contact?.phone_numbers?.[0]?.sanitized_number || p.phone_numbers?.[0]?.sanitized_number || null,
+      allPhones:        (p.contact?.phone_numbers || p.phone_numbers || []).map(ph => ({ number: ph.sanitized_number, type: ph.type })),
       // Social
       linkedin:         p.linkedin_url  || null,
       twitter:          p.twitter_url   || null,

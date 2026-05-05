@@ -4,7 +4,7 @@ export default async function handler(req, res) {
   const { retailer, cursor = 1 } = req.body;
   if (!retailer) return res.status(400).json({ error: "Missing retailer" });
 
-  const KEY       = process.env.APOLLO_ENRICH_KEY || "RDwOP69rbo3M2KQ1iJNLhQ";
+  const KEY       = process.env.APOLLO_API_KEY || "3LBzFfcpFsLRVm4f-JznYw";
   const BATCH     = 5;
   const HEADERS   = { "Content-Type": "application/json", "Cache-Control": "no-cache", "X-Api-Key": KEY };
 

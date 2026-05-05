@@ -898,6 +898,90 @@ Return ONLY valid JSON: {"subject":"...","body":"..."}`);
         .prac-stat-label{font-size:10px;color:var(--text3);font-weight:700;text-transform:uppercase;letter-spacing:.6px}
         .hist-row{display:flex;align-items:flex-start;gap:12px;padding:10px 12px;background:var(--bg3);border-radius:9px;border:1px solid var(--border)}
         .hist-score{font-family:'Bricolage Grotesque',sans-serif;font-size:20px;font-weight:800;flex-shrink:0;min-width:26px;line-height:1.2}
+
+        /* ─── VIEW WRAPPER (shared) ─── */
+        .view-wrap{display:flex;flex-direction:column;flex:1;overflow:hidden}
+        .view-hd{padding:20px 24px 16px;border-bottom:1px solid var(--border);flex-shrink:0}
+        .view-hd h2{font-family:'Bricolage Grotesque',sans-serif;font-size:20px;font-weight:800;color:var(--text);letter-spacing:-.4px;margin-bottom:4px}
+        .view-hd p{font-size:12px;color:var(--text3);font-weight:500}
+
+        /* ─── KANBAN (Deal Board) ─── */
+        .kanban{display:flex;gap:12px;padding:16px;overflow-x:auto;flex:1;align-items:flex-start}
+        .k-col{flex:0 0 220px;background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:8px}
+        .k-col-hd{display:flex;align-items:center;gap:7px;margin-bottom:4px;padding:0 2px}
+        .k-col-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+        .k-col-label{font-size:11px;font-weight:700;color:var(--text);flex:1;letter-spacing:.01em}
+        .k-col-count{font-size:10px;font-weight:700;padding:2px 7px;border-radius:20px}
+        .k-card{background:var(--bg3);border:1px solid var(--border);border-radius:9px;padding:12px;cursor:pointer;transition:.15s;font-size:12px}
+        .k-card:hover{border-color:var(--teal2);background:rgba(0,229,192,.03)}
+
+        /* ─── FORECASTING / STATS ─── */
+        .stat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:20px}
+        .stat-card{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:16px 18px}
+        .stat-card-val{font-family:'Bricolage Grotesque',sans-serif;font-size:28px;font-weight:800;color:var(--text);letter-spacing:-.8px;line-height:1;margin-bottom:4px}
+        .stat-card-label{font-size:10px;color:var(--text3);font-weight:700;text-transform:uppercase;letter-spacing:.7px}
+        .funnel-row{display:flex;align-items:center;gap:12px;margin-bottom:10px}
+        .funnel-bar-bg{flex:1;height:10px;background:var(--bg3);border-radius:20px;overflow:hidden;border:1px solid var(--border)}
+        .funnel-bar-fill{height:100%;border-radius:20px;transition:width .6s ease}
+
+        /* ─── AI TOOLS / ENABLEMENT (shared panel UI) ─── */
+        .ai-view,.enab-view{display:flex;flex-direction:column;flex:1;overflow:hidden}
+        .ai-view-hd{padding:16px 22px 0;border-bottom:1px solid var(--border);flex-shrink:0;background:var(--bg2)}
+        .ai-view-hd-top{display:flex;align-items:center;gap:8px;margin-bottom:3px}
+        .ai-view-hd-top h2{font-family:'Bricolage Grotesque',sans-serif;font-size:17px;font-weight:800;color:var(--text);letter-spacing:-.3px}
+        .ai-view-hd>p{font-size:12px;color:var(--text3);font-weight:500;margin-bottom:12px}
+        .ai-tabs{display:flex;gap:2px;padding-bottom:0}
+        .ai-tab{padding:8px 14px;border-radius:8px 8px 0 0;font-size:12px;font-weight:600;cursor:pointer;border:none;background:transparent;color:var(--text3);transition:.15s;border-bottom:2px solid transparent;margin-bottom:-1px;font-family:'Inter',sans-serif;white-space:nowrap}
+        .ai-tab:hover{color:var(--text2);background:var(--bg3)}
+        .ai-tab.on{color:var(--teal);border-bottom-color:var(--teal);background:var(--teal-dim)}
+        .ai-panel{flex:1;overflow-y:auto;padding:22px;max-width:680px}
+        .ai-panel-title{font-family:'Bricolage Grotesque',sans-serif;font-size:15px;font-weight:800;color:var(--text);letter-spacing:-.2px;margin-bottom:4px}
+        .ai-panel-sub{font-size:12px;color:var(--text3);font-weight:500;margin-bottom:18px;line-height:1.6}
+        .ai-field-label{font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.8px;margin-bottom:6px}
+        .ai-in{width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:9px;padding:10px 13px;font-size:13px;color:var(--text);outline:none;transition:.15s;font-family:'Inter',sans-serif;margin-bottom:0}
+        .ai-in::placeholder{color:var(--text3)}
+        .ai-in:focus{border-color:var(--teal2);box-shadow:0 0 0 3px rgba(0,229,192,.07)}
+        .ai-result-box{background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:16px;font-size:13px;color:var(--text2);line-height:1.8;white-space:pre-wrap;margin-top:16px;font-weight:500}
+        .ai-score-pill{display:inline-flex;align-items:center;justify-content:center;padding:4px 12px;border-radius:20px;font-size:13px;font-weight:800;font-family:'Bricolage Grotesque',sans-serif;min-width:48px}
+
+        /* ─── EMAIL SEQUENCES ─── */
+        .seq-card{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:9px;border:1px solid var(--border);background:var(--bg3);cursor:pointer;margin-bottom:7px;transition:.15s}
+        .seq-card:hover{border-color:var(--teal2)}
+        .seq-card.active{background:var(--teal-dim);border-color:rgba(0,229,192,.25)}
+        .seq-step{background:var(--bg2);border:1px solid var(--border);border-radius:11px;padding:16px;margin-bottom:12px}
+        .seq-step-hd{display:flex;align-items:center;gap:8px;margin-bottom:10px}
+        .seq-day{font-size:10px;font-weight:700;color:var(--teal);background:var(--teal-dim);border:1px solid rgba(0,229,192,.2);padding:2px 8px;border-radius:20px;text-transform:uppercase;letter-spacing:.05em}
+        .seq-type{font-size:10px;font-weight:700;color:var(--text3);background:var(--bg3);border:1px solid var(--border);padding:2px 8px;border-radius:20px;text-transform:uppercase;letter-spacing:.05em}
+        .seq-subject{font-size:12px;font-weight:700;color:var(--text);margin-bottom:7px;padding-bottom:7px;border-bottom:1px solid var(--border)}
+        .seq-body{font-size:12px;color:var(--text2);line-height:1.75;white-space:pre-wrap;font-weight:500}
+
+        /* ─── BUYER RESEARCH ─── */
+        .intel-view{display:flex;flex-direction:column;flex:1;overflow:hidden}
+        .intel-hd{padding:20px 24px 16px;border-bottom:1px solid var(--border);flex-shrink:0;background:var(--bg2)}
+        .intel-search{display:flex;gap:10px;align-items:center;margin-top:12px}
+        .intel-body{flex:1;overflow-y:auto;padding:20px 24px}
+        .intel-card{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:16px 18px;margin-bottom:12px}
+        .intel-item{padding:8px 12px;border-left:2px solid var(--teal);background:var(--bg3);border-radius:0 8px 8px 0;font-size:12px;color:var(--text2);line-height:1.65;margin-bottom:6px;font-weight:500}
+
+        /* ─── MEETING PREP ─── */
+        .meet-layout{display:flex;flex:1;overflow:hidden}
+        .meet-list{width:240px;border-right:1px solid var(--border);overflow-y:auto;padding:12px;flex-shrink:0}
+        .meet-row{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:9px;border:1px solid transparent;cursor:pointer;margin-bottom:6px;transition:.15s}
+        .meet-row:hover{background:var(--bg3);border-color:var(--border)}
+        .meet-row.active{background:var(--teal-dim);border-color:rgba(0,229,192,.2)}
+        .meet-content{flex:1;overflow-y:auto;padding:18px 22px}
+        .meet-tabs{display:flex;gap:2px;border-bottom:1px solid var(--border);margin-bottom:18px}
+        .meet-tab{padding:8px 14px;font-size:12px;font-weight:600;color:var(--text3);cursor:pointer;border:none;background:transparent;border-bottom:2px solid transparent;margin-bottom:-1px;transition:.15s;font-family:'Inter',sans-serif}
+        .meet-tab:hover{color:var(--text2)}
+        .meet-tab.on{color:var(--teal);border-bottom-color:var(--teal)}
+        .meet-tools{padding:12px;background:var(--bg2);border-bottom:1px solid var(--border);flex-shrink:0}
+
+        /* ─── INTEGRATIONS ─── */
+        .int-card{background:var(--bg2);border:1px solid var(--border);border-radius:14px;padding:20px;display:flex;flex-direction:column;gap:12px;transition:.15s}
+        .int-card:hover{border-color:var(--border2)}
+        .int-logo{width:44px;height:44px;border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+        .int-status{font-size:10px;font-weight:700;padding:3px 10px;border-radius:20px;letter-spacing:.04em;text-transform:uppercase}
+        .int-live{background:rgba(74,222,128,.1);color:#4ade80;border:1px solid rgba(74,222,128,.2)}
       `}</style>
 
       {/* ── PAYWALL ── */}

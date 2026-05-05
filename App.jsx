@@ -1372,9 +1372,9 @@ Return ONLY valid JSON: {"subject":"...","body":"..."}`);
               <div className="pw-price">
                 <div className="pw-plans">
                   {[
-                    {id:"starter", name:"Starter", mo:29,  annual:348,  credits:"5,000"},
-                    {id:"pro",     name:"Pro",     mo:59,  annual:708,  credits:"20,000", popular:true},
-                    {id:"team",    name:"Team",    mo:99,  annual:1188, credits:"50,000"},
+                    {id:"starter", name:"Starter", mo:69,  annual:828,  credits:"5,000"},
+                    {id:"pro",     name:"Pro",     mo:99,  annual:1188, credits:"20,000", popular:true},
+                    {id:"team",    name:"Team",    mo:139, annual:1668, credits:"50,000"},
                   ].map(p => (
                     <div key={p.id} className={`pw-plan ${selectedPlan===p.id?"selected":""}`} onClick={()=>setSelectedPlan(p.id)}>
                       {p.popular && <span className="pw-plan-badge">Most Popular</span>}

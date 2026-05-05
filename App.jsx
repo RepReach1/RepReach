@@ -201,6 +201,7 @@ export default function App() {
         body: JSON.stringify({ retailer: company, titleKeyword: titles || null, cursor: 1 }),
       });
       const data = await res.json();
+      if (data.error) { alert("Search error: " + data.error); setLeads([]); setHasSearched(true); setSearching(false); return; }
       const r = data.leads || [];
       setLeads(r);
       setTotalAvailable(data.apolloTotal || r.length);
@@ -208,7 +209,7 @@ export default function App() {
       setHasSearched(true);
       setActiveLead(null);
       if (r.length) setTimeout(() => fetchDepartments(r), 100);
-    } catch(e) { setLeads([]); setHasSearched(true); }
+    } catch(e) { alert("Search failed: " + e.message); setLeads([]); setHasSearched(true); }
     setSearching(false);
   }, [fetchDepartments]);
 

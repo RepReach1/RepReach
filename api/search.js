@@ -32,14 +32,14 @@ export default async function handler(req, res) {
     "merchandise planner","inventory manager","assortment manager",
   ];
 
-  const KEYWORDS = [
-    "buyer","merchant","category","purchasing","procurement","sourcing",
-    "merchandise","buying","assortment","dmm","gmm","chief merchant",
-    "planner","allocation","director of","vp of","head of",
-  ];
-
-  const post = (url, body) =>
-    fetch(url, { method: "POST", headers: HEADERS, body: JSON.stringify(body) });
+  const post = async (url, body) => {
+    const r = await fetch(url, { method: "POST", headers: HEADERS, body: JSON.stringify(body) });
+    const text = await r.text();
+    let d;
+    try { d = JSON.parse(text); } catch { throw new Error(`Apollo non-JSON response (${r.status}): ${text.slice(0, 120)}`); }
+    if (!r.ok) throw new Error(d?.error || d?.message || `Apollo error ${r.status}`);
+    return d;
+  };
 
   try {
     // 1. Resolve org ID
@@ -48,31 +48,35 @@ export default async function handler(req, res) {
 
     if (domain) {
       const r = await fetch(`https://api.apollo.io/v1/organizations/enrich?domain=${domain}`, { headers: HEADERS });
-      const d = await r.json();
-      console.log(`[enrich] domain=${domain} status=${r.status} id=${d?.organization?.id}`);
-      orgId = d?.organization?.id || null;
+      const text = await r.text();
+      try {
+        const d = JSON.parse(text);
+        orgId = d?.organization?.id || null;
+        console.log(`[org enrich] domain=${domain} id=${orgId}`);
+      } catch { console.log(`[org enrich] non-JSON: ${text.slice(0,80)}`); }
     }
 
     if (!orgId) {
-      const r = await post("https://api.apollo.io/v1/mixed_companies/search",
-        { q_organization_name: retailer, page: 1, per_page: 5 });
-      const d = await r.json();
-      const orgs = d?.organizations || d?.accounts || [];
-      const best = orgs.find(o => o.name?.toLowerCase() === retailer.toLowerCase()) || orgs[0];
-      if (best?.id) { orgId = best.id; console.log(`[org] picked "${best.name}" ${best.id}`); }
+      try {
+        const d = await post("https://api.apollo.io/v1/mixed_companies/search",
+          { q_organization_name: retailer, page: 1, per_page: 5 });
+        const orgs = d?.organizations || d?.accounts || [];
+        const best = orgs.find(o => o.name?.toLowerCase() === retailer.toLowerCase()) || orgs[0];
+        if (best?.id) { orgId = best.id; console.log(`[org search] picked "${best.name}" ${best.id}`); }
+      } catch (e) { console.log(`[org search] failed: ${e.message}`); }
     }
 
     const searchBody = orgId
       ? { organization_ids: [orgId], person_titles: TITLES }
       : { organization_names: [retailer], person_titles: TITLES };
 
-    // 2. Fetch pages in parallel
+    // 2. Fetch pages in parallel using mixed_people/search (supports title filtering)
     const start = (cursor - 1) * BATCH + 1;
     const pages = Array.from({ length: BATCH }, (_, i) => start + i);
-    const results = await Promise.all(pages.map(async pg => {
-      const r = await post("https://api.apollo.io/v1/people/search", { ...searchBody, page: pg, per_page: 100 });
-      const d = await r.json();
-      console.log(`[page ${pg}] status=${r.status} people=${d?.people?.length ?? 0} total=${d?.pagination?.total_entries ?? 0} err=${d?.error ?? "none"}`);
+
+    const results = await Promise.allSettled(pages.map(async pg => {
+      const d = await post("https://api.apollo.io/v1/mixed_people/search", { ...searchBody, page: pg, per_page: 100 });
+      console.log(`[page ${pg}] people=${d?.people?.length ?? 0} total=${d?.pagination?.total_entries ?? 0}`);
       return {
         people: d?.people || [],
         total:  d?.pagination?.total_entries || 0,
@@ -80,43 +84,47 @@ export default async function handler(req, res) {
       };
     }));
 
-    const apolloTotal = results[0]?.total || 0;
-    const totalPages  = Math.min(results[0]?.pages || 1, 500);
-    let   people      = results.flatMap(r => r.people).filter(p => p.first_name);
+    // Surface any errors from page fetches
+    const errors = results.filter(r => r.status === "rejected").map(r => r.reason?.message);
+    if (errors.length) console.log(`[page errors]`, errors);
+
+    const fulfilled = results.filter(r => r.status === "fulfilled").map(r => r.value);
+    if (!fulfilled.length) {
+      return res.status(500).json({ error: errors[0] || "All page fetches failed", leads: [] });
+    }
+
+    const apolloTotal = fulfilled[0]?.total || 0;
+    const totalPages  = Math.min(fulfilled[0]?.pages || 1, 500);
+    let   people      = fulfilled.flatMap(r => r.people).filter(p => p.first_name);
 
     // 3. Dedupe
     const seen = new Set();
     people = people.filter(p => {
-      const k = `${p.first_name}${p.last_name_obfuscated || p.last_name || ""}`.toLowerCase().replace(/\s/g, "");
+      const k = `${p.first_name}${p.last_name || ""}`.toLowerCase().replace(/\s/g, "");
       if (seen.has(k)) return false; seen.add(k); return true;
     });
 
-    // 4. Keyword filter on title
-    const pre = people.length;
-    people = people.filter(p => KEYWORDS.some(kw => (p.title || "").toLowerCase().includes(kw)));
-    console.log(`[filter] ${pre} -> ${people.length} after keyword filter`);
+    console.log(`[done] ${people.length} people after dedupe, apolloTotal=${apolloTotal}`);
 
     const leads = people.map((p, i) => ({
       id:           `apollo_${cursor}_${i}_${(p.id || "").slice(-6)}`,
       apolloId:     p.id || null,
       firstName:    p.first_name || "",
-      // last name is obfuscated in search — enrich by apolloId to reveal
       lastName:     p.last_name || p.last_name_obfuscated || "",
       title:        p.title || "",
       seniority:    p.seniority || "",
       departments:  p.departments || [],
-      retailer:     p.organization?.name || retailer,
-      email:        p.has_email ? null : null,       // revealed only via enrich
-      phone:        p.has_direct_phone === "Yes" ? null : null,
-      hasEmail:     !!p.has_email,
-      hasPhone:     p.has_direct_phone === "Yes",
+      retailer:     p.organization_name || p.organization?.name || retailer,
+      email:        p.email || null,
+      phone:        p.phone_numbers?.[0]?.sanitized_number || null,
+      hasEmail:     !!(p.email || p.has_email),
+      hasPhone:     !!(p.phone_numbers?.length || p.has_direct_phone === "Yes"),
       location:     [p.city, p.state].filter(Boolean).join(", ") || "",
       country:      p.country || null,
       linkedin:     p.linkedin_url || null,
     }));
 
     const nextCursor = start + BATCH <= totalPages ? cursor + 1 : null;
-    console.log(`[done] ${leads.length} leads, apolloTotal=${apolloTotal}`);
     return res.status(200).json({ leads, total: leads.length, apolloTotal, cursor, nextCursor });
 
   } catch (e) {

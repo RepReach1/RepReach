@@ -567,8 +567,9 @@ Return ONLY valid JSON: {"response":"[3-4 natural spoken sentences]","strategy":
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ query: intelQuery, brand: brandName, product: productDesc }),
       });
-      const d = await res.json();
-      if (d.error) throw new Error(d.error);
+      let d;
+      try { d = await res.json(); } catch { throw new Error(`Server error (${res.status}) — please try again`); }
+      if (!res.ok || d.error) throw new Error(d?.error || `Request failed (${res.status})`);
       setIntelResult(d);
     } catch(e) { alert("Research failed: " + e.message); }
     setIntelBusy(false);

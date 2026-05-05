@@ -1,7 +1,7 @@
 import { useState, useCallback, useRef } from "react";
 import LandingPage from "./LandingPage.jsx";
 
-const PAYMENT_LINK = "https://buy.stripe.com/8x200j5GZaO9aYZb7A2Ji00";
+const CONSULTATION_LINK = "https://calendly.com/YOUR_LINK_HERE";
 const ACCESS_CODE  = "Championsucks";
 
 async function apolloSearch(retailer, titles) {
@@ -1048,26 +1048,11 @@ Return ONLY valid JSON: {"subject":"...","body":"..."}`);
         .pw-head p{font-size:13px;color:var(--text2);line-height:1.65;max-width:300px;margin:0 auto;font-weight:500}
         .pw-body{padding:26px}
         .pw-price{margin-bottom:20px;padding-bottom:18px;border-bottom:1px solid var(--border)}
-        .pw-plans{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:0}
-        .pw-plan{
-          border:1px solid var(--border2);border-radius:12px;padding:14px 12px;
-          text-align:center;cursor:pointer;transition:all .15s;position:relative;
-          background:var(--bg3);
-        }
-        .pw-plan:hover{border-color:var(--border3)}
-        .pw-plan.selected{border-color:var(--orange);background:var(--orange-dim)}
-        .pw-plan-badge{
-          position:absolute;top:-9px;left:50%;transform:translateX(-50%);
-          background:var(--orange);color:#fff;
-          font-size:9px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;
-          padding:2px 9px;border-radius:20px;white-space:nowrap;font-family:var(--font-hd);
-        }
-        .pw-plan-name{font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px;font-family:var(--font-hd)}
-        .pw-plan-amt{font-family:var(--font-hd);font-size:28px;font-weight:800;color:var(--text);letter-spacing:-1px;line-height:1}
-        .pw-plan-mo{font-size:11px;font-weight:600;color:var(--text2);margin-top:1px}
-        .pw-plan-annual{font-size:10px;color:var(--text3);margin-top:4px;font-weight:400;letter-spacing:.01em}
-        .pw-plan.selected .pw-plan-amt{color:var(--orange)}
-        .pw-plan.selected .pw-plan-name{color:var(--orange)}
+        .pw-consult{background:rgba(249,115,22,.07);border:1px solid rgba(249,115,22,.18);border-radius:10px;padding:14px 16px;margin-bottom:16px;text-align:center}
+        .pw-consult-tag{font-size:10px;font-weight:800;color:var(--orange);text-transform:uppercase;letter-spacing:.1em;margin-bottom:6px}
+        .pw-consult-copy{font-size:12px;color:var(--text2);line-height:1.65;font-weight:500}
+        .pw-cta-btn{display:block;width:100%;padding:14px;border-radius:9px;background:linear-gradient(135deg,#f97316,#ea6c0a);color:#fff;font-weight:800;font-size:15px;text-align:center;text-decoration:none;letter-spacing:.02em;box-shadow:0 4px 24px rgba(249,115,22,.45);transition:.2s;font-family:var(--font-hd)}
+        .pw-cta-btn:hover{transform:translateY(-1px);box-shadow:0 6px 30px rgba(249,115,22,.6)}
         .pw-feats{display:flex;flex-direction:column;gap:10px;margin-bottom:22px}
         .pw-feat{display:flex;align-items:center;gap:10px;font-size:13px;color:var(--text2);font-weight:500}
         .pw-feat:before{content:'→';color:var(--green);font-weight:800;flex-shrink:0;font-size:15px}
@@ -1365,37 +1350,23 @@ Return ONLY valid JSON: {"subject":"...","body":"..."}`);
             <div className="pw-head">
               <button className="pw-x" onClick={() => setShowPaywall(false)}>×</button>
               <div className="pw-glow">⚡</div>
-              <h2>Unlock RepReach Pro</h2>
-              <p>Stop losing deals to reps who already have the buyer's number. Get in first.</p>
+              <h2>Let's Build Your Edge</h2>
+              <p>Book a free call. We'll map your territory, show you the platform live, and get you set up to close.</p>
             </div>
             <div className="pw-body">
-              <div className="pw-price">
-                <div className="pw-plans">
-                  {[
-                    {id:"starter", name:"Starter", mo:69,  annual:828,  credits:"5,000"},
-                    {id:"pro",     name:"Pro",     mo:99,  annual:1188, credits:"20,000", popular:true},
-                    {id:"team",    name:"Team",    mo:139, annual:1668, credits:"50,000"},
-                  ].map(p => (
-                    <div key={p.id} className={`pw-plan ${selectedPlan===p.id?"selected":""}`} onClick={()=>setSelectedPlan(p.id)}>
-                      {p.popular && <span className="pw-plan-badge">Most Popular</span>}
-                      <div className="pw-plan-name">{p.name}</div>
-                      <div className="pw-plan-amt">${p.mo}</div>
-                      <div className="pw-plan-mo">/ month</div>
-                      <div className="pw-plan-annual">Billed annually · ${p.annual}/yr</div>
-                    </div>
-                  ))}
-                </div>
-              </div>
               <div className="pw-feats">
                 <div className="pw-feat">Live buyer search for any retailer in seconds</div>
                 <div className="pw-feat">Direct email + phone on every contact</div>
                 <div className="pw-feat">AI cold emails, LinkedIn & follow-ups</div>
                 <div className="pw-feat">Outreach tracker — know where every deal stands</div>
-                <div className="pw-feat">{selectedPlan==="starter"?"5,000":selectedPlan==="pro"?"20,000":"50,000"} credits/yr · Up to 500 contacts per search</div>
+                <div className="pw-feat">Unlimited credits · Up to 500 contacts per search</div>
               </div>
-              <a href={PAYMENT_LINK} target="_blank" rel="noreferrer"
-                style={{display:"block",width:"100%",padding:"13px",borderRadius:9,background:"linear-gradient(135deg,#f97316,#ea6c0a)",color:"#fff",fontWeight:800,fontSize:14,textAlign:"center",textDecoration:"none",letterSpacing:".02em",boxShadow:"0 4px 20px rgba(249,115,22,.4)"}}>
-                Get {selectedPlan==="starter"?"Starter":selectedPlan==="pro"?"Pro":"Team"} — ${selectedPlan==="starter"?348:selectedPlan==="pro"?708:1188}/yr →
+              <div className="pw-consult">
+                <div className="pw-consult-tag">Custom Pricing · Limited Spots</div>
+                <div className="pw-consult-copy">We'll walk you through the platform and build a plan around your territory and targets — then close on the spot.</div>
+              </div>
+              <a href={CONSULTATION_LINK} target="_blank" rel="noreferrer" className="pw-cta-btn">
+                Book a Free Strategy Call →
               </a>
               <div className="pw-divider">— or enter access code —</div>
               <div className="code-wrap">

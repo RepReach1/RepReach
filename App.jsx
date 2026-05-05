@@ -105,6 +105,64 @@ export default function App() {
   const [practiceHistory,    setPracticeHistory]    = useState([]);
   const [prevObjections,     setPrevObjections]     = useState([]);
   const [practiceStarted,    setPracticeStarted]    = useState(false);
+
+  // ── Forecasting ──
+  const [dealValue, setDealValue] = useState("");
+
+  // ── Write with AI ──
+  const [aiTab,      setAiTab]      = useState("pitch");
+  const [pitchCtx,   setPitchCtx]   = useState("");
+  const [pitchBusy,  setPitchBusy]  = useState(false);
+  const [pitchRes,   setPitchRes]   = useState("");
+  const [objInput,   setObjInput]   = useState("");
+  const [objBusy,    setObjBusy]    = useState(false);
+  const [objRes,     setObjRes]     = useState("");
+  const [subjInput,  setSubjInput]  = useState("");
+  const [subjBusy,   setSubjBusy]   = useState(false);
+  const [subjRes,    setSubjRes]    = useState(null);
+  const [valBusy,    setValBusy]    = useState(false);
+  const [valRes,     setValRes]     = useState(null);
+  const [callCtx,    setCallCtx]    = useState("");
+  const [callBusy,   setCallBusy]   = useState(false);
+  const [callRes,    setCallRes]    = useState("");
+
+  // ── Email Sequences ──
+  const [sequences,    setSequences]    = useState([]);
+  const [showNewSeq,   setShowNewSeq]   = useState(false);
+  const [newSeqName,   setNewSeqName]   = useState("");
+  const [newSeqTarget, setNewSeqTarget] = useState("");
+  const [newSeqSteps,  setNewSeqSteps]  = useState(3);
+  const [seqBusy,      setSeqBusy]      = useState(false);
+  const [activeSeq,    setActiveSeq]    = useState(null);
+
+  // ── Sales Toolkit ──
+  const [enabTab,          setEnabTab]          = useState("playbook");
+  const [playbookTarget,   setPlaybookTarget]   = useState("");
+  const [playbookBusy,     setPlaybookBusy]     = useState(false);
+  const [playbookResult,   setPlaybookResult]   = useState(null);
+  const [pitchTplBusy,     setPitchTplBusy]     = useState(false);
+  const [pitchTplResult,   setPitchTplResult]   = useState("");
+  const [sellSheetBusy,    setSellSheetBusy]    = useState(false);
+  const [sellSheetResult,  setSellSheetResult]  = useState(null);
+  const [objLibSearch,     setObjLibSearch]     = useState("");
+  const [objLibBusy,       setObjLibBusy]       = useState(false);
+  const [objLibResult,     setObjLibResult]     = useState(null);
+
+  // ── Buyer Research ──
+  const [intelQuery,  setIntelQuery]  = useState("");
+  const [intelBusy,   setIntelBusy]   = useState(false);
+  const [intelResult, setIntelResult] = useState(null);
+
+  // ── Meeting Prep ──
+  const [meetContact,    setMeetContact]    = useState(null);
+  const [meetTab,        setMeetTab]        = useState("brief");
+  const [meetBriefBusy,  setMeetBriefBusy]  = useState(false);
+  const [meetBriefResult,setMeetBriefResult]= useState(null);
+  const [agendaBusy,     setAgendaBusy]     = useState(false);
+  const [agendaResult,   setAgendaResult]   = useState("");
+  const [meetNotes,      setMeetNotes]      = useState({});
+  const [followupBusy,   setFollowupBusy]   = useState(false);
+  const [followupResult, setFollowupResult] = useState(null);
   const pitchRecRef    = useRef(null);
   const responseRecRef = useRef(null);
 
@@ -369,6 +427,202 @@ ONLY JSON: {"subject":"...","body":"..."}`
   };
 
   const copy = (text, key) => { navigator.clipboard.writeText(text); setCopied(key); setTimeout(()=>setCopied(null),1800); };
+
+  // ── Write with AI handlers ──
+  const genPitch = async () => {
+    setPitchBusy(true); setPitchRes("");
+    try {
+      const r = await generateText(`You are a CPG sales expert. Generate a concise, persuasive 60-second retail sales pitch for a rep with these details:
+Brand: ${brandName||"their brand"}
+Product: ${productDesc||"their product"}
+Retail Context: ${pitchCtx||"general retail"}
+Rep Name: ${repName||"the rep"}
+Write a natural, spoken-word pitch. Start with a hook, cover the key value props and consumer demand, and close with a clear ask. Keep it under 120 words. Return ONLY valid JSON: {"text":"..."}`);
+      setPitchRes(r.text || "");
+    } catch(e) { alert("Failed: " + e.message); }
+    setPitchBusy(false);
+  };
+
+  const genObjHandler = async () => {
+    if (!objInput.trim()) return;
+    setObjBusy(true); setObjRes("");
+    try {
+      const d = await generateText(`You are a CPG sales coach. A retail buyer said: "${objInput}"
+Brand: ${brandName||"the brand"} | Product: ${productDesc||"the product"}
+Write ONE direct, confident, ready-to-use response the rep should say out loud. 3-4 natural sentences. No preamble. Return ONLY valid JSON: {"response":"..."}`);
+      setObjRes(d.response || "");
+    } catch(e) { alert("Failed: " + e.message); }
+    setObjBusy(false);
+  };
+
+  const genSubjectTest = async () => {
+    if (!subjInput.trim()) return;
+    setSubjBusy(true); setSubjRes(null);
+    try {
+      const d = await generateText(`Rate this cold email subject line for a CPG sales rep and give 3 stronger alternatives.
+Subject: "${subjInput}"
+Brand: ${brandName||"their brand"} | Product: ${productDesc||"their product"}
+Score 1-10 (10=best). Return ONLY valid JSON: {"score":7,"feedback":"short reason","alternatives":["alt1","alt2","alt3"]}`);
+      setSubjRes(d);
+    } catch(e) { alert("Failed: " + e.message); }
+    setSubjBusy(false);
+  };
+
+  const genValueProp = async () => {
+    setValBusy(true); setValRes(null);
+    try {
+      const d = await generateText(`Generate 3 buyer-focused value proposition statements for a CPG sales rep.
+Brand: ${brandName||"their brand"} | Product: ${productDesc||"their product"}
+Each value prop should speak directly to what the retail buyer cares about: margin, velocity, consumer demand, category growth.
+Return ONLY valid JSON: {"props":["value prop 1","value prop 2","value prop 3"]}`);
+      setValRes(d.props || []);
+    } catch(e) { alert("Failed: " + e.message); }
+    setValBusy(false);
+  };
+
+  const genCallScript = async () => {
+    setCallBusy(true); setCallRes("");
+    try {
+      const r = await generateText(`Write a 60-second cold call script for a CPG sales rep.
+Brand: ${brandName||"their brand"} | Product: ${productDesc||"their product"} | Buyer Type: ${callCtx||"retail buyer"}
+Include: opening hook, one key value prop, proof point, and a clear ask for a meeting. Natural spoken language. Under 150 words. Return ONLY valid JSON: {"text":"..."}`);
+      setCallRes(r.text || "");
+    } catch(e) { alert("Failed: " + e.message); }
+    setCallBusy(false);
+  };
+
+  // ── Email Sequences handler ──
+  const genSequence = async () => {
+    if (!newSeqName.trim()) return;
+    setSeqBusy(true);
+    try {
+      const d = await generateText(`Create a ${newSeqSteps}-step email outreach sequence for a CPG sales rep.
+Brand: ${brandName||"their brand"} | Product: ${productDesc||"their product"} | Target Buyer: ${newSeqTarget||"retail buyer"}
+Each step: day number, type (Email/LinkedIn/Call), subject line (if email), and body (2-4 sentences, natural and direct).
+Return ONLY valid JSON: {"steps":[{"day":1,"type":"Email","subject":"...","body":"..."},...]}`);
+      const seq = { id: Date.now(), name: newSeqName, target: newSeqTarget, steps: d.steps || [] };
+      setSequences(prev => [...prev, seq]);
+      setActiveSeq(seq);
+      setShowNewSeq(false); setNewSeqName(""); setNewSeqTarget(""); setNewSeqSteps(3);
+    } catch(e) { alert("Failed: " + e.message); }
+    setSeqBusy(false);
+  };
+
+  // ── Sales Toolkit handlers ──
+  const genPlaybook = async () => {
+    setPlaybookBusy(true); setPlaybookResult(null);
+    try {
+      const d = await generateText(`Create a tactical retail sales playbook for a CPG rep.
+Brand: ${brandName||"their brand"} | Product: ${productDesc||"their product"} | Target Retailers: ${playbookTarget||"major chains"}
+Include 4-5 sections: Positioning, Outreach Strategy, Meeting Preparation, Objection Handling, Closing.
+Each section has 3-4 actionable bullet points specific to CPG retail sales.
+Return ONLY valid JSON: {"sections":[{"title":"...","bullets":["...","...","..."]},...]}`);
+      setPlaybookResult(d);
+    } catch(e) { alert("Failed: " + e.message); }
+    setPlaybookBusy(false);
+  };
+
+  const genPitchTemplate = async () => {
+    setPitchTplBusy(true); setPitchTplResult("");
+    try {
+      const r = await generateText(`Write a versatile 90-second elevator pitch template for a CPG sales rep with fill-in-the-blank fields.
+Brand: ${brandName||"their brand"} | Product: ${productDesc||"their product"}
+Include placeholders like [RETAILER NAME], [CATEGORY], [VELOCITY STAT]. Natural spoken language. Return ONLY valid JSON: {"text":"..."}`);
+      setPitchTplResult(r.text || "");
+    } catch(e) { alert("Failed: " + e.message); }
+    setPitchTplBusy(false);
+  };
+
+  const genSellSheet = async () => {
+    setSellSheetBusy(true); setSellSheetResult(null);
+    try {
+      const d = await generateText(`Create a one-page sell sheet for a CPG sales rep.
+Brand: ${brandName||"their brand"} | Product: ${productDesc||"their product"}
+Return ONLY valid JSON: {"headline":"...","subheadline":"...","productDescription":"...","targetConsumer":"...","keyBenefits":["...","...","..."],"velocityStats":"...","retailerBenefits":"...","callToAction":"..."}`);
+      setSellSheetResult(d);
+    } catch(e) { alert("Failed: " + e.message); }
+    setSellSheetBusy(false);
+  };
+
+  const genObjLibrary = async () => {
+    if (!objLibSearch.trim()) return;
+    setObjLibBusy(true); setObjLibResult(null);
+    try {
+      const d = await generateText(`A retail buyer said exactly this: "${objLibSearch}"
+Brand: ${brandName||"the brand"} | Product: ${productDesc||"the product"}
+Give ONE confident, ready-to-say response a top CPG sales rep would use. Then explain the strategy behind it in 1-2 sentences.
+Return ONLY valid JSON: {"response":"[3-4 natural spoken sentences]","strategy":"[why this approach works]"}`);
+      setObjLibResult(d);
+    } catch(e) { alert("Failed: " + e.message); }
+    setObjLibBusy(false);
+  };
+
+  // ── Buyer Research handler ──
+  const runIntelResearch = async () => {
+    if (!intelQuery.trim()) return;
+    setIntelBusy(true); setIntelResult(null);
+    try {
+      const res = await fetch("/api/intelligence", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ query: intelQuery, brand: brandName, product: productDesc }),
+      });
+      const d = await res.json();
+      if (d.error) throw new Error(d.error);
+      setIntelResult(d);
+    } catch(e) { alert("Research failed: " + e.message); }
+    setIntelBusy(false);
+  };
+
+  // ── Meeting Prep handlers ──
+  const genMeetBrief = async (lead) => {
+    setMeetContact(lead); setMeetTab("brief");
+    setMeetBriefBusy(true); setMeetBriefResult(null); setAgendaResult(""); setFollowupResult(null);
+    try {
+      const d = await generateText(`Generate a pre-meeting brief for a CPG sales rep meeting with this buyer.
+Buyer: ${lead.firstName} ${lead.lastName} at ${lead.retailer}, Title: ${lead.title||"Buyer"}
+Brand: ${brandName||"their brand"} | Product: ${productDesc||"their product"}
+Return ONLY valid JSON: {"talkingPoints":["...","...","..."],"anticipatedObjections":["...","..."],"quickWins":["...","..."],"keyQuestions":["...","..."]}`);
+      setMeetBriefResult(d);
+    } catch(e) { alert("Failed: " + e.message); }
+    setMeetBriefBusy(false);
+  };
+
+  const genAgenda = async () => {
+    if (!meetContact) return;
+    setAgendaBusy(true); setAgendaResult("");
+    try {
+      const r = await generateText(`Write a structured 30-minute meeting agenda for a CPG sales rep meeting with ${meetContact.firstName} ${meetContact.lastName} at ${meetContact.retailer}.
+Brand: ${brandName||"their brand"} | Product: ${productDesc||"their product"}
+Format as a clear, time-blocked agenda. Include: intro, product overview, category opportunity, Q&A, next steps. Return ONLY valid JSON: {"text":"..."}`);
+      setAgendaResult(r.text || "");
+    } catch(e) { alert("Failed: " + e.message); }
+    setAgendaBusy(false);
+  };
+
+  const genMeetFollowup = async () => {
+    if (!meetContact) return;
+    setFollowupBusy(true); setFollowupResult(null);
+    const notes = meetNotes[meetContact.id] || "";
+    try {
+      const d = await generateText(`Write a professional follow-up email after a CPG sales meeting.
+Buyer: ${meetContact.firstName} ${meetContact.lastName} at ${meetContact.retailer}
+Brand: ${brandName||"their brand"} | Product: ${productDesc||"their product"}
+${notes ? `Meeting Notes: ${notes}` : ""}
+Warm but professional. Reference the meeting, confirm next steps, and keep it under 150 words.
+Return ONLY valid JSON: {"subject":"...","body":"..."}`);
+      setFollowupResult(d);
+    } catch(e) { alert("Failed: " + e.message); }
+    setFollowupBusy(false);
+  };
+
+  // ── Export CSV ──
+  const exportCSV = () => {
+    const header = "First Name,Last Name,Title,Company,Email,LinkedIn";
+    const rows = leads.map(l => [l.firstName,l.lastName,l.title,l.retailer,l.email,l.linkedinUrl||""].map(v=>`"${(v||"").replace(/"/g,'""')}"`).join(","));
+    const blob = new Blob([header+"\n"+rows.join("\n")],{type:"text/csv"});
+    const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download="repreach-contacts.csv"; a.click();
+  };
   const getStatus = (id) => STATUSES.find(s=>s.id===(statuses[id]||"none"))||STATUSES[0];
   const cycleStatus = (id) => { const i=STATUSES.findIndex(s=>s.id===(statuses[id]||"none")); setStatuses(p=>({...p,[id]:STATUSES[(i+1)%STATUSES.length].id})); };
 

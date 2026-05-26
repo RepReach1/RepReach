@@ -881,8 +881,8 @@ ONLY JSON: {"script":"..."}`,
         .pulsing{animation:pulse 1.4s ease-in-out infinite}
 
         /* ─── PAYWALL ─── */
-        .pw-overlay{position:fixed;inset:0;background:rgba(4,5,12,.88);backdrop-filter:blur(10px);z-index:999;display:flex;align-items:center;justify-content:center;padding:20px}
-        .pw-modal{background:var(--bg2);border:1px solid var(--border);border-radius:20px;max-width:440px;width:100%;overflow:hidden;box-shadow:0 32px 80px rgba(0,0,0,.7),0 0 0 1px rgba(0,229,192,.06);position:relative}
+        .pw-overlay{position:fixed;inset:0;background:rgba(4,5,12,.88);backdrop-filter:blur(10px);z-index:999;display:flex;align-items:flex-start;justify-content:center;padding:20px;overflow-y:auto}
+        .pw-modal{background:var(--bg2);border:1px solid var(--border);border-radius:20px;max-width:520px;width:100%;overflow:hidden;box-shadow:0 32px 80px rgba(0,0,0,.7),0 0 0 1px rgba(0,229,192,.06);position:relative;margin:auto}
         .pw-head{background:linear-gradient(135deg,var(--bg),#081a15);padding:32px;text-align:center;border-bottom:1px solid rgba(0,229,192,.1)}
         .pw-glow{width:62px;height:62px;background:linear-gradient(135deg,var(--teal),var(--teal2));border-radius:18px;display:flex;align-items:center;justify-content:center;font-size:28px;margin:0 auto 18px;box-shadow:0 0 36px var(--teal-glow)}
         .pw-head h2{font-family:'Bricolage Grotesque',sans-serif;font-size:24px;font-weight:800;color:var(--text);margin-bottom:8px;letter-spacing:-.4px}
@@ -1075,17 +1075,21 @@ ONLY JSON: {"script":"..."}`,
               <p>Twenty minutes with your closer. If RepReach is the right fit, we'll show you what's inside the program — and how the first deal lands.</p>
             </div>
             <div className="pw-body">
-              <div className="pw-feats">
+              <div className="pw-feats" style={{marginBottom:18}}>
                 <div className="pw-feat">Find every buyer at any retailer, instantly</div>
                 <div className="pw-feat">Direct email + phone on every contact</div>
                 <div className="pw-feat">AI cold emails, LinkedIn outreach &amp; follow-ups</div>
                 <div className="pw-feat">1:1 coaching from a closer who's done this 120+ times</div>
                 <div className="pw-feat">Practice, playbooks, sell sheets — all inside the program</div>
               </div>
-              <a href="https://calendly.com/repreach/strategy-call" target="_blank" rel="noreferrer"
-                style={{display:"block",width:"100%",padding:"13px",borderRadius:9,background:"linear-gradient(135deg,var(--teal2),var(--teal))",color:"#07080f",fontWeight:800,fontSize:14,textAlign:"center",textDecoration:"none",letterSpacing:".02em",boxShadow:"0 4px 20px rgba(0,201,167,.35)"}}>
-                See available times →
-              </a>
+              <iframe
+                src="https://calendly.com/amaar-akronproductsinc/30min?hide_event_type_details=1&hide_gdpr_banner=1&primary_color=00d579"
+                width="100%"
+                height="630"
+                frameBorder="0"
+                style={{borderRadius:10,display:"block"}}
+                title="Book your strategy call"
+              />
               <div style={{textAlign:"center",fontSize:11,color:"var(--text3)",marginTop:12,fontWeight:600,letterSpacing:".02em"}}>No price discussed until we know it's a fit.</div>
             </div>
           </div>

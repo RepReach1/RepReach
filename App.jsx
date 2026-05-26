@@ -1,7 +1,5 @@
 import { useState, useCallback, useRef } from "react";
 
-const PAYMENT_LINK = "https://buy.stripe.com/8x200j5GZaO9aYZb7A2Ji00";
-const ACCESS_CODE  = "Championsucks";
 
 async function apolloSearch(retailer, titles) {
   const res = await fetch("/api/search", {
@@ -50,9 +48,7 @@ const QUICK_COMPANIES = ["Walmart","Sam's Club","Kroger","Target","Costco","Home
 
 export default function App() {
   const [isSubscribed, setIsSubscribed] = useState(false);
-  const [showPaywall,  setShowPaywall]  = useState(false);
-  const [accessCode,   setAccessCode]   = useState("");
-  const [codeError,    setCodeError]    = useState("");
+  const [showGate,     setShowGate]     = useState(false);
 
   const [repName,     setRepName]     = useState("");
   const [brandName,   setBrandName]   = useState("");
@@ -266,7 +262,7 @@ export default function App() {
   };
 
   const enrichContact = useCallback(async (lead) => {
-    if (!isSubscribed) { setShowPaywall(true); return; }
+    if (!isSubscribed) { setShowGate(true); return; }
     setEnriching(prev => new Set([...prev, lead.id]));
     try {
       const res = await fetch("/api/enrich", {
@@ -309,7 +305,7 @@ export default function App() {
   };
 
   const openLead = (lead) => {
-    if (!isSubscribed) { setShowPaywall(true); return; }
+    if (!isSubscribed) { setShowGate(true); return; }
     setActiveLead(activeLead?.id === lead.id ? null : lead);
     setEmailTab("cold");
     // Auto-enrich to reveal contact info if not already done
@@ -1066,41 +1062,31 @@ ONLY JSON: {"script":"..."}`,
         .hist-score{font-family:'Bricolage Grotesque',sans-serif;font-size:20px;font-weight:800;flex-shrink:0;min-width:26px;line-height:1.2}
       `}</style>
 
-      {/* ── PAYWALL ── */}
-      {showPaywall && (
-        <div className="pw-overlay" onClick={() => setShowPaywall(false)}>
+      {/* ── STRATEGY CALL GATE ── */}
+      {showGate && (
+        <div className="pw-overlay" onClick={() => setShowGate(false)}>
           <div className="pw-modal" onClick={e => e.stopPropagation()}>
             <div className="pw-head">
-              <button className="pw-x" onClick={() => setShowPaywall(false)}>×</button>
-              <div className="pw-glow">⚡</div>
-              <h2>Unlock RepReach Pro</h2>
-              <p>Stop losing deals to reps who already have the buyer's number. Get in first.</p>
+              <button className="pw-x" onClick={() => setShowGate(false)}>×</button>
+              <div className="pw-glow" style={{background:"linear-gradient(135deg,var(--teal),var(--teal2))"}}>
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#07080f" strokeWidth="1.85" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+              </div>
+              <h2>Book your strategy call.</h2>
+              <p>Twenty minutes with your closer. If RepReach is the right fit, we'll show you what's inside the program — and how the first deal lands.</p>
             </div>
             <div className="pw-body">
-              <div className="pw-price">
-                <div className="pw-amt">$2,000</div>
-                <div className="pw-per">per month</div>
-                <div className="pw-disc">First month: $1,500 — save $500 today</div>
-              </div>
               <div className="pw-feats">
-                <div className="pw-feat">Live buyer search for any retailer in seconds</div>
+                <div className="pw-feat">Find every buyer at any retailer, instantly</div>
                 <div className="pw-feat">Direct email + phone on every contact</div>
-                <div className="pw-feat">AI cold emails, LinkedIn & follow-ups</div>
-                <div className="pw-feat">Outreach tracker — know where every deal stands</div>
-                <div className="pw-feat">Up to 500 contacts per search</div>
+                <div className="pw-feat">AI cold emails, LinkedIn outreach &amp; follow-ups</div>
+                <div className="pw-feat">1:1 coaching from a closer who's done this 120+ times</div>
+                <div className="pw-feat">Practice, playbooks, sell sheets — all inside the program</div>
               </div>
-              <a href={PAYMENT_LINK} target="_blank" rel="noreferrer"
-                style={{display:"block",width:"100%",padding:"13px",borderRadius:9,background:"linear-gradient(135deg,#00c9a7,#00e5c0)",color:"#060b10",fontWeight:800,fontSize:14,textAlign:"center",textDecoration:"none",letterSpacing:".02em",boxShadow:"0 4px 20px rgba(0,201,167,.35)"}}>
-                Get Access — $1,500 First Month →
+              <a href="https://calendly.com/repreach/strategy-call" target="_blank" rel="noreferrer"
+                style={{display:"block",width:"100%",padding:"13px",borderRadius:9,background:"linear-gradient(135deg,var(--teal2),var(--teal))",color:"#07080f",fontWeight:800,fontSize:14,textAlign:"center",textDecoration:"none",letterSpacing:".02em",boxShadow:"0 4px 20px rgba(0,201,167,.35)"}}>
+                See available times →
               </a>
-              <div className="pw-divider">— or enter access code —</div>
-              <div className="code-wrap">
-                <input className="code-in" placeholder="Access code" value={accessCode}
-                  onChange={e => setAccessCode(e.target.value)}
-                  onKeyDown={e => { if(e.key==="Enter"){ accessCode.trim()===ACCESS_CODE?(setIsSubscribed(true),setShowPaywall(false),setCodeError("")):setCodeError("Invalid code."); }}} />
-                <button className="btn btn-teal" onClick={() => { accessCode.trim()===ACCESS_CODE?(setIsSubscribed(true),setShowPaywall(false),setCodeError("")):setCodeError("Invalid code."); }}>Apply</button>
-              </div>
-              {codeError && <div className="err">{codeError}</div>}
+              <div style={{textAlign:"center",fontSize:11,color:"var(--text3)",marginTop:12,fontWeight:600,letterSpacing:".02em"}}>No price discussed until we know it's a fit.</div>
             </div>
           </div>
         </div>
@@ -1116,37 +1102,37 @@ ONLY JSON: {"script":"..."}`,
 
           <div className="sb-nav">
             <div className={`sb-item ${view==="people"?"on":""}`} onClick={() => setView("people")}>
-              <span className="sb-item-icon">🔍</span> People Finder
+              <span className="sb-item-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.85" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.5" y2="16.5"/></svg></span> People Finder
             </div>
             <div className={`sb-item ${view==="pipeline"?"on":""}`} onClick={() => setView("pipeline")}>
-              <span className="sb-item-icon">📊</span> Pipeline
+              <span className="sb-item-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.85" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg></span> Pipeline
             </div>
             <div className={`sb-item ${view==="sequences"?"on":""}`} onClick={() => setView("sequences")}>
-              <span className="sb-item-icon">⚡</span> Sequences
+              <span className="sb-item-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.85" strokeLinecap="round" strokeLinejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg></span> Sequences
             </div>
             <div className={`sb-item ${view==="forecasting"?"on":""}`} onClick={() => setView("forecasting")}>
-              <span className="sb-item-icon">📈</span> Forecasting
+              <span className="sb-item-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.85" strokeLinecap="round" strokeLinejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg></span> Forecasting
             </div>
             <div className={`sb-item ${view==="aitools"?"on":""}`} onClick={() => setView("aitools")}>
-              <span className="sb-item-icon">🤖</span> AI Tools
+              <span className="sb-item-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.85" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="10" rx="2"/><circle cx="12" cy="5" r="2"/><path d="M12 7v4"/><line x1="8" y1="16" x2="8" y2="16"/><line x1="16" y1="16" x2="16" y2="16"/></svg></span> AI Tools
             </div>
             <div className={`sb-item ${view==="intelligence"?"on":""}`} onClick={() => setView("intelligence")}>
-              <span className="sb-item-icon">🧠</span> Intelligence
+              <span className="sb-item-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.85" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg></span> Intelligence
             </div>
             <div className={`sb-item ${view==="enablement"?"on":""}`} onClick={() => setView("enablement")}>
-              <span className="sb-item-icon">🚀</span> Enablement
+              <span className="sb-item-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.85" strokeLinecap="round" strokeLinejoin="round"><path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z"/><path d="m12 15-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z"/><path d="M9 12H4s.55-3.03 2-4c1.62-1.08 5 0 5 0"/><path d="M12 15v5s3.03-.55 4-2c1.08-1.62 0-5 0-5"/></svg></span> Enablement
             </div>
             <div className={`sb-item ${view==="meetings"?"on":""}`} onClick={() => setView("meetings")}>
-              <span className="sb-item-icon">📅</span> Meetings
+              <span className="sb-item-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.85" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></span> Meetings
             </div>
             <div className={`sb-item ${view==="integrations"?"on":""}`} onClick={() => setView("integrations")}>
-              <span className="sb-item-icon">🔗</span> Integrations
+              <span className="sb-item-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.85" strokeLinecap="round" strokeLinejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg></span> Integrations
             </div>
             <div className={`sb-item ${view==="tracker"?"on":""}`} onClick={() => setView("tracker")}>
-              <span className="sb-item-icon">✓</span> Tracker
+              <span className="sb-item-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.85" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span> Tracker
             </div>
             <div className={`sb-item ${view==="practice"?"on":""}`} onClick={() => setView("practice")}>
-              <span className="sb-item-icon">🎯</span> Practice
+              <span className="sb-item-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.85" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg></span> Practice
             </div>
           </div>
 
@@ -1203,15 +1189,15 @@ ONLY JSON: {"script":"..."}`,
         <div className="right">
           <div className="topbar">
             <div className="ts-wrap">
-              <span className="ts-icon">⚡</span>
+              <span className="ts-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.85" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.5" y2="16.5"/></svg></span>
               <input autoFocus value={companyInput}
                 onChange={e => handleCompanyInput(e.target.value)}
                 placeholder="Search any retailer — or type a person's name..." />
             </div>
             <div className="topbar-right">
               {isSubscribed
-                ? <span className="pro-badge">✓ Pro Active</span>
-                : <button className="btn btn-amber btn-sm" onClick={() => setShowPaywall(true)}>⚡ Upgrade to Pro</button>
+                ? <span className="pro-badge">Program Active</span>
+                : <button className="btn btn-amber btn-sm" onClick={() => setShowGate(true)}>Book strategy call →</button>
               }
             </div>
           </div>
@@ -1246,7 +1232,7 @@ ONLY JSON: {"script":"..."}`,
                       {totalAvailable > leads.length && <span className="rs" style={{marginLeft:6}}>of {totalAvailable.toLocaleString()} in Apollo</span>}
                       {selected.size > 0 && <span style={{marginLeft:12,color:"#00c9a7",fontWeight:700,fontSize:12}}>{selected.size} selected</span>}
                       {!isSubscribed && leads.length > 0 && (
-                        <button className="btn btn-amber btn-sm" style={{marginLeft:"auto"}} onClick={() => setShowPaywall(true)}>⚡ Unlock All Contacts</button>
+                        <button className="btn btn-amber btn-sm" style={{marginLeft:"auto"}} onClick={() => setShowGate(true)}>Book your strategy call →</button>
                       )}
                     </>
                   ) : (
@@ -1256,7 +1242,9 @@ ONLY JSON: {"script":"..."}`,
 
                 {!hasSearched && !searching ? (
                   <div className="empty">
-                    <div className="empty-icon">⚡</div>
+                    <div style={{width:54,height:54,borderRadius:14,background:"linear-gradient(135deg,rgba(0,229,192,.2),rgba(0,229,192,.06))",border:"1px solid rgba(0,229,192,.3)",display:"flex",alignItems:"center",justifyContent:"center",color:"var(--teal)",boxShadow:"0 0 28px rgba(0,229,192,.18)",marginBottom:16}}>
+                      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.85" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.5" y2="16.5"/></svg>
+                    </div>
                     <h3>Find any buyer. Right now.</h3>
                     <p>Type a retailer in the sidebar or search bar. Get every buyer, merchant, and category manager in seconds.</p>
                     <div className="qpills">
@@ -1273,7 +1261,6 @@ ONLY JSON: {"script":"..."}`,
                   </div>
                 ) : leads.length === 0 ? (
                   <div className="empty">
-                    <div className="empty-icon">🔍</div>
                     <h3>No contacts found for "{companyInput}"</h3>
                     <p>Try the parent company name or remove title filters.</p>
                   </div>
@@ -1328,19 +1315,19 @@ ONLY JSON: {"script":"..."}`,
                               </td>
                               <td onClick={e=>e.stopPropagation()}>
                                 {!isSubscribed
-                                  ? <button className="cbtn cb-locked" onClick={()=>setShowPaywall(true)}>🔒 Unlock</button>
+                                  ? <button className="cbtn cb-locked" onClick={()=>setShowGate(true)}><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.85" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg> Reveal</button>
                                   : lead.email
-                                    ? <button className="cbtn cb-email" onClick={()=>copy(lead.email,"e_"+lead.id)}>✉ {copied==="e_"+lead.id?"Copied!":lead.email.length>22?lead.email.slice(0,22)+"…":lead.email}</button>
+                                    ? <button className="cbtn cb-email" onClick={()=>copy(lead.email,"e_"+lead.id)}><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.85" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><polyline points="3 7 12 13 21 7"/></svg> {copied==="e_"+lead.id?"Copied!":lead.email.length>22?lead.email.slice(0,22)+"…":lead.email}</button>
                                     : enriching.has(lead.id)
                                       ? <span className="cbtn cb-gen"><span className="spin" style={{width:10,height:10}}/>Revealing...</span>
-                                      : <button className="cbtn cb-gen" onClick={()=>enrichContact(lead)}>⚡ Reveal</button>
+                                      : <button className="cbtn cb-gen" onClick={()=>enrichContact(lead)}>Reveal</button>
                                 }
                               </td>
                               <td onClick={e=>e.stopPropagation()}>
                                 {!isSubscribed
-                                  ? <button className="cbtn cb-locked" onClick={()=>setShowPaywall(true)}>🔒</button>
+                                  ? <button className="cbtn cb-locked" onClick={()=>setShowGate(true)}><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.85" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></button>
                                   : lead.phone
-                                    ? <button className="cbtn cb-phone" onClick={()=>copy(lead.phone,"p_"+lead.id)}>📞 {copied==="p_"+lead.id?"Copied!":lead.phone}</button>
+                                    ? <button className="cbtn cb-phone" onClick={()=>copy(lead.phone,"p_"+lead.id)}><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.85" strokeLinecap="round" strokeLinejoin="round"><path d="M5 4h3l2 5-2.5 1.5a12 12 0 0 0 6 6L15 14l5 2v3a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2z"/></svg> {copied==="p_"+lead.id?"Copied!":lead.phone}</button>
                                     : enriching.has(lead.id)
                                       ? <span style={{color:"#334155",fontSize:11}}>···</span>
                                       : <button className="cbtn cb-gen" style={{fontSize:10}} onClick={()=>enrichContact(lead)}>⚡ Reveal</button>
@@ -1360,7 +1347,7 @@ ONLY JSON: {"script":"..."}`,
                   {nextCursor && (
                     <div style={{padding:"16px 20px",borderTop:"1px solid #0d1f2d",display:"flex",alignItems:"center",gap:14}}>
                       <button className="btn btn-teal" disabled={loadingMore} onClick={loadMore} style={{justifyContent:"center"}}>
-                        {loadingMore ? <><span className="spin"/>Loading next 1,000...</> : "⚡ Load More Contacts"}
+                        {loadingMore ? <><span className="spin"/>Loading...</> : "Load more contacts →"}
                       </button>
                       <span style={{fontSize:12,color:"#334155"}}>{leads.length.toLocaleString()} loaded · {(totalAvailable - leads.length).toLocaleString()} more in Apollo</span>
                     </div>
@@ -1410,7 +1397,7 @@ ONLY JSON: {"script":"..."}`,
                         }>
                         {isRecordingPitch
                           ? <><span style={{width:8,height:8,borderRadius:"50%",background:"#f87171",flexShrink:0,display:"inline-block"}}/>Stop Recording</>
-                          : <>🎙 Record Pitch</>}
+                          : <><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.85" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0"/><line x1="12" y1="18" x2="12" y2="22"/></svg> Record pitch</>}
                       </button>
                       {pitchText && <span style={{fontSize:11,color:"var(--text3)",fontWeight:600}}>{pitchText.trim().split(/\s+/).length} words</span>}
                       {pitchText && <button className="btn btn-outline btn-sm" style={{marginLeft:"auto"}} onClick={()=>{setPitchText("");setPracticeStarted(false);setCurrentObjection(null);setScoringResult(null);setObjResp("");setPracticeHistory([]);setPrevObjections([]);}}>Reset Session</button>}
@@ -1422,7 +1409,7 @@ ONLY JSON: {"script":"..."}`,
                     disabled={genObjection||!pitchText.trim()} onClick={generateObjection}>
                     {genObjection
                       ? <><span className="spin"/>Generating objection...</>
-                      : practiceStarted ? "⚡ Next Objection" : "⚡ Start Practice Session"}
+                      : practiceStarted ? "Next objection →" : "Start practice session →"}
                   </button>
 
                   {/* Objection + response + feedback */}
@@ -1450,7 +1437,7 @@ ONLY JSON: {"script":"..."}`,
                               }>
                               {isRecordingResp
                                 ? <><span style={{width:8,height:8,borderRadius:"50%",background:"#f87171",flexShrink:0,display:"inline-block"}}/>Stop Recording</>
-                                : <>🎙 Record Response</>}
+                                : <><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.85" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0"/><line x1="12" y1="18" x2="12" y2="22"/></svg> Record response</>}
                             </button>
                             <button className="btn btn-teal btn-sm" style={{marginLeft:"auto"}} disabled={scoringResp||!objResp.trim()} onClick={scoreResponse}>
                               {scoringResp ? <><span className="spin"/>Scoring...</> : "Submit Response →"}
@@ -1514,7 +1501,7 @@ ONLY JSON: {"script":"..."}`,
                       <div style={{display:"flex",flexDirection:"column",gap:10}}>
                         {[
                           ["1","Record or type your pitch","Tell the buyer who you are, what you sell, and why they should care."],
-                          ["2","Get a real objection","Claude plays a skeptical buyer and throws a realistic objection at you."],
+                          ["2","Get a real objection","Your coach (and Claude) play a skeptical buyer and throw a realistic objection at you."],
                           ["3","Handle it","Speak or type your response — just like you would in a real meeting."],
                           ["4","Get scored","See your score 1–10, specific feedback, and a model answer from a top rep."],
                         ].map(([n,title,desc]) => (
@@ -1538,7 +1525,7 @@ ONLY JSON: {"script":"..."}`,
                     <p>{leads.length} contacts tracked · drag-and-drop coming soon</p>
                   </div>
                   {leads.length === 0
-                    ? <div className="empty"><div className="empty-icon">📊</div><h3>Pipeline is empty</h3><p>Search a retailer in People Finder and contacts will appear here.</p></div>
+                    ? <div className="empty"><h3>Pipeline is empty</h3><p>Search a retailer in People Finder and contacts will appear here.</p></div>
                     : <div className="kanban">
                         {STATUSES.map(col => {
                           const colLeads = leads.filter(l => (statuses[l.id]||"none") === col.id);
@@ -1645,44 +1632,44 @@ ONLY JSON: {"script":"..."}`,
                 /* ── AI TOOLS ── */
                 <div className="ai-view">
                   <div className="ai-view-hd">
-                    <div className="ai-view-hd-top"><span style={{fontSize:15}}>🤖</span><h2>AI Tools</h2></div>
+                    <div className="ai-view-hd-top"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.85" strokeLinecap="round" strokeLinejoin="round" style={{color:"var(--teal)"}}><rect x="3" y="11" width="18" height="10" rx="2"/><circle cx="12" cy="5" r="2"/><path d="M12 7v4"/><line x1="8" y1="16" x2="8" y2="16"/><line x1="16" y1="16" x2="16" y2="16"/></svg><h2>AI Tools</h2></div>
                     <p>AI-powered sales assets</p>
                     <div className="ai-tabs">
-                      {[{id:"pitch",icon:"🎤",label:"Pitch Builder"},{id:"objection",icon:"🛡",label:"Objection Handler"},{id:"subject",icon:"✉",label:"Subject Line Tester"},{id:"value",icon:"💡",label:"Value Proposition"},{id:"callscript",icon:"📞",label:"Call Script"}].map(t=>(
-                        <button key={t.id} className={`ai-tab ${aiTab===t.id?"on":""}`} onClick={()=>setAiTab(t.id)}>{t.icon} {t.label}</button>
+                      {[{id:"pitch",label:"Pitch Builder"},{id:"objection",label:"Objection Handler"},{id:"subject",label:"Subject line tester"},{id:"value",label:"Value proposition"},{id:"callscript",label:"Call script"}].map(t=>(
+                        <button key={t.id} className={`ai-tab ${aiTab===t.id?"on":""}`} onClick={()=>setAiTab(t.id)}>{t.label}</button>
                       ))}
                     </div>
                   </div>
                   <div className="ai-panel">
                     {aiTab === "pitch" && (<>
-                      <div className="ai-panel-title">🎤 Pitch Builder</div>
+                      <div className="ai-panel-title">Pitch Builder</div>
                       <div className="ai-panel-sub">Generate a tailored pitch for any buyer</div>
                       <div className="ai-field-label">Retail Context</div>
                       <input className="ai-in" placeholder="e.g. grocery, mass, club" value={pitchCtx} onChange={e=>setPitchCtx(e.target.value)} onKeyDown={e=>e.key==="Enter"&&genPitch()} />
                       <button className="btn btn-teal" style={{marginTop:14,width:"100%",justifyContent:"center"}} disabled={pitchBusy} onClick={genPitch}>
-                        {pitchBusy?<><span className="spin"/>Generating...</>:"⚡ Generate"}
+                        {pitchBusy?<><span className="spin"/>Generating...</>:"Generate →"}
                       </button>
                       {pitchRes && <><div className="ai-result-box">{pitchRes}</div><button className="btn btn-outline btn-sm" style={{marginTop:8}} onClick={()=>copy(pitchRes,"pitch")}>{copied==="pitch"?"✓ Copied":"Copy Pitch"}</button></>}
                     </>)}
 
                     {aiTab === "objection" && (<>
-                      <div className="ai-panel-title">🛡 Objection Handler</div>
+                      <div className="ai-panel-title">Objection Handler</div>
                       <div className="ai-panel-sub">Enter a buyer objection and get a confident, ready-to-use response</div>
                       <div className="ai-field-label">Buyer Objection</div>
                       <textarea className="ai-in pitch-ta" placeholder='e.g. "Your margins are too thin for us to make money on this."' rows={3} value={objInput} onChange={e=>setObjInput(e.target.value)} />
                       <button className="btn btn-teal" style={{marginTop:14,width:"100%",justifyContent:"center"}} disabled={objBusy||!objInput.trim()} onClick={genObjHandler}>
-                        {objBusy?<><span className="spin"/>Generating...</>:"⚡ Generate Response"}
+                        {objBusy?<><span className="spin"/>Generating...</>:"Generate response →"}
                       </button>
                       {objRes && <><div className="ai-result-box">{objRes}</div><button className="btn btn-outline btn-sm" style={{marginTop:8}} onClick={()=>copy(objRes,"obj")}>{copied==="obj"?"✓ Copied":"Copy Response"}</button></>}
                     </>)}
 
                     {aiTab === "subject" && (<>
-                      <div className="ai-panel-title">✉ Subject Line Tester</div>
+                      <div className="ai-panel-title">Subject line tester</div>
                       <div className="ai-panel-sub">Score your subject line and get 3 stronger alternatives</div>
                       <div className="ai-field-label">Email Subject Line</div>
                       <input className="ai-in" placeholder='e.g. "Quick question about your protein bar set"' value={subjInput} onChange={e=>setSubjInput(e.target.value)} onKeyDown={e=>e.key==="Enter"&&genSubjectTest()} />
                       <button className="btn btn-teal" style={{marginTop:14,width:"100%",justifyContent:"center"}} disabled={subjBusy||!subjInput.trim()} onClick={genSubjectTest}>
-                        {subjBusy?<><span className="spin"/>Analyzing...</>:"⚡ Test Subject Line"}
+                        {subjBusy?<><span className="spin"/>Analyzing...</>:"Test subject line →"}
                       </button>
                       {subjRes && (
                         <div style={{marginTop:16}}>
@@ -1702,10 +1689,10 @@ ONLY JSON: {"script":"..."}`,
                     </>)}
 
                     {aiTab === "value" && (<>
-                      <div className="ai-panel-title">💡 Value Proposition</div>
+                      <div className="ai-panel-title">Value proposition</div>
                       <div className="ai-panel-sub">Generate 3 buyer-focused value prop statements for your brand</div>
                       <button className="btn btn-teal" style={{width:"100%",justifyContent:"center"}} disabled={valBusy} onClick={genValueProp}>
-                        {valBusy?<><span className="spin"/>Generating...</>:"⚡ Generate Value Props"}
+                        {valBusy?<><span className="spin"/>Generating...</>:"Generate value props →"}
                       </button>
                       {valRes && (
                         <div style={{marginTop:16,display:"flex",flexDirection:"column",gap:10}}>
@@ -1721,12 +1708,12 @@ ONLY JSON: {"script":"..."}`,
                     </>)}
 
                     {aiTab === "callscript" && (<>
-                      <div className="ai-panel-title">📞 Call Script</div>
+                      <div className="ai-panel-title">Call script</div>
                       <div className="ai-panel-sub">Get a cold call script tailored to your brand and the buyer's context</div>
                       <div className="ai-field-label">Call Context</div>
                       <input className="ai-in" placeholder="e.g. club buyer, natural grocery, mass merchant" value={callCtx} onChange={e=>setCallCtx(e.target.value)} onKeyDown={e=>e.key==="Enter"&&genCallScript()} />
                       <button className="btn btn-teal" style={{marginTop:14,width:"100%",justifyContent:"center"}} disabled={callBusy} onClick={genCallScript}>
-                        {callBusy?<><span className="spin"/>Generating...</>:"⚡ Generate Call Script"}
+                        {callBusy?<><span className="spin"/>Generating...</>:"Generate call script →"}
                       </button>
                       {callRes && <><div className="ai-result-box">{callRes}</div><button className="btn btn-outline btn-sm" style={{marginTop:8}} onClick={()=>copy(callRes,"call")}>{copied==="call"?"✓ Copied":"Copy Script"}</button></>}
                     </>)}
@@ -1738,7 +1725,7 @@ ONLY JSON: {"script":"..."}`,
                 <div style={{display:"flex",flexDirection:"column",flex:1,overflow:"hidden"}}>
                   <div style={{padding:"14px 20px",background:"var(--bg2)",borderBottom:"1px solid var(--border)",flexShrink:0,display:"flex",alignItems:"center",justifyContent:"space-between"}}>
                     <div>
-                      <div style={{display:"flex",alignItems:"center",gap:7,marginBottom:2}}><span style={{fontSize:14}}>⚡</span><span style={{fontFamily:"'Bricolage Grotesque',sans-serif",fontWeight:800,fontSize:15,color:"var(--text)"}}>Sequences</span></div>
+                      <div style={{display:"flex",alignItems:"center",gap:7,marginBottom:2}}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.85" strokeLinecap="round" strokeLinejoin="round" style={{color:"var(--teal)"}}><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg><span style={{fontFamily:"'Bricolage Grotesque',sans-serif",fontWeight:800,fontSize:15,color:"var(--text)"}}>Sequences</span></div>
                       <div style={{fontSize:11,color:"var(--text3)",fontWeight:500}}>Automated multi-step outreach</div>
                     </div>
                     <button className="btn btn-teal btn-sm" onClick={()=>setShowNewSeq(true)}>+ New Sequence</button>
@@ -1764,7 +1751,7 @@ ONLY JSON: {"script":"..."}`,
                         </div>
                         <div style={{display:"flex",gap:7}}>
                           <button className="btn btn-teal btn-sm" disabled={seqBusy||!newSeqName.trim()} onClick={genSequence}>
-                            {seqBusy?<><span className="spin"/>Generating...</>:"⚡ Generate"}
+                            {seqBusy?<><span className="spin"/>Generating...</>:"Generate →"}
                           </button>
                           <button className="btn btn-outline btn-sm" onClick={()=>{setShowNewSeq(false);setNewSeqName("");setNewSeqTarget("");}}>Cancel</button>
                         </div>
@@ -1779,7 +1766,7 @@ ONLY JSON: {"script":"..."}`,
                         <div style={{padding:"20px 10px",textAlign:"center",color:"var(--text3)",fontSize:12,lineHeight:1.6}}>No sequences yet.<br/>Click "+ New Sequence" to generate one with AI.</div>
                       ) : sequences.map(s=>(
                         <div key={s.id} className={`seq-card ${activeSeq?.id===s.id?"active":""}`} onClick={()=>setActiveSeq(s)}>
-                          <span style={{fontSize:18,flexShrink:0}}>⚡</span>
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.85" strokeLinecap="round" strokeLinejoin="round" style={{color:"var(--teal)",flexShrink:0}}><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
                           <div style={{minWidth:0}}>
                             <div style={{fontWeight:700,fontSize:12,color:"var(--text)",marginBottom:2}}>{s.name}</div>
                             <div style={{fontSize:10,color:"var(--text3)"}}>{s.steps?.length||0} steps · {s.target}</div>
@@ -1791,7 +1778,6 @@ ONLY JSON: {"script":"..."}`,
                     <div style={{flex:1,overflow:"auto",padding:"16px 20px"}}>
                       {!activeSeq ? (
                         <div className="empty" style={{minHeight:300}}>
-                          <div className="empty-icon">⚡</div>
                           <h3>No sequences yet</h3>
                           <p>Create multi-step outreach sequences with emails, LinkedIn touches, and call reminders.</p>
                         </div>
@@ -1823,7 +1809,7 @@ ONLY JSON: {"script":"..."}`,
                 /* ── INTELLIGENCE ── */
                 <div className="intel-view">
                   <div className="intel-hd">
-                    <div style={{display:"flex",alignItems:"center",gap:7,marginBottom:2}}><span style={{fontSize:14}}>🧠</span><h2>Intelligence</h2></div>
+                    <div style={{display:"flex",alignItems:"center",gap:7,marginBottom:2}}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.85" strokeLinecap="round" strokeLinejoin="round" style={{color:"var(--teal)"}}><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg><h2>Intelligence</h2></div>
                     <p>AI-powered retailer &amp; buyer research</p>
                   </div>
                   <div className="intel-search">
@@ -1831,14 +1817,13 @@ ONLY JSON: {"script":"..."}`,
                       value={intelQuery} onChange={e=>setIntelQuery(e.target.value)}
                       onKeyDown={e=>e.key==="Enter"&&runIntelResearch()} />
                     <button className="btn btn-teal" disabled={intelBusy||!intelQuery.trim()} onClick={runIntelResearch}>
-                      {intelBusy?<><span className="spin"/>Researching...</>:"🔭 Research"}
+                      {intelBusy?<><span className="spin"/>Researching...</>:"Research →"}
                     </button>
                   </div>
                   <div className="intel-body">
                     {!intelResult && !intelBusy && (
                       <div className="empty">
-                        <div className="empty-icon">🔭</div>
-                        <h3>Retailer Intelligence</h3>
+                        <h3>Retailer intelligence</h3>
                         <p>Enter any retailer or buyer name to get AI-powered insights: vendor policies, buying priorities, category focus, and tips for getting the meeting.</p>
                       </div>
                     )}
@@ -1890,22 +1875,22 @@ ONLY JSON: {"script":"..."}`,
                 /* ── ENABLEMENT ── */
                 <div className="enab-view">
                   <div className="ai-view-hd">
-                    <div className="ai-view-hd-top"><span style={{fontSize:15}}>🚀</span><h2>Enablement</h2></div>
+                    <div className="ai-view-hd-top"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.85" strokeLinecap="round" strokeLinejoin="round" style={{color:"var(--teal)"}}><path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z"/><path d="m12 15-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z"/><path d="M9 12H4s.55-3.03 2-4c1.62-1.08 5 0 5 0"/><path d="M12 15v5s3.03-.55 4-2c1.08-1.62 0-5 0-5"/></svg><h2>Enablement</h2></div>
                     <p>Sales resources and AI-generated assets to help you close more deals</p>
                     <div className="ai-tabs">
-                      {[{id:"playbook",icon:"📘",label:"Sales Playbook"},{id:"pitchtpl",icon:"🎙",label:"Pitch Templates"},{id:"sellsheet",icon:"📊",label:"Sell Sheet Builder"},{id:"objlib",icon:"🎯",label:"Objection Library"}].map(t=>(
-                        <button key={t.id} className={`ai-tab ${enabTab===t.id?"on":""}`} onClick={()=>setEnabTab(t.id)}>{t.icon} {t.label}</button>
+                      {[{id:"playbook",label:"Sales playbook"},{id:"pitchtpl",label:"Pitch templates"},{id:"sellsheet",label:"Sell sheet builder"},{id:"objlib",label:"Objection library"}].map(t=>(
+                        <button key={t.id} className={`ai-tab ${enabTab===t.id?"on":""}`} onClick={()=>setEnabTab(t.id)}>{t.label}</button>
                       ))}
                     </div>
                   </div>
                   <div className="ai-panel">
                     {enabTab==="playbook" && (<>
-                      <div className="ai-panel-title">📘 Retail Sales Playbook</div>
+                      <div className="ai-panel-title">Retail sales playbook</div>
                       <div className="ai-panel-sub">Generate a tactical playbook for landing shelf space at your target retailers</div>
                       <div className="ai-field-label">Target Retailers</div>
                       <input className="ai-in" placeholder="e.g. Walmart, Target, Kroger" value={playbookTarget} onChange={e=>setPlaybookTarget(e.target.value)} />
                       <button className="btn btn-teal" style={{marginTop:14,width:"100%",justifyContent:"center"}} disabled={playbookBusy} onClick={genPlaybook}>
-                        {playbookBusy?<><span className="spin"/>Generating Playbook...</>:"⚡ Generate Playbook"}
+                        {playbookBusy?<><span className="spin"/>Generating...</>:"Generate playbook →"}
                       </button>
                       {playbookResult && (
                         <div style={{marginTop:18}}>
@@ -1925,7 +1910,7 @@ ONLY JSON: {"script":"..."}`,
                     </>)}
 
                     {enabTab==="pitchtpl" && (<>
-                      <div className="ai-panel-title">🎙 Pitch Templates</div>
+                      <div className="ai-panel-title">Pitch templates</div>
                       <div className="ai-panel-sub">Proven pitch structures for every sales scenario</div>
                       <div className="ai-field-label">Scenario</div>
                       <select className="ai-in" value={pitchTplScenario} onChange={e=>setPitchTplScenario(e.target.value)}>
@@ -1936,16 +1921,16 @@ ONLY JSON: {"script":"..."}`,
                         <option value="zoom">Zoom Demo</option>
                       </select>
                       <button className="btn btn-teal" style={{marginTop:14,width:"100%",justifyContent:"center"}} disabled={pitchTplBusy} onClick={genPitchTemplate}>
-                        {pitchTplBusy?<><span className="spin"/>Generating...</>:"⚡ Generate Template"}
+                        {pitchTplBusy?<><span className="spin"/>Generating...</>:"Generate template →"}
                       </button>
                       {pitchTplResult && <><div className="ai-result-box">{pitchTplResult}</div><button className="btn btn-outline btn-sm" style={{marginTop:8}} onClick={()=>copy(pitchTplResult,"pitchtpl")}>{copied==="pitchtpl"?"✓ Copied":"Copy Template"}</button></>}
                     </>)}
 
                     {enabTab==="sellsheet" && (<>
-                      <div className="ai-panel-title">📊 Sell Sheet Builder</div>
+                      <div className="ai-panel-title">Sell sheet builder</div>
                       <div className="ai-panel-sub">Generate all copy for a one-page sell sheet in seconds</div>
                       <button className="btn btn-teal" style={{width:"100%",justifyContent:"center"}} disabled={sellSheetBusy} onClick={genSellSheet}>
-                        {sellSheetBusy?<><span className="spin"/>Building Sell Sheet...</>:"⚡ Generate Sell Sheet"}
+                        {sellSheetBusy?<><span className="spin"/>Building...</>:"Generate sell sheet →"}
                       </button>
                       {sellSheetResult && (
                         <div style={{marginTop:16}}>
@@ -1975,12 +1960,12 @@ ONLY JSON: {"script":"..."}`,
                     </>)}
 
                     {enabTab==="objlib" && (<>
-                      <div className="ai-panel-title">🎯 Objection Handler</div>
+                      <div className="ai-panel-title">Objection library</div>
                       <div className="ai-panel-sub">Paste exactly what the buyer said — get a real, ready-to-use response</div>
                       <div className="ai-field-label">What did the buyer say?</div>
                       <textarea className="ai-in pitch-ta" rows={3} placeholder={'e.g. "Your margins are too thin, we need at least 40% to make this work for us."'} value={objLibSearch} onChange={e=>setObjLibSearch(e.target.value)} />
                       <button className="btn btn-teal" style={{marginTop:14,width:"100%",justifyContent:"center"}} disabled={objLibBusy||!objLibSearch.trim()} onClick={genObjLibrary}>
-                        {objLibBusy?<><span className="spin"/>Generating response...</>:"⚡ Get My Response"}
+                        {objLibBusy?<><span className="spin"/>Generating...</>:"Get my response →"}
                       </button>
                       {objLibResult && (
                         <div style={{marginTop:18}}>
@@ -2034,13 +2019,12 @@ ONLY JSON: {"script":"..."}`,
                       <div className="meet-tools">
                         {!meetContact ? (
                           <div className="empty">
-                            <div className="empty-icon">📅</div>
                             <h3>Select a meeting</h3>
                             <p>Click a contact on the left to generate a meeting brief, agenda, notes, and follow-up email.</p>
                           </div>
                         ) : (<>
                           <div className="meet-tabs">
-                            {[{id:"brief",label:"📋 Brief"},{id:"agenda",label:"🗓 Agenda"},{id:"notes",label:"📝 Notes"},{id:"followup",label:"📤 Follow-up"}].map(t=>(
+                            {[{id:"brief",label:"Brief"},{id:"agenda",label:"Agenda"},{id:"notes",label:"Notes"},{id:"followup",label:"Follow-up"}].map(t=>(
                               <button key={t.id} className={`meet-tab ${meetTab===t.id?"on":""}`} onClick={()=>setMeetTab(t.id)}>{t.label}</button>
                             ))}
                             <div style={{marginLeft:"auto",display:"flex",alignItems:"center",padding:"0 4px"}}>
@@ -2052,13 +2036,13 @@ ONLY JSON: {"script":"..."}`,
                               meetBriefBusy ? <div className="empty" style={{minHeight:200}}><span className="spin spin-lg"/><p style={{marginTop:16}}>Generating brief...</p></div>
                               : meetBriefResult ? (<>
                                 {[
-                                  {label:"Key Talking Points",key:"talkingPoints",icon:"💬"},
-                                  {label:"Objections to Prepare For",key:"objections",icon:"🛡"},
-                                  {label:"Questions to Ask",key:"questionsToAsk",icon:"❓"},
-                                  {label:"What to Bring / Send Ahead",key:"prepItems",icon:"📦"},
+                                  {label:"Key talking points",key:"talkingPoints"},
+                                  {label:"Objections to prepare for",key:"objections"},
+                                  {label:"Questions to ask",key:"questionsToAsk"},
+                                  {label:"What to bring / send ahead",key:"prepItems"},
                                 ].map(s=>meetBriefResult[s.key]?.length>0&&(
                                   <div key={s.key} style={{marginBottom:16}}>
-                                    <div style={{fontSize:10,fontWeight:800,color:"var(--text3)",textTransform:"uppercase",letterSpacing:"1px",marginBottom:8}}>{s.icon} {s.label}</div>
+                                    <div style={{fontSize:10,fontWeight:800,color:"var(--text3)",textTransform:"uppercase",letterSpacing:"1px",marginBottom:8}}>{s.label}</div>
                                     {meetBriefResult[s.key].map((item,i)=>(
                                       <div key={i} style={{display:"flex",gap:8,padding:"6px 0",borderBottom:"1px solid rgba(26,31,58,.5)",fontSize:12,color:"var(--text2)",lineHeight:1.6}}>
                                         <span style={{color:"var(--teal)",fontWeight:800,flexShrink:0}}>→</span>{item}
@@ -2070,7 +2054,7 @@ ONLY JSON: {"script":"..."}`,
                             )}
                             {meetTab==="agenda" && (<>
                               <button className="btn btn-teal" style={{width:"100%",justifyContent:"center",marginBottom:14}} disabled={agendaBusy} onClick={genAgenda}>
-                                {agendaBusy?<><span className="spin"/>Building Agenda...</>:"⚡ Generate 30-Min Agenda"}
+                                {agendaBusy?<><span className="spin"/>Building...</>:"Generate 30-min agenda →"}
                               </button>
                               {agendaResult && <><div className="ai-result-box">{agendaResult}</div><button className="btn btn-outline btn-sm" style={{marginTop:8}} onClick={()=>copy(agendaResult,"agenda")}>{copied==="agenda"?"✓ Copied":"Copy Agenda"}</button></>}
                             </>)}
@@ -2081,7 +2065,7 @@ ONLY JSON: {"script":"..."}`,
                             </>)}
                             {meetTab==="followup" && (<>
                               <button className="btn btn-teal" style={{width:"100%",justifyContent:"center",marginBottom:14}} disabled={followupBusy} onClick={genMeetFollowup}>
-                                {followupBusy?<><span className="spin"/>Writing Email...</>:"⚡ Generate Follow-up Email"}
+                                {followupBusy?<><span className="spin"/>Writing...</>:"Generate follow-up email →"}
                               </button>
                               {followupResult && (<>
                                 <div style={{background:"var(--bg3)",border:"1px solid var(--border)",borderRadius:9,padding:"12px 14px",marginBottom:9}}>
@@ -2105,13 +2089,13 @@ ONLY JSON: {"script":"..."}`,
                   <div className="view-hd"><h2>Integrations</h2><p>Connect RepReach to the tools your team already uses</p></div>
                   {/* CSV Export — live */}
                   <div style={{background:"var(--bg2)",border:"1px solid rgba(0,229,192,.2)",borderRadius:13,padding:"18px 20px",marginBottom:16,display:"flex",alignItems:"center",gap:16}}>
-                    <div style={{width:44,height:44,borderRadius:11,background:"rgba(0,229,192,.1)",border:"1px solid rgba(0,229,192,.2)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:22,flexShrink:0}}>📥</div>
+                    <div style={{width:44,height:44,borderRadius:11,background:"rgba(0,229,192,.1)",border:"1px solid rgba(0,229,192,.2)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,color:"var(--teal)"}}><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.85" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></div>
                     <div style={{flex:1}}>
                       <div style={{fontWeight:700,fontSize:13,color:"var(--text)",marginBottom:3}}>CSV Export</div>
                       <div style={{fontSize:11,color:"var(--text3)",lineHeight:1.5}}>{leads.length} contacts ready — name, title, company, email, phone, status, notes, department.</div>
                     </div>
                     <span className="int-status int-live" style={{flexShrink:0}}>● Live</span>
-                    <button className="btn btn-teal btn-sm" onClick={exportCSV} disabled={!leads.length}>{leads.length?"⬇ Export CSV":"No contacts yet"}</button>
+                    <button className="btn btn-teal btn-sm" onClick={exportCSV} disabled={!leads.length}>{leads.length?"Export CSV →":"No contacts yet"}</button>
                   </div>
                   <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(280px,1fr))",gap:12}}>
                     {[
@@ -2149,7 +2133,7 @@ ONLY JSON: {"script":"..."}`,
                     <div style={{fontSize:12,color:"#334155"}}>{leads.length} contacts · {companyInput||"no search"}</div>
                   </div>
                   {leads.length === 0
-                    ? <div className="empty"><div className="empty-icon">📋</div><h3>No contacts yet</h3><p>Search a retailer in People view first.</p></div>
+                    ? <div className="empty"><h3>No contacts yet</h3><p>Search a retailer in People Finder first.</p></div>
                     : <table className="trkr">
                         <thead><tr><th>Name</th><th>Title</th><th>Company</th><th>Status</th><th>Notes</th><th></th></tr></thead>
                         <tbody>
@@ -2190,10 +2174,10 @@ ONLY JSON: {"script":"..."}`,
                   <div className="dp-sec-title">Contact Info</div>
                   {/* Email */}
                   {activeLead.email
-                    ? <div className="dp-row"><span className="dp-icon">✉</span><span className="dp-val">{activeLead.email}{activeLead.emailStatus && <span style={{marginLeft:5,fontSize:10,color:"#4ade80",fontWeight:700}}>{activeLead.emailStatus}</span>}</span><button className="dp-copy" onClick={()=>copy(activeLead.email,"de")}>{copied==="de"?"✓":"Copy"}</button></div>
+                    ? <div className="dp-row"><span className="dp-icon"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.85" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><polyline points="3 7 12 13 21 7"/></svg></span><span className="dp-val">{activeLead.email}{activeLead.emailStatus && <span style={{marginLeft:5,fontSize:10,color:"#4ade80",fontWeight:700}}>{activeLead.emailStatus}</span>}</span><button className="dp-copy" onClick={()=>copy(activeLead.email,"de")}>{copied==="de"?"✓":"Copy"}</button></div>
                     : enriching.has(activeLead.id)
-                      ? <div className="dp-row"><span className="dp-icon">✉</span><span style={{color:"#00c9a7",fontSize:11,display:"flex",alignItems:"center",gap:6}}><span className="spin" style={{width:11,height:11}}/>Revealing...</span></div>
-                      : <div className="dp-row"><span className="dp-icon">✉</span><span style={{color:"#334155",fontSize:11,flex:1}}>Not revealed</span><button className="dp-copy" onClick={()=>enrichContact(activeLead)}>⚡ Reveal</button></div>
+                      ? <div className="dp-row"><span className="dp-icon"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.85" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><polyline points="3 7 12 13 21 7"/></svg></span><span style={{color:"#00c9a7",fontSize:11,display:"flex",alignItems:"center",gap:6}}><span className="spin" style={{width:11,height:11}}/>Revealing...</span></div>
+                      : <div className="dp-row"><span className="dp-icon"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.85" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><polyline points="3 7 12 13 21 7"/></svg></span><span style={{color:"#334155",fontSize:11,flex:1}}>Not revealed</span><button className="dp-copy" onClick={()=>enrichContact(activeLead)}>Reveal</button></div>
                   }
                   {/* Personal emails */}
                   {(activeLead.personalEmails||[]).map((em,i) => (
@@ -2201,9 +2185,9 @@ ONLY JSON: {"script":"..."}`,
                   ))}
                   {/* Phone */}
                   {activeLead.phone
-                    ? <div className="dp-row"><span className="dp-icon">📞</span><span className="dp-val">{activeLead.phone}</span><button className="dp-copy" onClick={()=>copy(activeLead.phone,"dp2")}>{copied==="dp2"?"✓":"Copy"}</button></div>
+                    ? <div className="dp-row"><span className="dp-icon"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.85" strokeLinecap="round" strokeLinejoin="round"><path d="M5 4h3l2 5-2.5 1.5a12 12 0 0 0 6 6L15 14l5 2v3a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2z"/></svg></span><span className="dp-val">{activeLead.phone}</span><button className="dp-copy" onClick={()=>copy(activeLead.phone,"dp2")}>{copied==="dp2"?"✓":"Copy"}</button></div>
                     : enriching.has(activeLead.id)
-                      ? <div className="dp-row"><span className="dp-icon">📞</span><span style={{color:"#00c9a7",fontSize:11}}>Revealing...</span></div>
+                      ? <div className="dp-row"><span className="dp-icon"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.85" strokeLinecap="round" strokeLinejoin="round"><path d="M5 4h3l2 5-2.5 1.5a12 12 0 0 0 6 6L15 14l5 2v3a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2z"/></svg></span><span style={{color:"#00c9a7",fontSize:11}}>Revealing...</span></div>
                       : null
                   }
                   {/* Extra phones */}
@@ -2211,10 +2195,10 @@ ONLY JSON: {"script":"..."}`,
                     <div key={i} className="dp-row"><span className="dp-icon" style={{opacity:0}}>📞</span><span className="dp-val" style={{fontSize:11,color:"#64748b"}}>{ph.number} <span style={{color:"#334155",fontSize:10}}>{ph.type}</span></span></div>
                   ))}
                   {/* Social */}
-                  {activeLead.linkedin && <div className="dp-row"><span className="dp-icon">💼</span><span className="dp-val"><a href={"https://"+activeLead.linkedin.replace(/^https?:\/\//,"")} target="_blank" rel="noreferrer">LinkedIn ↗</a></span></div>}
-                  {activeLead.twitter && <div className="dp-row"><span className="dp-icon">🐦</span><span className="dp-val"><a href={activeLead.twitter} target="_blank" rel="noreferrer">Twitter ↗</a></span></div>}
-                  {activeLead.location && <div className="dp-row"><span className="dp-icon">📍</span><span className="dp-val">{activeLead.location}{activeLead.country ? ", "+activeLead.country : ""}</span></div>}
-                  {activeLead.seniority && <div className="dp-row"><span className="dp-icon">⭐</span><span className="dp-val" style={{textTransform:"capitalize"}}>{activeLead.seniority}</span></div>}
+                  {activeLead.linkedin && <div className="dp-row"><span className="dp-icon" style={{fontFamily:"var(--font-display)",fontWeight:800,fontSize:11,color:"var(--text2)"}}>in</span><span className="dp-val"><a href={"https://"+activeLead.linkedin.replace(/^https?:\/\//,"")} target="_blank" rel="noreferrer">LinkedIn ↗</a></span></div>}
+                  {activeLead.twitter && <div className="dp-row"><span className="dp-icon" style={{fontWeight:800,fontSize:11,color:"var(--text2)"}}>𝕏</span><span className="dp-val"><a href={activeLead.twitter} target="_blank" rel="noreferrer">Twitter ↗</a></span></div>}
+                  {activeLead.location && <div className="dp-row"><span className="dp-icon"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.85" strokeLinecap="round" strokeLinejoin="round"><path d="M20 10c0 6-8 12-8 12S4 16 4 10a8 8 0 0 1 16 0z"/><circle cx="12" cy="10" r="3"/></svg></span><span className="dp-val">{activeLead.location}{activeLead.country ? ", "+activeLead.country : ""}</span></div>}
+                  {activeLead.seniority && <div className="dp-row"><span className="dp-icon"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.85" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="8" r="4"/><path d="M6 20v-2a6 6 0 0 1 12 0v2"/></svg></span><span className="dp-val" style={{textTransform:"capitalize"}}>{activeLead.seniority}</span></div>}
 
                 </div>
 
@@ -2235,11 +2219,11 @@ ONLY JSON: {"script":"..."}`,
                 {(activeLead.companySize || activeLead.companyRevenue || activeLead.companyIndustry || activeLead.companyWebsite) && (
                   <div className="dp-sec">
                     <div className="dp-sec-title">Company Info</div>
-                    {activeLead.companyIndustry && <div className="dp-row"><span className="dp-icon">🏢</span><span className="dp-val">{activeLead.companyIndustry}</span></div>}
-                    {activeLead.companySize && <div className="dp-row"><span className="dp-icon">👥</span><span className="dp-val">{activeLead.companySize.toLocaleString()} employees</span></div>}
-                    {activeLead.companyRevenue && <div className="dp-row"><span className="dp-icon">💰</span><span className="dp-val">{activeLead.companyRevenue}</span></div>}
-                    {activeLead.companyWebsite && <div className="dp-row"><span className="dp-icon">🌐</span><span className="dp-val"><a href={"https://"+activeLead.companyWebsite.replace(/^https?:\/\//,"")} target="_blank" rel="noreferrer">{activeLead.companyWebsite.replace(/^https?:\/\//,"")}</a></span></div>}
-                    {activeLead.companyPhone && <div className="dp-row"><span className="dp-icon">☎</span><span className="dp-val">{activeLead.companyPhone}</span><button className="dp-copy" onClick={()=>copy(activeLead.companyPhone,"cp")}>{copied==="cp"?"✓":"Copy"}</button></div>}
+                    {activeLead.companyIndustry && <div className="dp-row"><span className="dp-icon"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.85" strokeLinecap="round" strokeLinejoin="round"><path d="M3 21h18"/><path d="M5 21V7l8-4v18"/><path d="M19 21V11l-6-4"/><path d="M9 9v.01"/><path d="M9 12v.01"/><path d="M9 15v.01"/><path d="M9 18v.01"/></svg></span><span className="dp-val">{activeLead.companyIndustry}</span></div>}
+                    {activeLead.companySize && <div className="dp-row"><span className="dp-icon"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.85" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span><span className="dp-val">{activeLead.companySize.toLocaleString()} employees</span></div>}
+                    {activeLead.companyRevenue && <div className="dp-row"><span className="dp-icon"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.85" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></span><span className="dp-val">{activeLead.companyRevenue}</span></div>}
+                    {activeLead.companyWebsite && <div className="dp-row"><span className="dp-icon"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.85" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg></span><span className="dp-val"><a href={"https://"+activeLead.companyWebsite.replace(/^https?:\/\//,"")} target="_blank" rel="noreferrer">{activeLead.companyWebsite.replace(/^https?:\/\//,"")}</a></span></div>}
+                    {activeLead.companyPhone && <div className="dp-row"><span className="dp-icon"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.85" strokeLinecap="round" strokeLinejoin="round"><path d="M5 4h3l2 5-2.5 1.5a12 12 0 0 0 6 6L15 14l5 2v3a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2z"/></svg></span><span className="dp-val">{activeLead.companyPhone}</span><button className="dp-copy" onClick={()=>copy(activeLead.companyPhone,"cp")}>{copied==="cp"?"✓":"Copy"}</button></div>}
                   </div>
                 )}
                 <div className="etabs">
@@ -2251,7 +2235,7 @@ ONLY JSON: {"script":"..."}`,
                 <div className="email-area">
                   {emailTab==="cold" && (!eData
                     ? <button className="btn btn-teal" style={{width:"100%",justifyContent:"center"}} disabled={!!genEmail} onClick={()=>genEmail_(activeLead)}>
-                        {genEmail===activeLead.id?<><span className="spin"/>Generating...</>:"⚡ Generate Cold Emails (A/B)"}
+                        {genEmail===activeLead.id?<><span className="spin"/>Generating...</>:"Generate cold emails (A/B) →"}
                       </button>
                     : <>
                         <div style={{display:"flex",gap:5,marginBottom:12,alignItems:"center"}}>
@@ -2267,7 +2251,7 @@ ONLY JSON: {"script":"..."}`,
 
                   {emailTab==="linkedin" && (!liData
                     ? <button className="btn btn-teal" style={{width:"100%",justifyContent:"center"}} disabled={!!genLI} onClick={()=>genLI_(activeLead)}>
-                        {genLI===activeLead.id?<><span className="spin"/>Generating...</>:"💼 Generate LinkedIn Messages"}
+                        {genLI===activeLead.id?<><span className="spin"/>Generating...</>:"Generate LinkedIn messages →"}
                       </button>
                     : <>
                         <div className="ebox"><div className="elabel">Connection Request</div><div className="ebody" style={{fontSize:11}}>{liData.connection}</div></div>
@@ -2281,7 +2265,7 @@ ONLY JSON: {"script":"..."}`,
 
                   {emailTab==="followup" && (!fuData
                     ? <button className="btn btn-teal" style={{width:"100%",justifyContent:"center"}} disabled={!!genFU} onClick={()=>genFU_(activeLead)}>
-                        {genFU===activeLead.id?<><span className="spin"/>Generating...</>:"↩ Generate Follow-up"}
+                        {genFU===activeLead.id?<><span className="spin"/>Generating...</>:"Generate follow-up →"}
                       </button>
                     : <>
                         <div className="ebox"><div className="elabel">Subject</div><div className="ebody" style={{fontWeight:700,color:"#f1f5f9"}}>{fuData.subject}</div></div>

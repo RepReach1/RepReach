@@ -123,6 +123,19 @@ export default function App() {
   const [callRes,          setCallRes]          = useState("");
   const [callBusy,         setCallBusy]         = useState(false);
 
+  // Creatify Video Pitch
+  const [creatifyAvatars,  setCreatifyAvatars]  = useState([]);
+  const [creatifyAvatarsLoaded, setCreatifyAvatarsLoaded] = useState(false);
+  const [creatifyAvatarId, setCreatifyAvatarId] = useState("");
+  const [creatifyScript,   setCreatifyScript]   = useState("");
+  const [creatifyAspect,   setCreatifyAspect]   = useState("16:9");
+  const [creatifyBusy,     setCreatifyBusy]     = useState(false);
+  const [creatifyVideoId,  setCreatifyVideoId]  = useState(null);
+  const [creatifyStatus,   setCreatifyStatus]   = useState(null);
+  const [creatifyVideoUrl, setCreatifyVideoUrl] = useState(null);
+  const [creatifyError,    setCreatifyError]    = useState(null);
+  const creatifyPollRef = useRef(null);
+
   // Intelligence
   const [intelQuery,       setIntelQuery]       = useState("");
   const [intelResult,      setIntelResult]      = useState(null);
@@ -542,6 +555,79 @@ ONLY JSON: {"subject":"...","body":"..."}`
       setFollowupResult(JSON.parse(d.result));
     } catch(e) { alert("Failed: "+e.message); }
     setFollowupBusy(false);
+  };
+
+  // ── CREATIFY VIDEO PITCH ──
+  const loadCreatifyAvatars = async () => {
+    setCreatifyError(null);
+    try {
+      const r = await fetch("/api/creatify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "list_avatars" }),
+      });
+      const d = await r.json();
+      if (d.error) throw new Error(d.error);
+      const list = Array.isArray(d) ? d : (d.data || d.results || []);
+      setCreatifyAvatars(list);
+      setCreatifyAvatarsLoaded(true);
+      if (list.length && !creatifyAvatarId) setCreatifyAvatarId(list[0].avatar_id || list[0].id || "");
+    } catch(e) { setCreatifyError(e.message); }
+  };
+
+  const startCreatifyVideo = async () => {
+    if (!creatifyScript.trim()) return;
+    setCreatifyBusy(true);
+    setCreatifyVideoId(null);
+    setCreatifyVideoUrl(null);
+    setCreatifyStatus("creating");
+    setCreatifyError(null);
+    clearInterval(creatifyPollRef.current);
+    try {
+      const r = await fetch("/api/creatify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "create_video", script: creatifyScript, avatarId: creatifyAvatarId, aspectRatio: creatifyAspect }),
+      });
+      const d = await r.json();
+      if (d.error) throw new Error(d.error);
+      const vid = d.id || d.video_id;
+      setCreatifyVideoId(vid);
+      setCreatifyStatus(d.status || "pending");
+      // Render immediately if API requires it
+      if (d.status === "pending" || !d.status) {
+        await fetch("/api/creatify", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action: "render_video", videoId: vid }),
+        }).catch(() => {});
+      }
+      creatifyPollRef.current = setInterval(async () => {
+        try {
+          const pr = await fetch("/api/creatify", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ action: "get_status", videoId: vid }),
+          });
+          const pd = await pr.json();
+          if (pd.error) return;
+          setCreatifyStatus(pd.status);
+          if (pd.status === "done" || pd.status === "completed" || pd.output) {
+            clearInterval(creatifyPollRef.current);
+            setCreatifyVideoUrl(pd.output || pd.video_url || pd.url || null);
+            setCreatifyBusy(false);
+          } else if (pd.status === "failed" || pd.status === "error") {
+            clearInterval(creatifyPollRef.current);
+            setCreatifyError("Video generation failed. Please try again.");
+            setCreatifyBusy(false);
+          }
+        } catch(e) { /* ignore poll errors */ }
+      }, 5000);
+    } catch(e) {
+      setCreatifyError(e.message);
+      setCreatifyBusy(false);
+      setCreatifyStatus(null);
+    }
   };
 
   // ── CSV EXPORT ──
@@ -1648,7 +1734,7 @@ ONLY JSON: {"script":"..."}`,
                     <div className="ai-view-hd-top"><span style={{fontSize:15}}>🤖</span><h2>AI Tools</h2></div>
                     <p>AI-powered sales assets</p>
                     <div className="ai-tabs">
-                      {[{id:"pitch",icon:"🎤",label:"Pitch Builder"},{id:"objection",icon:"🛡",label:"Objection Handler"},{id:"subject",icon:"✉",label:"Subject Line Tester"},{id:"value",icon:"💡",label:"Value Proposition"},{id:"callscript",icon:"📞",label:"Call Script"}].map(t=>(
+                      {[{id:"pitch",icon:"🎤",label:"Pitch Builder"},{id:"objection",icon:"🛡",label:"Objection Handler"},{id:"subject",icon:"✉",label:"Subject Line Tester"},{id:"value",icon:"💡",label:"Value Proposition"},{id:"callscript",icon:"📞",label:"Call Script"},{id:"video",icon:"🎬",label:"Video Pitch"}].map(t=>(
                         <button key={t.id} className={`ai-tab ${aiTab===t.id?"on":""}`} onClick={()=>setAiTab(t.id)}>{t.icon} {t.label}</button>
                       ))}
                     </div>
@@ -1729,6 +1815,87 @@ ONLY JSON: {"script":"..."}`,
                         {callBusy?<><span className="spin"/>Generating...</>:"⚡ Generate Call Script"}
                       </button>
                       {callRes && <><div className="ai-result-box">{callRes}</div><button className="btn btn-outline btn-sm" style={{marginTop:8}} onClick={()=>copy(callRes,"call")}>{copied==="call"?"✓ Copied":"Copy Script"}</button></>}
+                    </>)}
+
+                    {aiTab === "video" && (<>
+                      <div className="ai-panel-title">🎬 Video Pitch</div>
+                      <div className="ai-panel-sub">Generate an AI avatar video of your sales pitch using Creatify</div>
+
+                      {/* Load avatars */}
+                      {!creatifyAvatarsLoaded && (
+                        <button className="btn btn-outline" style={{marginBottom:16}} onClick={loadCreatifyAvatars}>
+                          Load AI Avatars
+                        </button>
+                      )}
+
+                      {creatifyAvatars.length > 0 && (
+                        <>
+                          <div className="ai-field-label">AI Avatar</div>
+                          <select className="ai-in" style={{marginBottom:14}} value={creatifyAvatarId} onChange={e=>setCreatifyAvatarId(e.target.value)}>
+                            {creatifyAvatars.map(a => (
+                              <option key={a.avatar_id||a.id} value={a.avatar_id||a.id}>
+                                {a.name||a.avatar_name||a.avatar_id||a.id}
+                              </option>
+                            ))}
+                          </select>
+                        </>
+                      )}
+
+                      <div className="ai-field-label">Aspect Ratio</div>
+                      <select className="ai-in" style={{marginBottom:14,maxWidth:160}} value={creatifyAspect} onChange={e=>setCreatifyAspect(e.target.value)}>
+                        <option value="16:9">16:9 — Landscape</option>
+                        <option value="9:16">9:16 — Portrait</option>
+                        <option value="1:1">1:1 — Square</option>
+                      </select>
+
+                      <div className="ai-field-label">Video Script</div>
+                      <textarea
+                        className="ai-in pitch-ta"
+                        rows={5}
+                        placeholder={`Hi, I'm ${repName||"Jamie"} from ${brandName||"your brand"}. We make ${productDesc||"innovative products"} that are already driving category growth at major retailers...`}
+                        value={creatifyScript}
+                        onChange={e=>setCreatifyScript(e.target.value)}
+                      />
+                      {pitchRes && (
+                        <button className="btn btn-outline btn-sm" style={{marginTop:6,marginBottom:4}} onClick={()=>setCreatifyScript(pitchRes)}>
+                          ← Use Pitch Builder script
+                        </button>
+                      )}
+
+                      <button className="btn btn-teal" style={{marginTop:12,width:"100%",justifyContent:"center"}} disabled={creatifyBusy||!creatifyScript.trim()} onClick={startCreatifyVideo}>
+                        {creatifyBusy ? <><span className="spin"/>Generating video...</> : "🎬 Generate Video Pitch"}
+                      </button>
+
+                      {creatifyError && (
+                        <div style={{marginTop:12,padding:"10px 14px",background:"rgba(248,113,113,.1)",border:"1px solid rgba(248,113,113,.25)",borderRadius:9,fontSize:12,color:"#f87171",fontWeight:500}}>
+                          {creatifyError}
+                        </div>
+                      )}
+
+                      {creatifyStatus && !creatifyVideoUrl && (
+                        <div style={{marginTop:14,display:"flex",alignItems:"center",gap:10,fontSize:12,color:"var(--text3)",fontWeight:600}}>
+                          <span className="spin"/>{creatifyStatus === "creating" ? "Submitting to Creatify..." : `Status: ${creatifyStatus}…`}
+                        </div>
+                      )}
+
+                      {creatifyVideoUrl && (
+                        <div style={{marginTop:16}}>
+                          <div className="ai-field-label" style={{marginBottom:8}}>Your Video Pitch is Ready</div>
+                          <video
+                            src={creatifyVideoUrl}
+                            controls
+                            style={{width:"100%",borderRadius:10,border:"1px solid var(--border)",background:"#000",maxHeight:360}}
+                          />
+                          <div style={{display:"flex",gap:8,marginTop:10}}>
+                            <a href={creatifyVideoUrl} target="_blank" rel="noreferrer" className="btn btn-teal btn-sm">⬇ Download</a>
+                            <button className="btn btn-outline btn-sm" onClick={()=>copy(creatifyVideoUrl,"vidurl")}>{copied==="vidurl"?"✓ Copied":"Copy URL"}</button>
+                          </div>
+                        </div>
+                      )}
+
+                      <div style={{marginTop:18,padding:"12px 14px",background:"var(--bg3)",border:"1px solid var(--border)",borderRadius:9,fontSize:11,color:"var(--text3)",lineHeight:1.7}}>
+                        <strong style={{color:"var(--text2)"}}>Setup required:</strong> Add <code style={{color:"var(--teal)"}}>CREATIFY_API_ID</code> and <code style={{color:"var(--teal)"}}>CREATIFY_API_KEY</code> to your Vercel environment variables. Get your keys at creatify.ai.
+                      </div>
                     </>)}
                   </div>
                 </div>

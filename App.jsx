@@ -1089,9 +1089,9 @@ ONLY JSON: {"script":"..."}`,
                 <div className="pw-feat">Outreach tracker — know where every deal stands</div>
                 <div className="pw-feat">Up to 500 contacts per search</div>
               </div>
-              <a href={PAYMENT_LINK} target="_blank" rel="noreferrer"
+              <a href="https://calendly.com/amaar-akronproductsinc/30min" target="_blank" rel="noreferrer"
                 style={{display:"block",width:"100%",padding:"13px",borderRadius:9,background:"linear-gradient(135deg,#00c9a7,#00e5c0)",color:"#060b10",fontWeight:800,fontSize:14,textAlign:"center",textDecoration:"none",letterSpacing:".02em",boxShadow:"0 4px 20px rgba(0,201,167,.35)"}}>
-                Get Access — $1,500 First Month →
+                📅 Book Your Consultation Now →
               </a>
               <div className="pw-divider">— or enter access code —</div>
               <div className="code-wrap">

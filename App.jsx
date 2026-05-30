@@ -969,6 +969,51 @@ ONLY JSON: {"script":"..."}`,
         .int-coming{background:rgba(245,166,35,.1);color:var(--amber);border:1px solid rgba(245,166,35,.2)}
         .int-live{background:rgba(74,222,128,.1);color:#4ade80;border:1px solid rgba(74,222,128,.2)}
 
+        /* ─── SCHEDULE / CONSULTATION ─── */
+        .sch-wrap{padding:28px 32px;overflow-y:auto;flex:1;max-width:1100px;margin:0 auto;width:100%}
+        .sch-hero{background:linear-gradient(135deg,rgba(0,229,192,.08) 0%,rgba(0,107,255,.08) 100%);border:1px solid rgba(0,229,192,.18);border-radius:18px;padding:36px 40px;margin-bottom:24px;position:relative;overflow:hidden}
+        .sch-hero::before{content:"";position:absolute;top:-60px;right:-60px;width:220px;height:220px;background:radial-gradient(circle,rgba(0,229,192,.12) 0%,transparent 70%);pointer-events:none}
+        .sch-hero-tag{display:inline-flex;align-items:center;gap:6px;background:rgba(0,229,192,.1);border:1px solid rgba(0,229,192,.22);border-radius:20px;padding:4px 12px;font-size:11px;font-weight:700;color:var(--teal);text-transform:uppercase;letter-spacing:.08em;margin-bottom:14px}
+        .sch-hero h1{font-family:'Bricolage Grotesque',sans-serif;font-size:32px;font-weight:800;color:var(--text);line-height:1.15;letter-spacing:-.5px;margin:0 0 12px}
+        .sch-hero p{font-size:13px;color:var(--text2);line-height:1.65;max-width:560px;margin:0 0 20px}
+        .sch-benefits{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px;margin-bottom:24px}
+        .sch-benefit{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:16px 18px;display:flex;gap:12px;align-items:flex-start;transition:.15s}
+        .sch-benefit:hover{border-color:var(--border2)}
+        .sch-benefit-icon{width:36px;height:36px;border-radius:9px;background:var(--teal-dim);border:1px solid rgba(0,229,192,.2);display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0}
+        .sch-benefit-title{font-size:12px;font-weight:700;color:var(--text);margin-bottom:3px}
+        .sch-benefit-desc{font-size:11px;color:var(--text3);line-height:1.5}
+        .sch-main{display:grid;grid-template-columns:1fr 340px;gap:20px;align-items:start}
+        @media(max-width:860px){.sch-main{grid-template-columns:1fr}.sch-wrap{padding:18px 16px}.sch-hero{padding:24px 20px}.sch-hero h1{font-size:24px}}
+        .sch-widget-box{background:var(--bg2);border:1px solid var(--border);border-radius:16px;overflow:hidden;position:relative}
+        .sch-widget-hd{padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px}
+        .sch-widget-dot{width:8px;height:8px;border-radius:50%;background:var(--teal)}
+        .sch-widget-title{font-size:13px;font-weight:700;color:var(--text)}
+        .sch-widget-sub{font-size:11px;color:var(--text3);margin-left:auto}
+        .sch-loading{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:500px;gap:12px;color:var(--text2);font-size:13px}
+        .sch-spinner{width:32px;height:32px;border:3px solid rgba(0,229,192,.15);border-top-color:var(--teal);border-radius:50%;animation:spin .8s linear infinite}
+        @keyframes spin{to{transform:rotate(360deg)}}
+        .sch-trust-col{display:flex;flex-direction:column;gap:14px}
+        .sch-trust-card{background:var(--bg2);border:1px solid var(--border);border-radius:13px;padding:18px 20px}
+        .sch-trust-hd{font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:12px}
+        .sch-review{margin-bottom:12px;padding-bottom:12px;border-bottom:1px solid var(--border)}
+        .sch-review:last-child{margin-bottom:0;padding-bottom:0;border-bottom:none}
+        .sch-stars{color:#f5a623;font-size:12px;margin-bottom:4px}
+        .sch-review-text{font-size:11px;color:var(--text2);line-height:1.55;margin-bottom:5px;font-style:italic}
+        .sch-review-author{font-size:10px;font-weight:700;color:var(--text3)}
+        .sch-guarantee{display:flex;gap:10px;align-items:flex-start}
+        .sch-guarantee-icon{font-size:20px;flex-shrink:0}
+        .sch-guarantee-text{font-size:11px;color:var(--text2);line-height:1.55}
+        .sch-guarantee-text strong{color:var(--text);display:block;margin-bottom:2px;font-size:12px}
+        .sch-stat-row{display:flex;gap:10px}
+        .sch-stat{flex:1;background:var(--bg3);border:1px solid var(--border);border-radius:9px;padding:12px;text-align:center}
+        .sch-stat-val{font-family:'Bricolage Grotesque',sans-serif;font-size:22px;font-weight:800;color:var(--teal);line-height:1;margin-bottom:3px}
+        .sch-stat-label{font-size:10px;font-weight:600;color:var(--text3)}
+        .sch-cta-banner{background:linear-gradient(135deg,rgba(0,229,192,.1),rgba(0,107,255,.08));border:1px solid rgba(0,229,192,.18);border-radius:13px;padding:20px 22px;margin-top:14px;text-align:center}
+        .sch-cta-banner h3{font-family:'Bricolage Grotesque',sans-serif;font-size:16px;font-weight:800;color:var(--text);margin:0 0 6px}
+        .sch-cta-banner p{font-size:11px;color:var(--text2);line-height:1.55;margin:0 0 14px}
+        .sch-error{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:400px;gap:10px;color:var(--text2);font-size:13px;text-align:center;padding:20px}
+        .sch-error-icon{font-size:32px;margin-bottom:4px}
+
         /* ─── SEQUENCES ─── */
         .seq-list{padding:16px 20px;overflow-y:auto;flex:1}
         .seq-card{background:var(--bg2);border:1px solid var(--border);border-radius:11px;padding:14px 16px;cursor:pointer;transition:.15s;margin-bottom:9px;display:flex;align-items:center;gap:12px}
@@ -1141,6 +1186,9 @@ ONLY JSON: {"script":"..."}`,
             </div>
             <div className={`sb-item ${view==="integrations"?"on":""}`} onClick={() => setView("integrations")}>
               <span className="sb-item-icon">🔗</span> Integrations
+            </div>
+            <div className={`sb-item ${view==="schedule"?"on":""}`} onClick={() => setView("schedule")}>
+              <span className="sb-item-icon">📆</span> Book a Call
             </div>
             <div className={`sb-item ${view==="tracker"?"on":""}`} onClick={() => setView("tracker")}>
               <span className="sb-item-icon">✓</span> Tracker
@@ -2140,6 +2188,135 @@ ONLY JSON: {"script":"..."}`,
                     ))}
                   </div>
                 </div>
+
+              ) : view === "schedule" ? (
+                /* ── SCHEDULE A CONSULTATION ── */
+                (() => {
+                  const [widgetReady, setWidgetReady] = useState(false);
+                  const [widgetError, setWidgetError] = useState(false);
+                  const calendlyRef = useRef(null);
+
+                  // Load Calendly script once
+                  useState(() => {
+                    if (document.getElementById("calendly-script")) {
+                      setWidgetReady(true);
+                      return;
+                    }
+                    const script = document.createElement("script");
+                    script.id = "calendly-script";
+                    script.src = "https://assets.calendly.com/assets/external/widget.js";
+                    script.async = true;
+                    script.onload = () => setWidgetReady(true);
+                    script.onerror = () => setWidgetError(true);
+                    document.head.appendChild(script);
+                  });
+
+                  return (
+                    <div className="sch-wrap">
+                      {/* Hero */}
+                      <div className="sch-hero">
+                        <div className="sch-hero-tag">🗓 Free Consultation</div>
+                        <h1>Book a 30-Minute Strategy Call<br/>with Our Team</h1>
+                        <p>Get a personalized walkthrough of RepReach and learn how top-performing sales reps are landing more retail meetings, crafting sharper outreach, and closing faster. No pitch. Just real value — guaranteed.</p>
+                        <div className="sch-stat-row" style={{maxWidth:420}}>
+                          {[["500+","Reps Onboarded"],["94%","Satisfaction Rate"],["30 min","Focused Session"]].map(([v,l])=>(
+                            <div key={l} className="sch-stat"><div className="sch-stat-val">{v}</div><div className="sch-stat-label">{l}</div></div>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Benefits row */}
+                      <div className="sch-benefits">
+                        {[
+                          {icon:"🎯","title":"Tailored to Your Market","desc":"We review your target retailers and product line before the call so every minute is relevant."},
+                          {icon:"🤖","title":"Live AI Demo","desc":"See RepReach generate buyer lists, pitch emails, and objection responses in real time for your brand."},
+                          {icon:"📈","title":"Pipeline Audit","desc":"Walk away with a clear action plan to improve your outreach conversion rate immediately."},
+                          {icon:"🔒","title":"No Commitment Required","desc":"Zero pressure. This call is purely educational — our job is to add value, not close a deal."},
+                        ].map((b)=>(
+                          <div key={b.title} className="sch-benefit">
+                            <div className="sch-benefit-icon">{b.icon}</div>
+                            <div><div className="sch-benefit-title">{b.title}</div><div className="sch-benefit-desc">{b.desc}</div></div>
+                          </div>
+                        ))}
+                      </div>
+
+                      {/* Main grid: widget + trust sidebar */}
+                      <div className="sch-main">
+                        {/* Calendly Widget */}
+                        <div className="sch-widget-box">
+                          <div className="sch-widget-hd">
+                            <div className="sch-widget-dot"/>
+                            <div className="sch-widget-title">Choose a Time That Works for You</div>
+                            <div className="sch-widget-sub">All times in your local timezone</div>
+                          </div>
+                          {widgetError ? (
+                            <div className="sch-error">
+                              <div className="sch-error-icon">⚠️</div>
+                              <div style={{fontWeight:700,color:"var(--text)"}}>Could not load the calendar</div>
+                              <div style={{fontSize:12,maxWidth:320}}>There was a problem loading the booking widget. Please try refreshing the page, or email us directly to schedule.</div>
+                              <a href="mailto:amaar@akronproductsinc.com" className="btn btn-teal btn-sm" style={{marginTop:8,textDecoration:"none"}}>Email to Schedule</a>
+                            </div>
+                          ) : !widgetReady ? (
+                            <div className="sch-loading">
+                              <div className="sch-spinner"/>
+                              Loading calendar…
+                            </div>
+                          ) : (
+                            <div
+                              ref={calendlyRef}
+                              className="calendly-inline-widget"
+                              data-url="https://calendly.com/amaar-akronproductsinc/30min"
+                              style={{minWidth:320,height:700}}
+                            />
+                          )}
+                        </div>
+
+                        {/* Trust sidebar */}
+                        <div className="sch-trust-col">
+                          {/* Reviews */}
+                          <div className="sch-trust-card">
+                            <div className="sch-trust-hd">What Reps Are Saying</div>
+                            {[
+                              {text:`"The strategy call alone gave me three ideas I implemented that week. Booked two meetings within days."`,author:"Marcus T. — Field Sales Rep, CPG Brand"},
+                              {text:`"I came in skeptical and left completely sold — not on the software, but on the strategy. Extremely valuable 30 minutes."`,author:"Priya S. — National Sales Manager"},
+                              {text:`"They actually reviewed my pitch before the call. I felt like they genuinely cared about my success."`,author:"Jordan L. — Independent Sales Rep"},
+                            ].map((r,i)=>(
+                              <div key={i} className="sch-review">
+                                <div className="sch-stars">★★★★★</div>
+                                <div className="sch-review-text">{r.text}</div>
+                                <div className="sch-review-author">{r.author}</div>
+                              </div>
+                            ))}
+                          </div>
+
+                          {/* Guarantees */}
+                          <div className="sch-trust-card">
+                            <div className="sch-trust-hd">Our Commitments to You</div>
+                            {[
+                              {icon:"✅",title:"100% Free, No Catch",desc:"This is a genuine strategy session. We never use hard sales tactics."},
+                              {icon:"⏱",title:"We Respect Your Time",desc:"Calls start on time and end on time. No overruns without your permission."},
+                              {icon:"🔐",title:"Your Data Stays Private",desc:"Anything you share stays confidential. We don't share client information."},
+                            ].map((g)=>(
+                              <div key={g.title} className="sch-guarantee" style={{marginBottom:12}}>
+                                <div className="sch-guarantee-icon">{g.icon}</div>
+                                <div className="sch-guarantee-text"><strong>{g.title}</strong>{g.desc}</div>
+                              </div>
+                            ))}
+                          </div>
+
+                          {/* CTA Banner */}
+                          <div className="sch-cta-banner">
+                            <h3>Ready to grow your retail sales?</h3>
+                            <p>Most reps see a measurable improvement in their outreach within the first week after a strategy call.</p>
+                            <button className="btn btn-teal" style={{width:"100%",justifyContent:"center",fontSize:13}} onClick={()=>calendlyRef.current?.scrollIntoView({behavior:"smooth",block:"center"})}>
+                              📆 Pick a Time Above
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })()
 
               ) : (
                 /* ── TRACKER ── */

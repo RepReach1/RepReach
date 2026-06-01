@@ -69,16 +69,18 @@ function CalendlyWidget() {
       <div>Please refresh or <a href="mailto:amaar@akronproductsinc.com" style={{color:"var(--teal)"}}>email us to schedule</a>.</div>
     </div>
   );
-  if (!ready) return (
-    <div className="pw-cal-loading">
-      <div className="pw-cal-spinner"/>
-      Loading calendar…
-    </div>
-  );
   return (
-    <div className="calendly-inline-widget"
-      data-url="https://calendly.com/amaar-akronproductsinc/30min"
-      style={{minWidth:320,height:700,flex:1}} />
+    <div style={{position:"relative",flex:1,minHeight:700}}>
+      {!ready && (
+        <div className="pw-cal-loading" style={{position:"absolute",inset:0,zIndex:2,background:"var(--bg2)"}}>
+          <div className="pw-cal-spinner"/>
+          Loading calendar…
+        </div>
+      )}
+      <div className="calendly-inline-widget"
+        data-url="https://calendly.com/amaar-akronproductsinc/30min"
+        style={{minWidth:320,height:"100%",minHeight:700}} />
+    </div>
   );
 }
 

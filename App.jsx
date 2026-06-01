@@ -49,6 +49,39 @@ const TITLE_OPTIONS = [
 
 const QUICK_COMPANIES = ["Walmart","Sam's Club","Kroger","Target","Costco","Home Depot","CVS","Tractor Supply","Amazon","Lowe's","Publix","Walgreens","Best Buy","Dollar General","Albertsons"];
 
+function CalendlyWidget() {
+  const [ready, setReady] = useState(false);
+  const [error, setError] = useState(false);
+  useState(() => {
+    if (document.getElementById("calendly-script")) { setReady(true); return; }
+    const s = document.createElement("script");
+    s.id = "calendly-script";
+    s.src = "https://assets.calendly.com/assets/external/widget.js";
+    s.async = true;
+    s.onload = () => setReady(true);
+    s.onerror = () => setError(true);
+    document.head.appendChild(s);
+  });
+  if (error) return (
+    <div className="pw-cal-error">
+      <div style={{fontSize:28}}>⚠️</div>
+      <div style={{fontWeight:700,color:"var(--text)"}}>Couldn't load calendar</div>
+      <div>Please refresh or <a href="mailto:amaar@akronproductsinc.com" style={{color:"var(--teal)"}}>email us to schedule</a>.</div>
+    </div>
+  );
+  if (!ready) return (
+    <div className="pw-cal-loading">
+      <div className="pw-cal-spinner"/>
+      Loading calendar…
+    </div>
+  );
+  return (
+    <div className="calendly-inline-widget"
+      data-url="https://calendly.com/amaar-akronproductsinc/30min"
+      style={{minWidth:320,height:700,flex:1}} />
+  );
+}
+
 export default function App() {
   const [showLanding,  setShowLanding]  = useState(true);
   const [isSubscribed, setIsSubscribed] = useState(false);
@@ -826,7 +859,7 @@ ONLY JSON: {"script":"..."}`,
         /* Contact buttons */
         .cbtn{display:inline-flex;align-items:center;gap:5px;padding:4px 11px;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;border:none;white-space:nowrap;transition:.12s;font-family:'Inter',sans-serif;letter-spacing:.01em}
         .cb-locked{background:var(--bg3);color:var(--text3);border:1px solid var(--border)}
-        .cb-locked:hover{border-color:var(--amber);color:var(--amber)}
+        .cb-locked:hover{border-color:var(--teal);color:var(--teal)}
         .cb-email{background:var(--teal-dim);color:var(--teal);border:1px solid rgba(0,229,192,.18)}
         .cb-email:hover{background:rgba(0,229,192,.14)}
         .cb-gen{background:rgba(245,166,35,.08);color:var(--amber);border:1px solid rgba(245,166,35,.2)}
@@ -890,24 +923,38 @@ ONLY JSON: {"script":"..."}`,
         @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
         .pulsing{animation:pulse 1.4s ease-in-out infinite}
 
-        /* ─── PAYWALL ─── */
-        .pw-overlay{position:fixed;inset:0;background:rgba(4,5,12,.88);backdrop-filter:blur(10px);z-index:999;display:flex;align-items:center;justify-content:center;padding:20px}
-        .pw-modal{background:var(--bg2);border:1px solid var(--border);border-radius:20px;max-width:440px;width:100%;overflow:hidden;box-shadow:0 32px 80px rgba(0,0,0,.7),0 0 0 1px rgba(0,229,192,.06);position:relative}
-        .pw-head{background:linear-gradient(135deg,var(--bg),#081a15);padding:32px;text-align:center;border-bottom:1px solid rgba(0,229,192,.1)}
-        .pw-glow{width:62px;height:62px;background:linear-gradient(135deg,var(--teal),var(--teal2));border-radius:18px;display:flex;align-items:center;justify-content:center;font-size:28px;margin:0 auto 18px;box-shadow:0 0 36px var(--teal-glow)}
-        .pw-head h2{font-family:'Bricolage Grotesque',sans-serif;font-size:24px;font-weight:800;color:var(--text);margin-bottom:8px;letter-spacing:-.4px}
-        .pw-head p{font-size:13px;color:var(--text2);line-height:1.65;max-width:300px;margin:0 auto;font-weight:500}
-        .pw-body{padding:26px}
-        .pw-price{text-align:center;margin-bottom:20px;padding-bottom:18px;border-bottom:1px solid var(--border)}
-        .pw-amt{font-family:'Bricolage Grotesque',sans-serif;font-size:48px;font-weight:800;color:var(--text);line-height:1;letter-spacing:-2px}
-        .pw-per{font-size:13px;color:var(--text2);margin-top:4px;font-weight:500}
-        .pw-disc{font-size:12px;color:var(--teal);font-weight:700;margin-top:5px;letter-spacing:.02em}
-        .pw-feats{display:flex;flex-direction:column;gap:10px;margin-bottom:22px}
-        .pw-feat{display:flex;align-items:center;gap:10px;font-size:13px;color:var(--text2);font-weight:500}
-        .pw-feat:before{content:'→';color:var(--teal);font-weight:800;flex-shrink:0;font-size:15px}
-        .pw-x{position:absolute;top:14px;right:16px;background:none;border:none;color:var(--text3);font-size:22px;cursor:pointer;line-height:1}
+        /* ─── CONSULTATION MODAL (replaces paywall) ─── */
+        .pw-overlay{position:fixed;inset:0;background:rgba(4,5,12,.92);backdrop-filter:blur(12px);z-index:999;display:flex;align-items:center;justify-content:center;padding:20px;overflow-y:auto}
+        .pw-modal{background:var(--bg2);border:1px solid rgba(0,229,192,.18);border-radius:20px;max-width:900px;width:100%;overflow:hidden;box-shadow:0 32px 80px rgba(0,0,0,.7),0 0 0 1px rgba(0,229,192,.06);position:relative;display:grid;grid-template-columns:1fr 1fr}
+        @media(max-width:700px){.pw-modal{grid-template-columns:1fr;max-height:90vh;overflow-y:auto}}
+        .pw-left{background:linear-gradient(160deg,rgba(0,229,192,.07) 0%,rgba(0,107,255,.05) 100%);padding:36px 32px;border-right:1px solid rgba(0,229,192,.1);display:flex;flex-direction:column;justify-content:center}
+        .pw-tag{display:inline-flex;align-items:center;gap:6px;background:rgba(0,229,192,.1);border:1px solid rgba(0,229,192,.22);border-radius:20px;padding:4px 12px;font-size:10px;font-weight:700;color:var(--teal);text-transform:uppercase;letter-spacing:.08em;margin-bottom:16px}
+        .pw-left h2{font-family:'Bricolage Grotesque',sans-serif;font-size:26px;font-weight:800;color:var(--text);line-height:1.2;letter-spacing:-.4px;margin:0 0 10px}
+        .pw-left p{font-size:12px;color:var(--text2);line-height:1.65;margin:0 0 22px}
+        .pw-benefits{display:flex;flex-direction:column;gap:11px;margin-bottom:24px}
+        .pw-benefit{display:flex;align-items:flex-start;gap:10px}
+        .pw-benefit-icon{width:30px;height:30px;border-radius:8px;background:var(--teal-dim);border:1px solid rgba(0,229,192,.18);display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;margin-top:1px}
+        .pw-benefit-title{font-size:12px;font-weight:700;color:var(--text);margin-bottom:2px}
+        .pw-benefit-desc{font-size:11px;color:var(--text3);line-height:1.45}
+        .pw-stats{display:flex;gap:10px;margin-bottom:20px}
+        .pw-stat{flex:1;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:10px;text-align:center}
+        .pw-stat-val{font-family:'Bricolage Grotesque',sans-serif;font-size:20px;font-weight:800;color:var(--teal);line-height:1;margin-bottom:2px}
+        .pw-stat-label{font-size:9px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.04em}
+        .pw-review{background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:13px 14px;margin-top:4px}
+        .pw-stars{color:#f5a623;font-size:11px;margin-bottom:5px}
+        .pw-review-text{font-size:11px;color:var(--text2);line-height:1.5;font-style:italic;margin-bottom:5px}
+        .pw-review-author{font-size:10px;font-weight:700;color:var(--text3)}
+        .pw-right{padding:0;display:flex;flex-direction:column}
+        .pw-right-hd{padding:18px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px}
+        .pw-right-dot{width:8px;height:8px;border-radius:50%;background:var(--teal)}
+        .pw-right-title{font-size:13px;font-weight:700;color:var(--text);flex:1}
+        .pw-right-sub{font-size:10px;color:var(--text3)}
+        .pw-cal-loading{display:flex;flex-direction:column;align-items:center;justify-content:center;flex:1;min-height:500px;gap:12px;color:var(--text2);font-size:12px}
+        .pw-cal-spinner{width:28px;height:28px;border:3px solid rgba(0,229,192,.15);border-top-color:var(--teal);border-radius:50%;animation:spin .8s linear infinite}
+        .pw-cal-error{display:flex;flex-direction:column;align-items:center;justify-content:center;flex:1;min-height:400px;gap:8px;text-align:center;padding:24px;color:var(--text2);font-size:12px}
+        .pw-x{position:absolute;top:14px;right:16px;background:none;border:none;color:var(--text3);font-size:22px;cursor:pointer;line-height:1;z-index:10}
         .pw-x:hover{color:var(--text)}
-        .pw-divider{text-align:center;color:var(--text3);font-size:11px;margin:14px 0;font-weight:600;letter-spacing:.6px}
+        .pw-divider{text-align:center;color:var(--text3);font-size:10px;margin:10px 0;font-weight:600;letter-spacing:.6px}
         .code-wrap{display:flex;gap:8px}
         .code-in{flex:1;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:10px 13px;font-size:13px;color:var(--text);outline:none;font-weight:500}
         .code-in::placeholder{color:var(--text3)}
@@ -1121,30 +1168,37 @@ ONLY JSON: {"script":"..."}`,
       {showPaywall && (
         <div className="pw-overlay" onClick={() => setShowPaywall(false)}>
           <div className="pw-modal" onClick={e => e.stopPropagation()}>
-            <div className="pw-head">
-              <button className="pw-x" onClick={() => setShowPaywall(false)}>×</button>
-              <div className="pw-glow">⚡</div>
-              <h2>Unlock RepReach Pro</h2>
-              <p>Stop losing deals to reps who already have the buyer's number. Get in first.</p>
-            </div>
-            <div className="pw-body">
-              <div className="pw-price">
-                <div className="pw-amt">$2,000</div>
-                <div className="pw-per">per month</div>
-                <div className="pw-disc">First month: $1,500 — save $500 today</div>
+            <button className="pw-x" onClick={() => setShowPaywall(false)}>×</button>
+
+            {/* Left — value prop */}
+            <div className="pw-left">
+              <div className="pw-tag">🗓 Free Consultation</div>
+              <h2>Book a 30-Min Strategy Call with Our Team</h2>
+              <p>Get a personalized walkthrough of RepReach and leave with a clear plan to land more retail meetings — no pitch, just real value.</p>
+              <div className="pw-stats">
+                {[["500+","Reps"],["94%","Satisfaction"],["30 min","Session"]].map(([v,l])=>(
+                  <div key={l} className="pw-stat"><div className="pw-stat-val">{v}</div><div className="pw-stat-label">{l}</div></div>
+                ))}
               </div>
-              <div className="pw-feats">
-                <div className="pw-feat">Live buyer search for any retailer in seconds</div>
-                <div className="pw-feat">Direct email + phone on every contact</div>
-                <div className="pw-feat">AI cold emails, LinkedIn & follow-ups</div>
-                <div className="pw-feat">Outreach tracker — know where every deal stands</div>
-                <div className="pw-feat">Up to 500 contacts per search</div>
+              <div className="pw-benefits">
+                {[
+                  {icon:"🎯",title:"Tailored to Your Market",desc:"We review your retailers and product line before the call."},
+                  {icon:"🤖",title:"Live AI Demo",desc:"See RepReach generate buyer lists and pitch emails in real time."},
+                  {icon:"📈",title:"Pipeline Audit",desc:"Walk away with a clear action plan to improve conversion."},
+                  {icon:"🔒",title:"Zero Pressure",desc:"No sales tactics. This call is purely educational."},
+                ].map(b=>(
+                  <div key={b.title} className="pw-benefit">
+                    <div className="pw-benefit-icon">{b.icon}</div>
+                    <div><div className="pw-benefit-title">{b.title}</div><div className="pw-benefit-desc">{b.desc}</div></div>
+                  </div>
+                ))}
               </div>
-              <a href={PAYMENT_LINK} target="_blank" rel="noreferrer"
-                style={{display:"block",width:"100%",padding:"13px",borderRadius:9,background:"linear-gradient(135deg,#00c9a7,#00e5c0)",color:"#060b10",fontWeight:800,fontSize:14,textAlign:"center",textDecoration:"none",letterSpacing:".02em",boxShadow:"0 4px 20px rgba(0,201,167,.35)"}}>
-                Get Access — $1,500 First Month →
-              </a>
-              <div className="pw-divider">— or enter access code —</div>
+              <div className="pw-review">
+                <div className="pw-stars">★★★★★</div>
+                <div className="pw-review-text">"The strategy call alone gave me three ideas I implemented that week. Booked two meetings within days."</div>
+                <div className="pw-review-author">Marcus T. — Field Sales Rep, CPG Brand</div>
+              </div>
+              <div className="pw-divider" style={{marginTop:16}}>— already have access? —</div>
               <div className="code-wrap">
                 <input className="code-in" placeholder="Access code" value={accessCode}
                   onChange={e => setAccessCode(e.target.value)}
@@ -1152,6 +1206,16 @@ ONLY JSON: {"script":"..."}`,
                 <button className="btn btn-teal" onClick={() => { accessCode.trim()===ACCESS_CODE?(setIsSubscribed(true),setShowPaywall(false),setCodeError("")):setCodeError("Invalid code."); }}>Apply</button>
               </div>
               {codeError && <div className="err">{codeError}</div>}
+            </div>
+
+            {/* Right — Calendly widget */}
+            <div className="pw-right">
+              <div className="pw-right-hd">
+                <div className="pw-right-dot"/>
+                <div className="pw-right-title">Choose a Time That Works for You</div>
+                <div className="pw-right-sub">Your local timezone</div>
+              </div>
+              <CalendlyWidget />
             </div>
           </div>
         </div>
@@ -1192,9 +1256,6 @@ ONLY JSON: {"script":"..."}`,
             </div>
             <div className={`sb-item ${view==="integrations"?"on":""}`} onClick={() => setView("integrations")}>
               <span className="sb-item-icon">🔗</span> Integrations
-            </div>
-            <div className={`sb-item ${view==="schedule"?"on":""}`} onClick={() => setView("schedule")}>
-              <span className="sb-item-icon">📆</span> Book a Call
             </div>
             <div className={`sb-item ${view==="tracker"?"on":""}`} onClick={() => setView("tracker")}>
               <span className="sb-item-icon">✓</span> Tracker
@@ -1265,7 +1326,7 @@ ONLY JSON: {"script":"..."}`,
             <div className="topbar-right">
               {isSubscribed
                 ? <span className="pro-badge">✓ Pro Active</span>
-                : <button className="btn btn-amber btn-sm" onClick={() => setShowPaywall(true)}>⚡ Upgrade to Pro</button>
+                : <button className="btn btn-teal btn-sm" onClick={() => setShowPaywall(true)}>📆 Book a Consultation</button>
               }
             </div>
           </div>
@@ -1300,7 +1361,7 @@ ONLY JSON: {"script":"..."}`,
                       {totalAvailable > leads.length && <span className="rs" style={{marginLeft:6}}>of {totalAvailable.toLocaleString()} in Apollo</span>}
                       {selected.size > 0 && <span style={{marginLeft:12,color:"#00c9a7",fontWeight:700,fontSize:12}}>{selected.size} selected</span>}
                       {!isSubscribed && leads.length > 0 && (
-                        <button className="btn btn-amber btn-sm" style={{marginLeft:"auto"}} onClick={() => setShowPaywall(true)}>⚡ Unlock All Contacts</button>
+                        <button className="btn btn-teal btn-sm" style={{marginLeft:"auto"}} onClick={() => setShowPaywall(true)}>📆 Book a Consultation</button>
                       )}
                     </>
                   ) : (

@@ -4,9 +4,9 @@ export default async function handler(req, res) {
   const { retailer, personName, cursor = 1 } = req.body;
   if (!retailer && !personName) return res.status(400).json({ error: "Missing retailer or personName" });
 
-  const KEY       = process.env.APOLLO_ENRICH_KEY || "RDwOP69rbo3M2KQ1iJNLhQ";
-  const BATCH     = 5;
-  const HEADERS   = { "Content-Type": "application/json", "Cache-Control": "no-cache", "X-Api-Key": KEY };
+  const SEARCH_KEY  = process.env.APOLLO_API_KEY    || "NaiSzPpxILq0OSyylU1Cxg";
+  const BATCH       = 5;
+  const HEADERS     = { "Content-Type": "application/json", "Cache-Control": "no-cache", "X-Api-Key": SEARCH_KEY };
 
   const DOMAINS = {
     "walmart":"walmart.com","sam's club":"samsclub.com","sams club":"samsclub.com",

@@ -4,30 +4,6 @@ import LandingPage from "./LandingPage.jsx";
 const PAYMENT_LINK = "https://buy.stripe.com/8x200j5GZaO9aYZb7A2Ji00";
 const ACCESS_CODE  = "Championsucks";
 
-async function generateText(prompt) {
-  const res = await fetch("/api/generate", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ prompt }),
-  });
-  if (!res.ok) throw new Error("API error " + res.status);
-  const d = await res.json();
-  if (d.error) throw new Error(d.error);
-  const match = (d.result || "").match(/\{[\s\S]*\}/);
-  if (!match) throw new Error("Bad response format");
-  return JSON.parse(match[0]);
-}
-
-const STATUSES = [
-  { id: "none",    label: "Not Contacted", color: "#64748b" },
-  { id: "sent",    label: "Emailed",       color: "#38bdf8" },
-  { id: "opened",  label: "Opened",        color: "#fb923c" },
-  { id: "replied", label: "Replied",       color: "#4ade80" },
-  { id: "meeting", label: "Meeting Set",   color: "#facc15" },
-  { id: "passed",  label: "Passed",        color: "#f87171" },
-];
-
-const AV_COLORS = ["#00c9a7","#06b6d4","#f59e0b","#10b981","#3b82f6","#8b5cf6","#ec4899","#00c9a7"];
 
 
 function CalendlyWidget() {
@@ -75,23 +51,8 @@ export default function App() {
   const [repName,     setRepName]     = useState("");
   const [brandName,   setBrandName]   = useState("");
   const [productDesc, setProductDesc] = useState("");
-  const [emailTone,   setEmailTone]   = useState("professional");
 
-  const [leads,          setLeads]          = useState([]);
-  const [statuses,   setStatuses]   = useState({});
-  const [notes,      setNotes]      = useState({});
   const [view,       setView]       = useState("aitools");
-
-  const [activeLead, setActiveLead] = useState(null);
-  const [selected,   setSelected]   = useState(new Set());
-  const [emails,     setEmails]     = useState({});
-  const [linkedIns,  setLinkedIns]  = useState({});
-  const [followUps,  setFollowUps]  = useState({});
-  const [genEmail,   setGenEmail]   = useState(null);
-  const [genLI,      setGenLI]      = useState(null);
-  const [genFU,      setGenFU]      = useState(null);
-  const [emailTab,   setEmailTab]   = useState("cold");
-  const [variant,    setVariant]    = useState("a");
   const [copied,     setCopied]     = useState(null);
 
   // Practice tab
@@ -157,68 +118,23 @@ export default function App() {
   // Meetings
   const [meetTab,          setMeetTab]          = useState("brief");
   const [meetContact,      setMeetContact]      = useState(null);
+  const [meetContactName,  setMeetContactName]  = useState("");
+  const [meetContactTitle, setMeetContactTitle] = useState("");
+  const [meetContactCo,    setMeetContactCo]    = useState("");
   const [meetBriefResult,  setMeetBriefResult]  = useState(null);
   const [meetBriefBusy,    setMeetBriefBusy]    = useState(false);
   const [agendaResult,     setAgendaResult]     = useState("");
   const [agendaBusy,       setAgendaBusy]       = useState(false);
-  const [meetNotes,        setMeetNotes]        = useState({});
+  const [meetNotes,        setMeetNotes]        = useState("");
   const [followupResult,   setFollowupResult]   = useState(null);
   const [followupBusy,     setFollowupBusy]     = useState(false);
 
-  // Forecasting
-  const [dealValue,        setDealValue]        = useState("");
-
-  const openLead = (lead) => {
-    if (!isSubscribed) { setShowPaywall(true); return; }
-    setActiveLead(activeLead?.id === lead.id ? null : lead);
-    setEmailTab("cold");
-  };
-
-  const genEmail_ = async (lead) => {
-    if (!brandName) return alert("Enter your brand name in the settings bar first.");
-    setGenEmail(lead.id);
-    try {
-      const r = await generateText(
-        `Write TWO cold email variants (A/B) from a CPG sales rep to a retail buyer.
-Rep: ${repName||"Sales Rep"}. Brand: ${brandName}. Product: ${productDesc||brandName}.
-Buyer: ${lead.firstName} ${lead.lastName}, ${lead.title} at ${lead.retailer}. Tone: ${emailTone}.
-Max 120 words body. Specific, compelling subjects.
-ONLY JSON: {"a":{"subject":"...","body":"..."},"b":{"subject":"...","body":"..."}}`
-      );
-      setEmails(p => ({...p,[lead.id]:r}));
-    } catch(e) { alert("Failed: "+e.message); }
-    setGenEmail(null);
-  };
-
-  const genLI_ = async (lead) => {
-    setGenLI(lead.id);
-    try {
-      const r = await generateText(
-        `LinkedIn outreach, CPG sales rep to retail buyer.
-Rep: ${repName||"Sales Rep"}. Brand: ${brandName||"our brand"}.
-Buyer: ${lead.firstName} ${lead.lastName}, ${lead.title} at ${lead.retailer}.
-Connection note max 300 chars. DM max 500 chars.
-ONLY JSON: {"connection":"...","dm":"..."}`
-      );
-      setLinkedIns(p => ({...p,[lead.id]:r}));
-    } catch(e) { alert("Failed: "+e.message); }
-    setGenLI(null);
-  };
-
-  const genFU_ = async (lead) => {
-    setGenFU(lead.id);
-    try {
-      const r = await generateText(
-        `Follow-up email, no reply received.
-Rep: ${repName||"Sales Rep"}. Brand: ${brandName||"our brand"}.
-Prior subject: "${emails[lead.id]?.a?.subject||""}".
-Buyer: ${lead.firstName} ${lead.lastName}, ${lead.title} at ${lead.retailer}.
-No "just checking in". Add value. Max 80 words. Subject "Re:...".
-ONLY JSON: {"subject":"...","body":"..."}`
-      );
-      setFollowUps(p => ({...p,[lead.id]:r}));
-    } catch(e) { alert("Failed: "+e.message); }
-    setGenFU(null);
+  const startMeeting = () => {
+    if (!meetContactName.trim()) return;
+    setMeetContact({ name: meetContactName.trim(), title: meetContactTitle.trim(), retailer: meetContactCo.trim() });
+    setMeetBriefResult(null); setAgendaResult(""); setFollowupResult(null); setMeetNotes("");
+    setMeetTab("brief");
+    genMeetBriefManual({ name: meetContactName.trim(), title: meetContactTitle.trim(), retailer: meetContactCo.trim() });
   };
 
   // ── SEQUENCES ──
@@ -337,8 +253,9 @@ ONLY JSON: {"response":"...","strategy":"..."}`
   };
 
   // ── MEETINGS ──
-  const genMeetBrief = async (lead) => {
-    setMeetContact(lead); setMeetBriefResult(null); setAgendaResult(""); setFollowupResult(null);
+  const genMeetBriefManual = async (contact) => {
+    const c = contact || meetContact;
+    if (!c) return;
     setMeetBriefBusy(true);
     try {
       const r = await fetch("/api/generate", {
@@ -346,7 +263,7 @@ ONLY JSON: {"response":"...","strategy":"..."}`
         body: JSON.stringify({ prompt:
           `Generate a pre-meeting brief for a CPG sales rep.
 Rep: ${repName||"Sales Rep"}. Brand: ${brandName||"our brand"}. Product: ${productDesc||"our product"}.
-Buyer: ${lead.firstName} ${lead.lastName}, ${lead.title} at ${lead.retailer}.
+Buyer: ${c.name}${c.title?", "+c.title:""}${c.retailer?" at "+c.retailer:""}.
 Cover: talking points, objections to prepare for, questions to ask, and prep items to bring.
 ONLY JSON: {"talkingPoints":["...","...","..."],"objections":["...","..."],"questionsToAsk":["...","...","..."],"prepItems":["...","..."]}`
         }),
@@ -366,7 +283,7 @@ ONLY JSON: {"talkingPoints":["...","...","..."],"objections":["...","..."],"ques
         body: JSON.stringify({ prompt:
           `Write a 30-minute meeting agenda for a CPG sales rep meeting a retail buyer.
 Rep: ${repName||"Sales Rep"}. Brand: ${brandName||"our brand"}. Product: ${productDesc||"our product"}.
-Buyer: ${meetContact.firstName} ${meetContact.lastName}, ${meetContact.title} at ${meetContact.retailer}.
+Buyer: ${meetContact.name}${meetContact.title?", "+meetContact.title:""}${meetContact.retailer?" at "+meetContact.retailer:""}.
 Include time blocks with clear purpose and transition notes.
 ONLY JSON: {"agenda":"[formatted agenda with labeled time blocks]"}`
         }),
@@ -380,15 +297,14 @@ ONLY JSON: {"agenda":"[formatted agenda with labeled time blocks]"}`
   const genMeetFollowup = async () => {
     if (!meetContact) return;
     setFollowupBusy(true);
-    const n = meetNotes[meetContact.id]||"";
     try {
       const r = await fetch("/api/generate", {
         method:"POST", headers:{"Content-Type":"application/json"},
         body: JSON.stringify({ prompt:
           `Write a post-meeting follow-up email from a CPG rep to a retail buyer.
 Rep: ${repName||"Sales Rep"}. Brand: ${brandName||"our brand"}.
-Buyer: ${meetContact.firstName} ${meetContact.lastName}, ${meetContact.title} at ${meetContact.retailer}.
-${n?"Meeting notes: "+n:""}
+Buyer: ${meetContact.name}${meetContact.title?", "+meetContact.title:""}${meetContact.retailer?" at "+meetContact.retailer:""}.
+${meetNotes?"Meeting notes: "+meetNotes:""}
 Reference what was discussed, confirm next steps. Under 100 words. Professional but warm.
 ONLY JSON: {"subject":"...","body":"..."}`
         }),
@@ -397,18 +313,6 @@ ONLY JSON: {"subject":"...","body":"..."}`
       setFollowupResult(JSON.parse(d.result));
     } catch(e) { alert("Failed: "+e.message); }
     setFollowupBusy(false);
-  };
-
-  // ── CSV EXPORT ──
-  const exportCSV = () => {
-    if (!leads.length) return alert("No contacts to export. Search a retailer first.");
-    const headers = ["First Name","Last Name","Title","Company","Email","Phone","LinkedIn","Status","Notes"];
-    const rows = leads.map(l => [l.firstName,l.lastName,l.title,l.retailer,l.email||"",l.phone||"",l.linkedin||"",getStatus(l.id).label,(notes[l.id]||"").replace(/[\n,]/g," ")]);
-    const csv = [headers, ...rows].map(r=>r.map(v=>`"${v}"`).join(",")).join("\n");
-    const a = document.createElement("a");
-    a.href = URL.createObjectURL(new Blob([csv],{type:"text/csv"}));
-    a.download = `repreach-${new Date().toISOString().slice(0,10)}.csv`;
-    a.click();
   };
 
   // ── AI TOOLS helpers ──
@@ -553,13 +457,6 @@ ONLY JSON: {"script":"..."}`,
   };
 
   const copy = (text, key) => { navigator.clipboard.writeText(text); setCopied(key); setTimeout(()=>setCopied(null),1800); };
-  const getStatus = (id) => STATUSES.find(s=>s.id===(statuses[id]||"none"))||STATUSES[0];
-  const cycleStatus = (id) => { const i=STATUSES.findIndex(s=>s.id===(statuses[id]||"none")); setStatuses(p=>({...p,[id]:STATUSES[(i+1)%STATUSES.length].id})); };
-
-  const eData  = activeLead && emails[activeLead.id];
-  const liData = activeLead && linkedIns[activeLead.id];
-  const fuData = activeLead && followUps[activeLead.id];
-
   if (showLanding) {
     return <LandingPage onEnter={() => setShowLanding(false)} />;
   }
@@ -1050,14 +947,8 @@ ONLY JSON: {"script":"..."}`,
           </div>
 
           <div className="sb-nav">
-            <div className={`sb-item ${view==="pipeline"?"on":""}`} onClick={() => setView("pipeline")}>
-              <span className="sb-item-icon">📊</span> Pipeline
-            </div>
             <div className={`sb-item ${view==="sequences"?"on":""}`} onClick={() => setView("sequences")}>
               <span className="sb-item-icon">⚡</span> Sequences
-            </div>
-            <div className={`sb-item ${view==="forecasting"?"on":""}`} onClick={() => setView("forecasting")}>
-              <span className="sb-item-icon">📈</span> Forecasting
             </div>
             <div className={`sb-item ${view==="aitools"?"on":""}`} onClick={() => setView("aitools")}>
               <span className="sb-item-icon">🤖</span> AI Tools
@@ -1073,9 +964,6 @@ ONLY JSON: {"script":"..."}`,
             </div>
             <div className={`sb-item ${view==="integrations"?"on":""}`} onClick={() => setView("integrations")}>
               <span className="sb-item-icon">🔗</span> Integrations
-            </div>
-            <div className={`sb-item ${view==="tracker"?"on":""}`} onClick={() => setView("tracker")}>
-              <span className="sb-item-icon">✓</span> Tracker
             </div>
             <div className={`sb-item ${view==="practice"?"on":""}`} onClick={() => setView("practice")}>
               <span className="sb-item-icon">🎯</span> Practice
@@ -1102,14 +990,6 @@ ONLY JSON: {"script":"..."}`,
             <div className="sf"><label>Your Name</label><input placeholder="Jamie" value={repName} onChange={e=>setRepName(e.target.value)} style={{width:100}} /></div>
             <div className="sf"><label>Brand *</label><input placeholder="NutriBlend" value={brandName} onChange={e=>setBrandName(e.target.value)} style={{width:120}} /></div>
             <div className="sf"><label>Product</label><input placeholder="e.g. Protein bars" value={productDesc} onChange={e=>setProductDesc(e.target.value)} style={{width:140}} /></div>
-            <div className="sf"><label>Tone</label>
-              <select value={emailTone} onChange={e=>setEmailTone(e.target.value)} style={{width:130}}>
-                <option value="professional">Professional</option>
-                <option value="casual">Casual & Friendly</option>
-                <option value="bold">Bold & Direct</option>
-                <option value="data-driven">Data-Driven</option>
-              </select>
-            </div>
           </div>
 
           <div className="content">
@@ -1278,117 +1158,6 @@ ONLY JSON: {"script":"..."}`,
                     </div>
                   )}
                 </div>
-              ) : view === "pipeline" ? (
-                /* ── PIPELINE ── */
-                <div className="view-wrap">
-                  <div className="view-hd">
-                    <h2>Pipeline</h2>
-                    <p>{leads.length} contacts tracked · drag-and-drop coming soon</p>
-                  </div>
-                  {leads.length === 0
-                    ? <div className="empty"><div className="empty-icon">📊</div><h3>Pipeline is empty</h3><p>Search a retailer in People Finder and contacts will appear here.</p></div>
-                    : <div className="kanban">
-                        {STATUSES.map(col => {
-                          const colLeads = leads.filter(l => (statuses[l.id]||"none") === col.id);
-                          return (
-                            <div key={col.id} className="k-col">
-                              <div className="k-col-hd">
-                                <span className="k-col-dot" style={{background:col.color}}/>
-                                <span className="k-col-label">{col.label}</span>
-                                <span className="k-col-count" style={{background:col.color+"22",color:col.color}}>{colLeads.length}</span>
-                              </div>
-                              {colLeads.map(lead => {
-                                const idx = leads.findIndex(l=>l.id===lead.id);
-                                return (
-                                  <div key={lead.id} className="k-card" onClick={()=>{setView("people");openLead(lead);}}>
-                                    <div style={{display:"flex",gap:8,alignItems:"center",marginBottom:8}}>
-                                      <div className="av" style={{background:AV_COLORS[idx%AV_COLORS.length],width:28,height:28,fontSize:10,flexShrink:0}}>{(lead.firstName?.[0]||"")+(lead.lastName?.[0]||"")}</div>
-                                      <div style={{minWidth:0}}>
-                                        <div style={{fontWeight:700,fontSize:12,color:"var(--text)",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{lead.firstName} {lead.lastName}</div>
-                                        <div style={{fontSize:10,color:"var(--text3)",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{lead.title}</div>
-                                      </div>
-                                    </div>
-                                    <div style={{fontSize:11,fontWeight:700,color:"var(--teal)"}}>{lead.retailer}</div>
-                                    {notes[lead.id] && <div style={{fontSize:10,color:"var(--text3)",marginTop:5,lineHeight:1.5,overflow:"hidden",textOverflow:"ellipsis",display:"-webkit-box",WebkitLineClamp:2,WebkitBoxOrient:"vertical"}}>{notes[lead.id]}</div>}
-                                  </div>
-                                );
-                              })}
-                            </div>
-                          );
-                        })}
-                      </div>
-                  }
-                </div>
-
-              ) : view === "forecasting" ? (
-                /* ── FORECASTING ── */
-                (() => {
-                  const statusCounts = STATUSES.map(s => ({ ...s, count: leads.filter(l=>(statuses[l.id]||"none")===s.id).length }));
-                  const contacted = leads.filter(l=>(statuses[l.id]||"none")!=="none").length;
-                  const meetings  = leads.filter(l=>(statuses[l.id]||"none")==="meeting").length;
-                  const replied   = leads.filter(l=>["replied","meeting"].includes(statuses[l.id]||"none")).length;
-                  return (
-                    <div className="view-wrap">
-                      <div className="view-hd"><h2>Forecasting</h2><p>Live pipeline breakdown based on your tracked contacts</p></div>
-                      <div className="stat-grid">
-                        <div className="stat-card"><div className="stat-card-val">{leads.length}</div><div className="stat-card-label">Total Contacts</div></div>
-                        <div className="stat-card"><div className="stat-card-val" style={{color:"#38bdf8"}}>{contacted}</div><div className="stat-card-label">Contacted</div></div>
-                        <div className="stat-card"><div className="stat-card-val" style={{color:"#4ade80"}}>{replied}</div><div className="stat-card-label">Replied</div></div>
-                        <div className="stat-card"><div className="stat-card-val" style={{color:"#facc15"}}>{meetings}</div><div className="stat-card-label">Meetings Set</div></div>
-                        <div className="stat-card">
-                          <div className="stat-card-val" style={{color:"var(--teal)"}}>{leads.length ? Math.round(contacted/leads.length*100) : 0}%</div>
-                          <div className="stat-card-label">Contact Rate</div>
-                        </div>
-                        <div className="stat-card">
-                          <div className="stat-card-val" style={{color:"#fb923c"}}>{contacted ? Math.round(meetings/contacted*100) : 0}%</div>
-                          <div className="stat-card-label">Meeting Rate</div>
-                        </div>
-                      </div>
-                      <div style={{background:"var(--bg2)",border:"1px solid var(--border)",borderRadius:13,padding:"20px",marginBottom:16}}>
-                        <div style={{fontFamily:"'Bricolage Grotesque',sans-serif",fontWeight:800,fontSize:14,color:"var(--text)",marginBottom:16,letterSpacing:"-.2px"}}>Pipeline by Stage</div>
-                        {statusCounts.map(s => (
-                          <div key={s.id} className="funnel-row">
-                            <span style={{width:110,fontSize:11,fontWeight:700,color:"var(--text2)",flexShrink:0}}>{s.label}</span>
-                            <div className="funnel-bar-bg">
-                              <div className="funnel-bar-fill" style={{width:leads.length?`${Math.max(4,s.count/leads.length*100)}%`:"4%",background:s.color}}/>
-                            </div>
-                            <span style={{width:28,fontSize:12,fontWeight:800,color:s.color,textAlign:"right",flexShrink:0}}>{s.count}</span>
-                          </div>
-                        ))}
-                      </div>
-                      <div style={{background:"var(--bg2)",border:"1px solid rgba(0,229,192,.1)",borderRadius:13,padding:"20px"}}>
-                        <div style={{fontFamily:"'Bricolage Grotesque',sans-serif",fontWeight:800,fontSize:14,color:"var(--text)",marginBottom:14,letterSpacing:"-.2px"}}>Revenue Forecast</div>
-                        <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:16}}>
-                          <div className="ai-field-label" style={{margin:0,flexShrink:0}}>Avg Deal Value ($)</div>
-                          <input className="ai-in" style={{width:160}} type="number" placeholder="e.g. 50000" value={dealValue} onChange={e=>setDealValue(e.target.value)} />
-                        </div>
-                        {dealValue > 0 ? (<>
-                          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:10,marginBottom:14}}>
-                            {[
-                              {label:"Won (Meetings)",val:meetings,color:"#facc15",rev:meetings*Number(dealValue)},
-                              {label:"In Progress",val:replied-meetings,color:"#4ade80",rev:Math.round((replied-meetings)*Number(dealValue)*0.4)},
-                              {label:"Projected (Pipeline)",val:leads.length-contacted,color:"var(--teal)",rev:Math.round((leads.length-contacted)*(contacted?meetings/contacted:0.05)*Number(dealValue))},
-                            ].map((s,i)=>(
-                              <div key={i} style={{background:"var(--bg3)",border:"1px solid var(--border)",borderRadius:10,padding:"12px 14px"}}>
-                                <div style={{fontSize:10,fontWeight:700,color:s.color,textTransform:"uppercase",letterSpacing:".05em",marginBottom:4}}>{s.label}</div>
-                                <div style={{fontFamily:"'Bricolage Grotesque',sans-serif",fontSize:20,fontWeight:800,color:s.color,letterSpacing:"-.3px"}}>${s.rev.toLocaleString()}</div>
-                                <div style={{fontSize:10,color:"var(--text3)",marginTop:2}}>{s.val} deal{s.val!==1?"s":""}</div>
-                              </div>
-                            ))}
-                          </div>
-                          <div style={{fontSize:12,color:"var(--text3)",lineHeight:1.8}}>
-                            Total pipeline value: <span style={{color:"var(--teal)",fontWeight:700}}>${(meetings*Number(dealValue)+Math.round((replied-meetings)*Number(dealValue)*0.4)+Math.round((leads.length-contacted)*(contacted?meetings/contacted:0.05)*Number(dealValue))).toLocaleString()}</span> projected across {leads.length} contacts.
-                          </div>
-                        </>) : (
-                          <div style={{fontSize:12,color:"var(--text3)",lineHeight:1.8}}>
-                            Enter your average deal value above to see projected revenue across your pipeline. Based on {contacted?Math.round(meetings/contacted*100):0}% meeting rate, you can expect <span style={{color:"#facc15",fontWeight:700}}>{Math.max(0,Math.round((leads.length-contacted)*(contacted?meetings/contacted:0.05)))} more meetings</span> from {leads.length-contacted} uncontacted leads.
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })()
-
               ) : view === "aitools" ? (
                 /* ── AI TOOLS ── */
                 <div className="ai-view">
@@ -1751,116 +1520,90 @@ ONLY JSON: {"script":"..."}`,
 
               ) : view === "meetings" ? (
                 /* ── MEETINGS ── */
-                (() => {
-                  const meetLeads = leads.filter(l=>(statuses[l.id]||"none")==="meeting");
-                  return (
-                    <div className="meet-layout">
-                      {/* Contact list */}
-                      <div className="meet-list">
-                        <div className="meet-list-hd">Meetings Set ({meetLeads.length})</div>
-                        {meetLeads.length===0 ? (
-                          <div style={{padding:"20px 14px",textAlign:"center",color:"var(--text3)",fontSize:11,lineHeight:1.7}}>No meetings set yet.<br/>Mark contacts as "Meeting Set" in Tracker or People Finder.</div>
-                        ) : meetLeads.map(lead=>{
-                          const idx=leads.findIndex(l=>l.id===lead.id);
-                          return (
-                            <div key={lead.id} className={`meet-row ${meetContact?.id===lead.id?"active":""}`} onClick={()=>genMeetBrief(lead)}>
-                              <div className="av" style={{background:AV_COLORS[idx%AV_COLORS.length],width:30,height:30,fontSize:10,flexShrink:0}}>{(lead.firstName?.[0]||"")+(lead.lastName?.[0]||"")}</div>
-                              <div style={{minWidth:0}}>
-                                <div style={{fontWeight:700,fontSize:12,color:"var(--text)"}}>{lead.firstName} {lead.lastName}</div>
-                                <div style={{fontSize:10,color:"var(--text3)",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{lead.retailer}</div>
-                              </div>
-                            </div>
-                          );
-                        })}
-                        {meetLeads.length===0&&(
-                          <div style={{padding:"0 14px 14px",marginTop:4}}>
-                            <button className="btn btn-outline btn-sm" style={{width:"100%",justifyContent:"center"}} onClick={()=>setView("tracker")}>Open Tracker →</button>
-                          </div>
-                        )}
+                <div className="meet-layout">
+                  {/* Contact entry */}
+                  <div className="meet-list">
+                    <div className="meet-list-hd">Meeting Contact</div>
+                    <div style={{padding:"12px 14px",display:"flex",flexDirection:"column",gap:8}}>
+                      <input className="sb-in" placeholder="Buyer name *" value={meetContactName} onChange={e=>setMeetContactName(e.target.value)} />
+                      <input className="sb-in" placeholder="Title (optional)" value={meetContactTitle} onChange={e=>setMeetContactTitle(e.target.value)} />
+                      <input className="sb-in" placeholder="Retailer (optional)" value={meetContactCo} onChange={e=>setMeetContactCo(e.target.value)} />
+                      <button className="btn btn-teal btn-sm" style={{justifyContent:"center"}} disabled={!meetContactName.trim()} onClick={startMeeting}>
+                        ⚡ Generate Brief
+                      </button>
+                    </div>
+                  </div>
+                  {/* Tools panel */}
+                  <div className="meet-tools">
+                    {!meetContact ? (
+                      <div className="empty">
+                        <div className="empty-icon">📅</div>
+                        <h3>Enter a meeting contact</h3>
+                        <p>Fill in the buyer's name on the left and generate a full meeting brief, agenda, notes, and follow-up email.</p>
                       </div>
-                      {/* Tools panel */}
-                      <div className="meet-tools">
-                        {!meetContact ? (
-                          <div className="empty">
-                            <div className="empty-icon">📅</div>
-                            <h3>Select a meeting</h3>
-                            <p>Click a contact on the left to generate a meeting brief, agenda, notes, and follow-up email.</p>
-                          </div>
-                        ) : (<>
-                          <div className="meet-tabs">
-                            {[{id:"brief",label:"📋 Brief"},{id:"agenda",label:"🗓 Agenda"},{id:"notes",label:"📝 Notes"},{id:"followup",label:"📤 Follow-up"}].map(t=>(
-                              <button key={t.id} className={`meet-tab ${meetTab===t.id?"on":""}`} onClick={()=>setMeetTab(t.id)}>{t.label}</button>
-                            ))}
-                            <div style={{marginLeft:"auto",display:"flex",alignItems:"center",padding:"0 4px"}}>
-                              <span style={{fontSize:12,fontWeight:700,color:"var(--teal)"}}>{meetContact.firstName} {meetContact.lastName} · {meetContact.retailer}</span>
-                            </div>
-                          </div>
-                          <div className="meet-content">
-                            {meetTab==="brief" && (
-                              meetBriefBusy ? <div className="empty" style={{minHeight:200}}><span className="spin spin-lg"/><p style={{marginTop:16}}>Generating brief...</p></div>
-                              : meetBriefResult ? (<>
-                                {[
-                                  {label:"Key Talking Points",key:"talkingPoints",icon:"💬"},
-                                  {label:"Objections to Prepare For",key:"objections",icon:"🛡"},
-                                  {label:"Questions to Ask",key:"questionsToAsk",icon:"❓"},
-                                  {label:"What to Bring / Send Ahead",key:"prepItems",icon:"📦"},
-                                ].map(s=>meetBriefResult[s.key]?.length>0&&(
-                                  <div key={s.key} style={{marginBottom:16}}>
-                                    <div style={{fontSize:10,fontWeight:800,color:"var(--text3)",textTransform:"uppercase",letterSpacing:"1px",marginBottom:8}}>{s.icon} {s.label}</div>
-                                    {meetBriefResult[s.key].map((item,i)=>(
-                                      <div key={i} style={{display:"flex",gap:8,padding:"6px 0",borderBottom:"1px solid rgba(26,31,58,.5)",fontSize:12,color:"var(--text2)",lineHeight:1.6}}>
-                                        <span style={{color:"var(--teal)",fontWeight:800,flexShrink:0}}>→</span>{item}
-                                      </div>
-                                    ))}
+                    ) : (<>
+                      <div className="meet-tabs">
+                        {[{id:"brief",label:"📋 Brief"},{id:"agenda",label:"🗓 Agenda"},{id:"notes",label:"📝 Notes"},{id:"followup",label:"📤 Follow-up"}].map(t=>(
+                          <button key={t.id} className={`meet-tab ${meetTab===t.id?"on":""}`} onClick={()=>setMeetTab(t.id)}>{t.label}</button>
+                        ))}
+                        <div style={{marginLeft:"auto",display:"flex",alignItems:"center",padding:"0 4px"}}>
+                          <span style={{fontSize:12,fontWeight:700,color:"var(--teal)"}}>{meetContact.name}{meetContact.retailer?" · "+meetContact.retailer:""}</span>
+                        </div>
+                      </div>
+                      <div className="meet-content">
+                        {meetTab==="brief" && (
+                          meetBriefBusy ? <div className="empty" style={{minHeight:200}}><span className="spin spin-lg"/><p style={{marginTop:16}}>Generating brief...</p></div>
+                          : meetBriefResult ? (<>
+                            {[
+                              {label:"Key Talking Points",key:"talkingPoints",icon:"💬"},
+                              {label:"Objections to Prepare For",key:"objections",icon:"🛡"},
+                              {label:"Questions to Ask",key:"questionsToAsk",icon:"❓"},
+                              {label:"What to Bring / Send Ahead",key:"prepItems",icon:"📦"},
+                            ].map(s=>meetBriefResult[s.key]?.length>0&&(
+                              <div key={s.key} style={{marginBottom:16}}>
+                                <div style={{fontSize:10,fontWeight:800,color:"var(--text3)",textTransform:"uppercase",letterSpacing:"1px",marginBottom:8}}>{s.icon} {s.label}</div>
+                                {meetBriefResult[s.key].map((item,i)=>(
+                                  <div key={i} style={{display:"flex",gap:8,padding:"6px 0",borderBottom:"1px solid rgba(26,31,58,.5)",fontSize:12,color:"var(--text2)",lineHeight:1.6}}>
+                                    <span style={{color:"var(--teal)",fontWeight:800,flexShrink:0}}>→</span>{item}
                                   </div>
                                 ))}
-                              </>) : <div className="empty" style={{minHeight:200}}><p>Click a contact to generate their brief.</p></div>
-                            )}
-                            {meetTab==="agenda" && (<>
-                              <button className="btn btn-teal" style={{width:"100%",justifyContent:"center",marginBottom:14}} disabled={agendaBusy} onClick={genAgenda}>
-                                {agendaBusy?<><span className="spin"/>Building Agenda...</>:"⚡ Generate 30-Min Agenda"}
-                              </button>
-                              {agendaResult && <><div className="ai-result-box">{agendaResult}</div><button className="btn btn-outline btn-sm" style={{marginTop:8}} onClick={()=>copy(agendaResult,"agenda")}>{copied==="agenda"?"✓ Copied":"Copy Agenda"}</button></>}
-                            </>)}
-                            {meetTab==="notes" && (<>
-                              <div style={{fontSize:10,fontWeight:800,color:"var(--text3)",textTransform:"uppercase",letterSpacing:"1px",marginBottom:8}}>Meeting Notes</div>
-                              <textarea className="pitch-ta" style={{minHeight:200}} placeholder="Take notes during the meeting here..." value={meetNotes[meetContact.id]||""} onChange={e=>setMeetNotes(p=>({...p,[meetContact.id]:e.target.value}))} />
-                              <button className="btn btn-outline btn-sm" style={{marginTop:8}} onClick={()=>copy(meetNotes[meetContact.id]||"","notes")}>{copied==="notes"?"✓ Copied":"Copy Notes"}</button>
-                            </>)}
-                            {meetTab==="followup" && (<>
-                              <button className="btn btn-teal" style={{width:"100%",justifyContent:"center",marginBottom:14}} disabled={followupBusy} onClick={genMeetFollowup}>
-                                {followupBusy?<><span className="spin"/>Writing Email...</>:"⚡ Generate Follow-up Email"}
-                              </button>
-                              {followupResult && (<>
-                                <div style={{background:"var(--bg3)",border:"1px solid var(--border)",borderRadius:9,padding:"12px 14px",marginBottom:9}}>
-                                  <div style={{fontSize:9,fontWeight:800,color:"var(--text3)",textTransform:"uppercase",letterSpacing:"1px",marginBottom:5}}>Subject</div>
-                                  <div style={{fontSize:13,fontWeight:700,color:"var(--text)"}}>{followupResult.subject}</div>
-                                </div>
-                                <div className="ai-result-box">{followupResult.body}</div>
-                                <button className="btn btn-outline btn-sm" style={{marginTop:8}} onClick={()=>copy(`Subject: ${followupResult.subject}\n\n${followupResult.body}`,"followup")}>{copied==="followup"?"✓ Copied":"Copy Email"}</button>
-                              </>)}
-                            </>)}
-                          </div>
+                              </div>
+                            ))}
+                          </>) : <div className="empty" style={{minHeight:200}}><p>Enter a contact and generate their brief.</p></div>
+                        )}
+                        {meetTab==="agenda" && (<>
+                          <button className="btn btn-teal" style={{width:"100%",justifyContent:"center",marginBottom:14}} disabled={agendaBusy} onClick={genAgenda}>
+                            {agendaBusy?<><span className="spin"/>Building Agenda...</>:"⚡ Generate 30-Min Agenda"}
+                          </button>
+                          {agendaResult && <><div className="ai-result-box">{agendaResult}</div><button className="btn btn-outline btn-sm" style={{marginTop:8}} onClick={()=>copy(agendaResult,"agenda")}>{copied==="agenda"?"✓ Copied":"Copy Agenda"}</button></>}
+                        </>)}
+                        {meetTab==="notes" && (<>
+                          <div style={{fontSize:10,fontWeight:800,color:"var(--text3)",textTransform:"uppercase",letterSpacing:"1px",marginBottom:8}}>Meeting Notes</div>
+                          <textarea className="pitch-ta" style={{minHeight:200}} placeholder="Take notes during the meeting here..." value={meetNotes} onChange={e=>setMeetNotes(e.target.value)} />
+                          <button className="btn btn-outline btn-sm" style={{marginTop:8}} onClick={()=>copy(meetNotes,"notes")}>{copied==="notes"?"✓ Copied":"Copy Notes"}</button>
+                        </>)}
+                        {meetTab==="followup" && (<>
+                          <button className="btn btn-teal" style={{width:"100%",justifyContent:"center",marginBottom:14}} disabled={followupBusy} onClick={genMeetFollowup}>
+                            {followupBusy?<><span className="spin"/>Writing Email...</>:"⚡ Generate Follow-up Email"}
+                          </button>
+                          {followupResult && (<>
+                            <div style={{background:"var(--bg3)",border:"1px solid var(--border)",borderRadius:9,padding:"12px 14px",marginBottom:9}}>
+                              <div style={{fontSize:9,fontWeight:800,color:"var(--text3)",textTransform:"uppercase",letterSpacing:"1px",marginBottom:5}}>Subject</div>
+                              <div style={{fontSize:13,fontWeight:700,color:"var(--text)"}}>{followupResult.subject}</div>
+                            </div>
+                            <div className="ai-result-box">{followupResult.body}</div>
+                            <button className="btn btn-outline btn-sm" style={{marginTop:8}} onClick={()=>copy(`Subject: ${followupResult.subject}\n\n${followupResult.body}`,"followup")}>{copied==="followup"?"✓ Copied":"Copy Email"}</button>
+                          </>)}
                         </>)}
                       </div>
-                    </div>
-                  );
-                })()
+                    </>)}
+                  </div>
+                </div>
 
               ) : view === "integrations" ? (
                 /* ── INTEGRATIONS ── */
                 <div className="view-wrap">
                   <div className="view-hd"><h2>Integrations</h2><p>Connect RepReach to the tools your team already uses</p></div>
-                  {/* CSV Export — live */}
-                  <div style={{background:"var(--bg2)",border:"1px solid rgba(0,229,192,.2)",borderRadius:13,padding:"18px 20px",marginBottom:16,display:"flex",alignItems:"center",gap:16}}>
-                    <div style={{width:44,height:44,borderRadius:11,background:"rgba(0,229,192,.1)",border:"1px solid rgba(0,229,192,.2)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:22,flexShrink:0}}>📥</div>
-                    <div style={{flex:1}}>
-                      <div style={{fontWeight:700,fontSize:13,color:"var(--text)",marginBottom:3}}>CSV Export</div>
-                      <div style={{fontSize:11,color:"var(--text3)",lineHeight:1.5}}>{leads.length} contacts ready — name, title, company, email, phone, status, notes, department.</div>
-                    </div>
-                    <span className="int-status int-live" style={{flexShrink:0}}>● Live</span>
-                    <button className="btn btn-teal btn-sm" onClick={exportCSV} disabled={!leads.length}>{leads.length?"⬇ Export CSV":"No contacts yet"}</button>
-                  </div>
                   <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(280px,1fr))",gap:12}}>
                     {[
                       {icon:"☁",name:"Salesforce",desc:"Sync contacts, leads, and outreach activity automatically.",bg:"#00a1e0"},
@@ -2017,150 +1760,8 @@ ONLY JSON: {"script":"..."}`,
                   );
                 })()
 
-              ) : (
-                /* ── TRACKER ── */
-                <div style={{padding:"16px 20px",overflow:"auto",flex:1}}>
-                  <div style={{marginBottom:16}}>
-                    <div style={{fontFamily:"'Syne',sans-serif",fontWeight:800,fontSize:16,color:"#f1f5f9",marginBottom:3,letterSpacing:"-.2px"}}>Outreach Tracker</div>
-                    <div style={{fontSize:12,color:"#334155"}}>{leads.length} contacts</div>
-                  </div>
-                  {leads.length === 0
-                    ? <div className="empty"><div className="empty-icon">📋</div><h3>No contacts yet</h3><p>Search a retailer in People view first.</p></div>
-                    : <table className="trkr">
-                        <thead><tr><th>Name</th><th>Title</th><th>Company</th><th>Status</th><th>Notes</th><th></th></tr></thead>
-                        <tbody>
-                          {leads.map(lead => { const st=getStatus(lead.id); return (
-                            <tr key={lead.id}>
-                              <td style={{color:"#f1f5f9",fontWeight:600}}>{lead.firstName} {lead.lastName}</td>
-                              <td style={{color:"#64748b",maxWidth:160,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{lead.title}</td>
-                              <td style={{color:"#00c9a7",fontWeight:600}}>{lead.retailer}</td>
-                              <td><button className="spill" style={{background:st.color+"20",color:st.color}} onClick={()=>cycleStatus(lead.id)}>● {st.label}</button></td>
-                              <td><textarea className="n-in" rows={2} placeholder="Notes..." value={notes[lead.id]||""} onChange={e=>setNotes(p=>({...p,[lead.id]:e.target.value}))} /></td>
-                              <td><button className="btn btn-teal btn-sm" onClick={()=>{setView("people");openLead(lead);}}>⚡ Email</button></td>
-                            </tr>
-                          );})}
-                        </tbody>
-                      </table>
-                  }
-                </div>
-              )}
+              ) : null}
             </div>
-
-            {/* ── DETAIL PANEL ── */}
-            {activeLead && (
-              <div className="detail">
-                <div className="dp-head">
-                  {(() => { const i=leads.findIndex(l=>l.id===activeLead.id); return <div className="dp-av" style={{background:AV_COLORS[i%AV_COLORS.length]}}>{(activeLead.firstName?.[0]||"")+(activeLead.lastName?.[0]||"")}</div>; })()}
-                  <div style={{flex:1,minWidth:0}}>
-                    <div className="dp-name">{activeLead.firstName} {activeLead.lastName}</div>
-                    <div className="dp-role">{activeLead.title}</div>
-                    <div className="dp-co">{activeLead.retailer}</div>
-                  </div>
-                  <button className="dp-x" onClick={()=>setActiveLead(null)}>×</button>
-                </div>
-
-                <div className="dp-sec">
-                  <div className="dp-sec-title">Contact Info</div>
-                  {/* Email */}
-                  {activeLead.email
-                    ? <div className="dp-row"><span className="dp-icon">✉</span><span className="dp-val">{activeLead.email}{activeLead.emailStatus && <span style={{marginLeft:5,fontSize:10,color:"#4ade80",fontWeight:700}}>{activeLead.emailStatus}</span>}</span><button className="dp-copy" onClick={()=>copy(activeLead.email,"de")}>{copied==="de"?"✓":"Copy"}</button></div>
-                    : <div className="dp-row"><span className="dp-icon">✉</span><span style={{color:"#334155",fontSize:11,flex:1}}>No email</span></div>
-                  }
-                  {/* Personal emails */}
-                  {(activeLead.personalEmails||[]).map((em,i) => (
-                    <div key={i} className="dp-row"><span className="dp-icon" style={{opacity:0}}>✉</span><span className="dp-val" style={{fontSize:11,color:"#64748b"}}>{em} <span style={{color:"#334155",fontSize:10}}>personal</span></span><button className="dp-copy" onClick={()=>copy(em,"pe"+i)}>{copied==="pe"+i?"✓":"Copy"}</button></div>
-                  ))}
-                  {/* Phone */}
-                  {activeLead.phone
-                    ? <div className="dp-row"><span className="dp-icon">📞</span><span className="dp-val">{activeLead.phone}</span><button className="dp-copy" onClick={()=>copy(activeLead.phone,"dp2")}>{copied==="dp2"?"✓":"Copy"}</button></div>
-                    : null
-                  }
-                  {/* Extra phones */}
-                  {(activeLead.allPhones||[]).slice(1).map((ph,i) => (
-                    <div key={i} className="dp-row"><span className="dp-icon" style={{opacity:0}}>📞</span><span className="dp-val" style={{fontSize:11,color:"#64748b"}}>{ph.number} <span style={{color:"#334155",fontSize:10}}>{ph.type}</span></span></div>
-                  ))}
-                  {/* Social */}
-                  {activeLead.linkedin && <div className="dp-row"><span className="dp-icon">💼</span><span className="dp-val"><a href={"https://"+activeLead.linkedin.replace(/^https?:\/\//,"")} target="_blank" rel="noreferrer">LinkedIn ↗</a></span></div>}
-                  {activeLead.twitter && <div className="dp-row"><span className="dp-icon">🐦</span><span className="dp-val"><a href={activeLead.twitter} target="_blank" rel="noreferrer">Twitter ↗</a></span></div>}
-                  {activeLead.location && <div className="dp-row"><span className="dp-icon">📍</span><span className="dp-val">{activeLead.location}{activeLead.country ? ", "+activeLead.country : ""}</span></div>}
-                  {activeLead.seniority && <div className="dp-row"><span className="dp-icon">⭐</span><span className="dp-val" style={{textTransform:"capitalize"}}>{activeLead.seniority}</span></div>}
-
-                </div>
-
-                <div className="dp-sec">
-                  <div className="dp-sec-title">Outreach Status</div>
-                  <div className="st-grid">
-                    {STATUSES.filter(s=>s.id!=="none").map(s => (
-                      <button key={s.id} className="spill"
-                        style={{background:(statuses[activeLead.id]||"none")===s.id?s.color+"30":s.color+"12",color:s.color,border:(statuses[activeLead.id]||"none")===s.id?`1.5px solid ${s.color}`:"1.5px solid transparent"}}
-                        onClick={()=>setStatuses(p=>({...p,[activeLead.id]:s.id}))}>
-                        {s.label}
-                      </button>
-                    ))}
-                  </div>
-                  <textarea className="n-in" rows={2} placeholder="Notes on this contact..." value={notes[activeLead.id]||""} onChange={e=>setNotes(p=>({...p,[activeLead.id]:e.target.value}))} />
-                </div>
-
-                {(activeLead.companySize || activeLead.companyRevenue || activeLead.companyIndustry || activeLead.companyWebsite) && (
-                  <div className="dp-sec">
-                    <div className="dp-sec-title">Company Info</div>
-                    {activeLead.companyIndustry && <div className="dp-row"><span className="dp-icon">🏢</span><span className="dp-val">{activeLead.companyIndustry}</span></div>}
-                    {activeLead.companySize && <div className="dp-row"><span className="dp-icon">👥</span><span className="dp-val">{activeLead.companySize.toLocaleString()} employees</span></div>}
-                    {activeLead.companyRevenue && <div className="dp-row"><span className="dp-icon">💰</span><span className="dp-val">{activeLead.companyRevenue}</span></div>}
-                    {activeLead.companyWebsite && <div className="dp-row"><span className="dp-icon">🌐</span><span className="dp-val"><a href={"https://"+activeLead.companyWebsite.replace(/^https?:\/\//,"")} target="_blank" rel="noreferrer">{activeLead.companyWebsite.replace(/^https?:\/\//,"")}</a></span></div>}
-                    {activeLead.companyPhone && <div className="dp-row"><span className="dp-icon">☎</span><span className="dp-val">{activeLead.companyPhone}</span><button className="dp-copy" onClick={()=>copy(activeLead.companyPhone,"cp")}>{copied==="cp"?"✓":"Copy"}</button></div>}
-                  </div>
-                )}
-                <div className="etabs">
-                  <button className={`etab ${emailTab==="cold"?"on":""}`} onClick={()=>setEmailTab("cold")}>Cold Email</button>
-                  <button className={`etab ${emailTab==="linkedin"?"on":""}`} onClick={()=>setEmailTab("linkedin")}>LinkedIn</button>
-                  <button className={`etab ${emailTab==="followup"?"on":""}`} onClick={()=>setEmailTab("followup")}>Follow-up</button>
-                </div>
-
-                <div className="email-area">
-                  {emailTab==="cold" && (!eData
-                    ? <button className="btn btn-teal" style={{width:"100%",justifyContent:"center"}} disabled={!!genEmail} onClick={()=>genEmail_(activeLead)}>
-                        {genEmail===activeLead.id?<><span className="spin"/>Generating...</>:"⚡ Generate Cold Emails (A/B)"}
-                      </button>
-                    : <>
-                        <div style={{display:"flex",gap:5,marginBottom:12,alignItems:"center"}}>
-                          <button className={`vbtn ${variant==="a"?"on":""}`} onClick={()=>setVariant("a")}>Version A</button>
-                          <button className={`vbtn ${variant==="b"?"on":""}`} onClick={()=>setVariant("b")}>Version B</button>
-                          <button className="btn btn-outline btn-sm" style={{marginLeft:"auto"}} disabled={!!genEmail} onClick={()=>genEmail_(activeLead)}>↺ Redo</button>
-                        </div>
-                        <div className="ebox"><div className="elabel">Subject</div><div className="ebody" style={{fontWeight:700,color:"#f1f5f9"}}>{eData[variant]?.subject}</div></div>
-                        <div className="ebox"><div className="elabel">Body</div><div className="ebody">{eData[variant]?.body}</div></div>
-                        <button className="btn btn-outline btn-sm" onClick={()=>copy(`Subject: ${eData[variant]?.subject}\n\n${eData[variant]?.body}`,"ec")}>{copied==="ec"?"✓ Copied!":"Copy Email"}</button>
-                      </>
-                  )}
-
-                  {emailTab==="linkedin" && (!liData
-                    ? <button className="btn btn-teal" style={{width:"100%",justifyContent:"center"}} disabled={!!genLI} onClick={()=>genLI_(activeLead)}>
-                        {genLI===activeLead.id?<><span className="spin"/>Generating...</>:"💼 Generate LinkedIn Messages"}
-                      </button>
-                    : <>
-                        <div className="ebox"><div className="elabel">Connection Request</div><div className="ebody" style={{fontSize:11}}>{liData.connection}</div></div>
-                        <div className="ebox"><div className="elabel">Direct Message</div><div className="ebody">{liData.dm}</div></div>
-                        <div style={{display:"flex",gap:7}}>
-                          <button className="btn btn-outline btn-sm" onClick={()=>copy(liData.connection,"lc")}>{copied==="lc"?"✓":"Copy Note"}</button>
-                          <button className="btn btn-outline btn-sm" onClick={()=>copy(liData.dm,"ld")}>{copied==="ld"?"✓":"Copy DM"}</button>
-                        </div>
-                      </>
-                  )}
-
-                  {emailTab==="followup" && (!fuData
-                    ? <button className="btn btn-teal" style={{width:"100%",justifyContent:"center"}} disabled={!!genFU} onClick={()=>genFU_(activeLead)}>
-                        {genFU===activeLead.id?<><span className="spin"/>Generating...</>:"↩ Generate Follow-up"}
-                      </button>
-                    : <>
-                        <div className="ebox"><div className="elabel">Subject</div><div className="ebody" style={{fontWeight:700,color:"#f1f5f9"}}>{fuData.subject}</div></div>
-                        <div className="ebox"><div className="elabel">Body</div><div className="ebody">{fuData.body}</div></div>
-                        <button className="btn btn-outline btn-sm" onClick={()=>copy(`Subject: ${fuData.subject}\n\n${fuData.body}`,"fc")}>{copied==="fc"?"✓ Copied!":"Copy"}</button>
-                      </>
-                  )}
-                </div>
-              </div>
-            )}
           </div>
         </div>
       </div>

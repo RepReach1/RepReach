@@ -52,8 +52,28 @@ export default function App() {
   const [brandName,   setBrandName]   = useState("");
   const [productDesc, setProductDesc] = useState("");
 
-  const [view,       setView]       = useState("aitools");
+  const [view,       setView]       = useState("dashboard");
   const [copied,     setCopied]     = useState(null);
+
+  // Pipeline
+  const [pipeline, setPipeline] = useState([
+    {id:1,account:"Walmart",stage:"Prospecting",category:"Snacks",value:"$0",lastContact:"—",notes:""},
+    {id:2,account:"Target",stage:"Meeting Scheduled",category:"Beverages",value:"$0",lastContact:"—",notes:""},
+  ]);
+  const STAGES = ["Prospecting","First Contact","Meeting Scheduled","Proposal Sent","Negotiation","Closed Won","Closed Lost"];
+  const STAGE_COLORS = {Prospecting:"#8b91b8","First Contact":"#a78bfa","Meeting Scheduled":"#38bdf8","Proposal Sent":"var(--amber)",Negotiation:"#fb923c","Closed Won":"#4ade80","Closed Lost":"#f87171"};
+
+  // Simulator
+  const [simStep, setSimStep]           = useState("setup"); // setup | running | done
+  const [simRetailer, setSimRetailer]   = useState("");
+  const [simCategory, setSimCategory]   = useState("");
+  const [simBuyerType, setSimBuyerType] = useState("");
+  const [simDifficulty, setSimDifficulty] = useState("Medium");
+  const [simMessages, setSimMessages]   = useState([]);
+  const [simUserInput, setSimUserInput] = useState("");
+  const [simBusy, setSimBusy]           = useState(false);
+  const [simScore, setSimScore]         = useState(null);
+  const [simTurns, setSimTurns]         = useState(0);
 
   // Practice tab
   const [pitchText,          setPitchText]          = useState("");
@@ -86,6 +106,41 @@ export default function App() {
   const [callCtx,          setCallCtx]          = useState("");
   const [callRes,          setCallRes]          = useState("");
   const [callBusy,         setCallBusy]         = useState(false);
+
+  // Retail Readiness
+  const [readinessAnswers, setReadinessAnswers] = useState({});
+  const [readinessScore,   setReadinessScore]   = useState(null);
+  const [readinessBusy,    setReadinessBusy]     = useState(false);
+
+  const READINESS_QUESTIONS = [
+    {id:"pkg",   cat:"Packaging",    q:"Does your packaging meet major retailer compliance requirements (barcodes, nutrition facts, certifications)?", weight:20},
+    {id:"price", cat:"Pricing",      q:"Is your retail price competitive within 10% of top 3 category competitors?", weight:20},
+    {id:"margin",cat:"Margins",      q:"Can you offer retailers 35–45% gross margin on your product?", weight:20},
+    {id:"logis", cat:"Logistics",    q:"Do you have a reliable 3PL or distributor that can service major retail DCs?", weight:15},
+    {id:"inv",   cat:"Inventory",    q:"Can you fulfill an initial PO of 5,000+ units within 30 days?", weight:15},
+    {id:"mktg",  cat:"Marketing",    q:"Do you have trade marketing budget and a consumer marketing plan?", weight:10},
+  ];
+
+  const calcReadiness = () => {
+    const total = READINESS_QUESTIONS.reduce((sum,q)=>{
+      const a = readinessAnswers[q.id];
+      return sum + (a==="yes" ? q.weight : a==="partial" ? q.weight*0.5 : 0);
+    }, 0);
+    return Math.round(total);
+  };
+
+  const genReadinessReport = async () => {
+    setReadinessBusy(true);
+    const answered = READINESS_QUESTIONS.map(q=>`${q.cat}: ${readinessAnswers[q.id]||"no"}`).join(", ");
+    const score = calcReadiness();
+    try {
+      const r = await fetch("/api/generate", { method:"POST", headers:{"Content-Type":"application/json"},
+        body: JSON.stringify({ prompt: `A CPG brand scored ${score}/100 on retail readiness. Answers: ${answered}. Brand: ${brandName||"unknown"}. Give 3 specific action items to improve their weakest areas. ONLY JSON: {"actions":["...","...","..."]}` }) });
+      const d = await r.json();
+      setReadinessScore({score, actions: JSON.parse(d.result).actions});
+    } catch(e) { setReadinessScore({score, actions:[]}); }
+    setReadinessBusy(false);
+  };
 
   // Intelligence
   const [intelQuery,       setIntelQuery]       = useState("");
@@ -454,6 +509,76 @@ ONLY JSON: {"script":"..."}`,
       setPrevObjections(prev => [...prev, currentObjection.objection]);
     } catch(e) { alert("Failed to score response: " + e.message); }
     setScoringResp(false);
+  };
+
+  const startSimulator = async () => {
+    if (!simRetailer.trim() || !simCategory.trim()) return alert("Select a retailer and category.");
+    setSimStep("running");
+    setSimMessages([]);
+    setSimTurns(0);
+    setSimScore(null);
+    setSimBusy(true);
+    const systemCtx = `You are a ${simBuyerType||"Category Buyer"} at ${simRetailer} responsible for ${simCategory}. You are conducting a vendor pitch meeting. Difficulty: ${simDifficulty}. Brand pitching: ${brandName||"an emerging brand"}. Product: ${productDesc||"consumer packaged goods"}.
+Be realistic and tough. Ask about margins (you need ${simDifficulty==="Expert"?"45%+":"40%+"}), velocity projections, slotting fees, logistics, inventory, packaging compliance, marketing support, and competitive positioning. On Hard/Expert difficulty, push back hard and be skeptical. Start by greeting the rep and asking them to begin their pitch. Respond ONLY as the buyer in first person. Keep responses under 80 words.`;
+    try {
+      const r = await fetch("/api/generate", {
+        method:"POST", headers:{"Content-Type":"application/json"},
+        body: JSON.stringify({ prompt: systemCtx + '\n\nONLY JSON: {"message":"..."}' }),
+      });
+      const d = await r.json();
+      const msg = JSON.parse(d.result).message;
+      setSimMessages([{role:"buyer", text:msg}]);
+    } catch(e) { alert("Simulator error: "+e.message); setSimStep("setup"); }
+    setSimBusy(false);
+  };
+
+  const sendSimMessage = async () => {
+    if (!simUserInput.trim() || simBusy) return;
+    const userMsg = simUserInput.trim();
+    setSimUserInput("");
+    const newMsgs = [...simMessages, {role:"rep", text:userMsg}];
+    setSimMessages(newMsgs);
+    setSimBusy(true);
+    const turns = simTurns + 1;
+    setSimTurns(turns);
+    const shouldEnd = turns >= (simDifficulty==="Expert" ? 8 : simDifficulty==="Hard" ? 6 : 5);
+    try {
+      const history = newMsgs.map(m => `${m.role==="buyer"?"Buyer":"Rep"}: ${m.text}`).join("\n");
+      const prompt = `You are a ${simBuyerType||"Category Buyer"} at ${simRetailer} for ${simCategory}. Difficulty: ${simDifficulty}. Brand: ${brandName||"emerging brand"}. Product: ${productDesc||"CPG product"}.
+Conversation so far:
+${history}
+${shouldEnd ? "This is the final exchange. Wrap up the meeting — either request a follow-up proposal or politely decline. Sound natural." : "Continue the realistic buyer meeting. Ask a tough follow-up question or challenge their last answer. Push on margins, velocity, slotting, logistics, or marketing. Under 80 words."}
+ONLY JSON: {"message":"..."}`;
+      const r = await fetch("/api/generate", { method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify({ prompt }) });
+      const d = await r.json();
+      const buyerReply = JSON.parse(d.result).message;
+      const final = [...newMsgs, {role:"buyer", text:buyerReply}];
+      setSimMessages(final);
+      if (shouldEnd) {
+        setTimeout(() => scoreSimulation(final), 600);
+      }
+    } catch(e) { alert("Error: "+e.message); }
+    setSimBusy(false);
+  };
+
+  const scoreSimulation = async (msgs) => {
+    setSimStep("done");
+    setSimBusy(true);
+    try {
+      const transcript = msgs.map(m=>`${m.role==="buyer"?"BUYER":"REP"}: ${m.text}`).join("\n");
+      const r = await fetch("/api/generate", {
+        method:"POST", headers:{"Content-Type":"application/json"},
+        body: JSON.stringify({ prompt:
+          `You are a retail sales trainer. Score this pitch simulation:
+Retailer: ${simRetailer}. Category: ${simCategory}. Difficulty: ${simDifficulty}.
+Transcript:\n${transcript}\n
+Score 1–10. Identify top 3 weaknesses. Give 3 specific coaching tips. List 3 likely buyer objections they should prep for.
+ONLY JSON: {"score":7,"summary":"...","weaknesses":["...","...","..."],"coaching":["...","...","..."],"objections":["...","...","..."]}` }),
+      });
+      const d = await r.json();
+      setSimScore(JSON.parse(d.result));
+    } catch(e) { alert("Scoring error: "+e.message); }
+    setSimBusy(false);
   };
 
   const copy = (text, key) => { navigator.clipboard.writeText(text); setCopied(key); setTimeout(()=>setCopied(null),1800); };
@@ -947,36 +1072,30 @@ ONLY JSON: {"script":"..."}`,
           </div>
 
           <div className="sb-nav">
-            <div className={`sb-item ${view==="sequences"?"on":""}`} onClick={() => setView("sequences")}>
-              <span className="sb-item-icon">⚡</span> Sequences
-            </div>
-            <div className={`sb-item ${view==="aitools"?"on":""}`} onClick={() => setView("aitools")}>
-              <span className="sb-item-icon">🤖</span> AI Tools
-            </div>
-            <div className={`sb-item ${view==="intelligence"?"on":""}`} onClick={() => setView("intelligence")}>
-              <span className="sb-item-icon">🧠</span> Intelligence
-            </div>
-            <div className={`sb-item ${view==="enablement"?"on":""}`} onClick={() => setView("enablement")}>
-              <span className="sb-item-icon">🚀</span> Enablement
-            </div>
-            <div className={`sb-item ${view==="meetings"?"on":""}`} onClick={() => setView("meetings")}>
-              <span className="sb-item-icon">📅</span> Meetings
-            </div>
-            <div className={`sb-item ${view==="integrations"?"on":""}`} onClick={() => setView("integrations")}>
-              <span className="sb-item-icon">🔗</span> Integrations
-            </div>
-            <div className={`sb-item ${view==="practice"?"on":""}`} onClick={() => setView("practice")}>
-              <span className="sb-item-icon">🎯</span> Practice
-            </div>
+            {[
+              {id:"dashboard",  icon:"⬛", label:"Dashboard"},
+              {id:"pipeline",   icon:"📊", label:"Sales Pipeline"},
+              {id:"simulator",  icon:"🎯", label:"Pitch Simulator"},
+              {id:"readiness",  icon:"✅", label:"Retail Readiness"},
+              {id:"documents",  icon:"📁", label:"Documents"},
+              {id:"meetings",   icon:"📅", label:"Meeting Prep"},
+              {id:"coach",      icon:"🤖", label:"AI Sales Coach"},
+              {id:"consulting", icon:"🏆", label:"Consulting"},
+              {id:"settings",   icon:"⚙", label:"Settings"},
+            ].map(n => (
+              <div key={n.id} className={`sb-item ${view===n.id?"on":""}`} onClick={() => setView(n.id)}>
+                <span className="sb-item-icon">{n.icon}</span> {n.label}
+                {n.id==="simulator" && <span style={{marginLeft:"auto",fontSize:9,fontWeight:800,color:"var(--teal)",background:"rgba(0,229,192,.12)",border:"1px solid rgba(0,229,192,.2)",borderRadius:20,padding:"1px 7px",letterSpacing:".04em"}}>NEW</span>}
+              </div>
+            ))}
           </div>
-
         </div>
 
         {/* ══ RIGHT ══ */}
         <div className="right">
           <div className="topbar">
             <div style={{flex:1,display:"flex",alignItems:"center",gap:8}}>
-              <div style={{fontFamily:"'Bricolage Grotesque',sans-serif",fontWeight:800,fontSize:15,color:"var(--text)",letterSpacing:"-.2px"}}>RepReach</div>
+              <div style={{fontFamily:"'Bricolage Grotesque',sans-serif",fontWeight:800,fontSize:15,color:"var(--text)",letterSpacing:"-.2px"}}>The Retail Sales Operating System</div>
             </div>
             <div className="topbar-right">
               {isSubscribed
@@ -995,7 +1114,232 @@ ONLY JSON: {"script":"..."}`,
           <div className="content">
             <div className="main">
 
-              {view === "practice" ? (
+              {view === "dashboard" ? (
+                /* ── DASHBOARD ── */
+                <div className="view-wrap">
+                  <div className="view-hd">
+                    <h2>Welcome back{repName ? ", "+repName : ""} 👋</h2>
+                    <p>Your retail sales command center — manage opportunities, prep for meetings, and close more deals.</p>
+                  </div>
+
+                  {/* KPI row */}
+                  <div className="stat-grid" style={{marginBottom:24}}>
+                    {[
+                      {label:"Active Opportunities",val:"0",sub:"in pipeline",color:"var(--teal)"},
+                      {label:"Meetings This Week",val:"0",sub:"scheduled",color:"#a78bfa"},
+                      {label:"Pitch Sim Sessions",val:"0",sub:"completed",color:"var(--amber)"},
+                      {label:"Retail Readiness",val:"—",sub:"score pending",color:"#4ade80"},
+                    ].map((k,i) => (
+                      <div key={i} className="stat-card">
+                        <div className="stat-card-val" style={{color:k.color}}>{k.val}</div>
+                        <div className="stat-card-label">{k.label}</div>
+                        <div style={{fontSize:10,color:"var(--text3)",marginTop:3}}>{k.sub}</div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Quick Actions */}
+                  <div style={{marginBottom:20}}>
+                    <div style={{fontSize:10,fontWeight:800,color:"var(--text3)",textTransform:"uppercase",letterSpacing:"1px",marginBottom:12}}>Quick Actions</div>
+                    <div className="card-grid">
+                      {[
+                        {icon:"🎯",title:"Run a Pitch Simulation",desc:"Practice a real buyer meeting with AI. Get scored and coached.",cta:"Start Simulator →",color:"rgba(0,229,192,.08)",border:"rgba(0,229,192,.18)",view:"simulator"},
+                        {icon:"📅",title:"Prepare for a Meeting",desc:"Generate a buyer brief, agenda, and talking points before your next call.",cta:"Prep Meeting →",color:"rgba(167,139,250,.06)",border:"rgba(167,139,250,.15)",view:"meetings"},
+                        {icon:"✅",title:"Check Retail Readiness",desc:"Score your packaging, pricing, compliance, and logistics readiness.",cta:"Run Assessment →",color:"rgba(74,222,128,.06)",border:"rgba(74,222,128,.15)",view:"readiness"},
+                        {icon:"📊",title:"Update Your Pipeline",desc:"Track active retail opportunities and deal stages.",cta:"Open Pipeline →",color:"rgba(245,166,35,.06)",border:"rgba(245,166,35,.15)",view:"pipeline"},
+                      ].map((c,i) => (
+                        <div key={i} className="feat-card" style={{background:c.color,borderColor:c.border}} onClick={()=>setView(c.view)}>
+                          <div className="feat-card-icon" style={{background:"rgba(255,255,255,.04)",border:"1px solid rgba(255,255,255,.06)"}}>{c.icon}</div>
+                          <h3>{c.title}</h3>
+                          <p>{c.desc}</p>
+                          <div className="feat-card-cta" style={{color:"var(--teal)"}}>{c.cta}</div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Getting started strip */}
+                  {!brandName && (
+                    <div style={{background:"linear-gradient(135deg,rgba(0,229,192,.07),rgba(0,107,255,.05))",border:"1px solid rgba(0,229,192,.16)",borderRadius:14,padding:"20px 22px",display:"flex",alignItems:"center",gap:16,flexWrap:"wrap"}}>
+                      <span style={{fontSize:24}}>⚡</span>
+                      <div style={{flex:1}}>
+                        <div style={{fontFamily:"'Bricolage Grotesque',sans-serif",fontWeight:800,fontSize:14,color:"var(--text)",marginBottom:3}}>Set up your brand to unlock all features</div>
+                        <div style={{fontSize:12,color:"var(--text3)"}}>Enter your name, brand, and product in the settings bar above to personalize every AI output.</div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+              ) : view === "pipeline" ? (
+                /* ── SALES PIPELINE ── */
+                <div className="view-wrap">
+                  <div className="view-hd"><h2>Sales Pipeline</h2><p>Track retail opportunities from first contact to closed deal.</p></div>
+                  <div className="kanban">
+                    {STAGES.slice(0,5).map(stage => {
+                      const deals = pipeline.filter(d=>d.stage===stage);
+                      return (
+                        <div key={stage} className="k-col">
+                          <div className="k-col-hd">
+                            <div className="k-col-dot" style={{background:STAGE_COLORS[stage]}}/>
+                            <div className="k-col-label">{stage}</div>
+                            <div className="k-col-count" style={{background:STAGE_COLORS[stage]+"22",color:STAGE_COLORS[stage]}}>{deals.length}</div>
+                          </div>
+                          {deals.map(deal => (
+                            <div key={deal.id} className="k-card">
+                              <div style={{fontWeight:700,fontSize:12,color:"var(--text)",marginBottom:4}}>{deal.account}</div>
+                              <div style={{fontSize:11,color:"var(--text3)",marginBottom:6}}>{deal.category}</div>
+                              <select style={{width:"100%",background:"var(--bg3)",border:"1px solid var(--border)",borderRadius:6,padding:"4px 7px",fontSize:11,color:"var(--text2)",outline:"none"}}
+                                value={deal.stage} onChange={e=>setPipeline(prev=>prev.map(d=>d.id===deal.id?{...d,stage:e.target.value}:d))}>
+                                {STAGES.map(s=><option key={s} value={s}>{s}</option>)}
+                              </select>
+                            </div>
+                          ))}
+                          <button className="btn btn-outline btn-sm" style={{width:"100%",justifyContent:"center",marginTop:4,fontSize:11}}
+                            onClick={()=>{const name=prompt("Account name:");if(name)setPipeline(prev=>[...prev,{id:Date.now(),account:name,stage,category:"",value:"$0",lastContact:"—",notes:""}]);}}>
+                            + Add Deal
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+              ) : view === "simulator" ? (
+                /* ── SALES PITCH SIMULATOR ── */
+                <div style={{display:"flex",flexDirection:"column",flex:1,overflow:"hidden"}}>
+                  <div className="ai-view-hd">
+                    <div className="ai-view-hd-top"><span style={{fontSize:15}}>🎯</span><h2>Sales Pitch Simulator</h2><span className="cs-badge" style={{marginLeft:8,marginBottom:0}}>FLAGSHIP</span></div>
+                    <p>Practice a real buyer meeting with AI. Get scored and coached after every session.</p>
+                    <div style={{height:10}}/>
+                  </div>
+
+                  {simStep==="setup" && (
+                    <div style={{flex:1,overflowY:"auto",padding:"24px"}}>
+                      <div style={{maxWidth:640,margin:"0 auto"}}>
+                        <div style={{background:"linear-gradient(135deg,rgba(0,229,192,.07),rgba(0,107,255,.05))",border:"1px solid rgba(0,229,192,.16)",borderRadius:16,padding:"22px 24px",marginBottom:22}}>
+                          <div style={{fontFamily:"'Bricolage Grotesque',sans-serif",fontWeight:800,fontSize:16,color:"var(--text)",marginBottom:6}}>Configure Your Simulation</div>
+                          <div style={{fontSize:12,color:"var(--text3)",lineHeight:1.65}}>The AI will roleplay as a real buyer at your target retailer. Choose your scenario and difficulty — then pitch like your shelf space depends on it.</div>
+                        </div>
+                        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:14,marginBottom:14}}>
+                          <div>
+                            <div className="ai-field-label">Target Retailer *</div>
+                            <select className="ai-in" value={simRetailer} onChange={e=>setSimRetailer(e.target.value)}>
+                              <option value="">Select retailer...</option>
+                              {["Walmart","Target","Costco","Sam's Club","Kroger","Whole Foods","Trader Joe's","Home Depot","Lowe's","CVS","Walgreens","Aldi","Publix","HEB","Meijer"].map(r=><option key={r} value={r}>{r}</option>)}
+                            </select>
+                          </div>
+                          <div>
+                            <div className="ai-field-label">Product Category *</div>
+                            <select className="ai-in" value={simCategory} onChange={e=>setSimCategory(e.target.value)}>
+                              <option value="">Select category...</option>
+                              {["Snacks & Chips","Beverages","Health & Wellness","Frozen Foods","Dairy","Personal Care","Household","Supplements","Pet Food","Baby Products","Sporting Goods","Outdoor & Garden","Electronics","Cleaning Products","Organic & Natural"].map(c=><option key={c} value={c}>{c}</option>)}
+                            </select>
+                          </div>
+                          <div>
+                            <div className="ai-field-label">Buyer Type</div>
+                            <select className="ai-in" value={simBuyerType} onChange={e=>setSimBuyerType(e.target.value)}>
+                              <option value="">Category Buyer (default)</option>
+                              {["Category Buyer","Category Manager","VP of Merchandising","Senior Buyer","DMM","Regional Buyer"].map(b=><option key={b} value={b}>{b}</option>)}
+                            </select>
+                          </div>
+                          <div>
+                            <div className="ai-field-label">Meeting Difficulty</div>
+                            <select className="ai-in" value={simDifficulty} onChange={e=>setSimDifficulty(e.target.value)}>
+                              {["Easy","Medium","Hard","Expert"].map(d=>(
+                                <option key={d} value={d}>{d}{d==="Expert"?" — Wall Street of Retail":d==="Hard"?" — Skeptical buyer":d==="Medium"?" — Standard meeting":""}</option>
+                              ))}
+                            </select>
+                          </div>
+                        </div>
+                        <button className="btn btn-teal" style={{width:"100%",justifyContent:"center",paddingTop:14,paddingBottom:14,fontSize:14}}
+                          disabled={!simRetailer||!simCategory} onClick={startSimulator}>
+                          🎯 Start Simulation — {simRetailer||"Select retailer"} {simCategory?"· "+simCategory:""}
+                        </button>
+                        <div style={{display:"flex",gap:10,marginTop:18,flexWrap:"wrap"}}>
+                          {[
+                            {r:"Walmart",c:"Snacks & Chips",b:"Category Buyer",d:"Hard"},
+                            {r:"Costco",c:"Beverages",b:"Senior Buyer",d:"Expert"},
+                            {r:"Whole Foods",c:"Organic & Natural",b:"Category Manager",d:"Medium"},
+                          ].map((preset,i)=>(
+                            <button key={i} className="qp" onClick={()=>{setSimRetailer(preset.r);setSimCategory(preset.c);setSimBuyerType(preset.b);setSimDifficulty(preset.d);}}>
+                              {preset.r} · {preset.c} · {preset.d}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {simStep==="running" && (
+                    <div style={{flex:1,display:"flex",flexDirection:"column",overflow:"hidden"}}>
+                      <div style={{padding:"10px 20px",background:"var(--bg3)",borderBottom:"1px solid var(--border)",display:"flex",alignItems:"center",gap:12,fontSize:12,flexShrink:0}}>
+                        <span style={{fontWeight:700,color:"var(--teal)"}}>{simRetailer} · {simBuyerType||"Category Buyer"}</span>
+                        <span style={{color:"var(--text3)"}}>|</span>
+                        <span style={{color:"var(--text3)"}}>{simCategory}</span>
+                        <span style={{color:"var(--text3)"}}>|</span>
+                        <span className={`obj-badge obj-badge-${simDifficulty.toLowerCase()}`}>{simDifficulty}</span>
+                        <button className="btn btn-outline btn-sm" style={{marginLeft:"auto",fontSize:10}} onClick={()=>scoreSimulation(simMessages)}>End &amp; Score Session</button>
+                      </div>
+                      <div style={{flex:1,overflowY:"auto",padding:"20px 24px",display:"flex",flexDirection:"column",gap:12}}>
+                        {simMessages.map((m,i)=>(
+                          <div key={i} style={{display:"flex",flexDirection:m.role==="buyer"?"row":"row-reverse",gap:10,alignItems:"flex-start"}}>
+                            <div style={{width:32,height:32,borderRadius:"50%",background:m.role==="buyer"?"rgba(245,166,35,.15)":"var(--teal-dim)",border:`1px solid ${m.role==="buyer"?"rgba(245,166,35,.25)":"rgba(0,229,192,.25)"}`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:14,flexShrink:0}}>
+                              {m.role==="buyer"?"🏪":"👤"}
+                            </div>
+                            <div style={{maxWidth:"72%",background:m.role==="buyer"?"var(--bg3)":"rgba(0,229,192,.06)",border:`1px solid ${m.role==="buyer"?"var(--border)":"rgba(0,229,192,.14)"}`,borderRadius:12,padding:"10px 14px",fontSize:13,color:"var(--text2)",lineHeight:1.7}}>
+                              <div style={{fontSize:9,fontWeight:800,color:m.role==="buyer"?"var(--amber)":"var(--teal)",textTransform:"uppercase",letterSpacing:".06em",marginBottom:5}}>{m.role==="buyer"?simRetailer+" Buyer":"You"}</div>
+                              {m.text}
+                            </div>
+                          </div>
+                        ))}
+                        {simBusy && <div style={{display:"flex",gap:10,alignItems:"center"}}><div className="spin"/><span style={{fontSize:12,color:"var(--text3)"}}>Buyer is responding...</span></div>}
+                      </div>
+                      <div style={{padding:"14px 20px",borderTop:"1px solid var(--border)",background:"var(--bg2)",flexShrink:0,display:"flex",gap:10}}>
+                        <textarea className="ai-in" style={{flex:1,resize:"none",minHeight:44}} rows={2}
+                          placeholder="Respond to the buyer..." value={simUserInput}
+                          onChange={e=>setSimUserInput(e.target.value)}
+                          onKeyDown={e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();sendSimMessage();}}} />
+                        <button className="btn btn-teal" disabled={simBusy||!simUserInput.trim()} onClick={sendSimMessage} style={{alignSelf:"flex-end"}}>Send →</button>
+                      </div>
+                    </div>
+                  )}
+
+                  {simStep==="done" && (
+                    <div style={{flex:1,overflowY:"auto",padding:"24px"}}>
+                      <div style={{maxWidth:680,margin:"0 auto"}}>
+                        {simBusy ? (
+                          <div className="empty"><span className="spin spin-lg"/><h3 style={{marginTop:18}}>Scoring your simulation...</h3></div>
+                        ) : simScore && (<>
+                          <div style={{textAlign:"center",marginBottom:24}}>
+                            <div style={{fontSize:11,fontWeight:800,color:"var(--text3)",textTransform:"uppercase",letterSpacing:"1px",marginBottom:8}}>Session Score</div>
+                            <div className="score-num" style={{fontSize:72,color:simScore.score>=8?"#4ade80":simScore.score>=6?"#fb923c":"#f87171"}}>{simScore.score}<span style={{fontSize:28,color:"var(--text3)",fontWeight:600}}>/10</span></div>
+                            <div style={{fontSize:13,color:"var(--text2)",marginTop:8,lineHeight:1.65,maxWidth:480,margin:"8px auto 0"}}>{simScore.summary}</div>
+                          </div>
+                          {[
+                            {label:"Weaknesses to Address",items:simScore.weaknesses,color:"#f87171",icon:"⚠"},
+                            {label:"Coaching Recommendations",items:simScore.coaching,color:"var(--teal)",icon:"💡"},
+                            {label:"Likely Buyer Objections — Prepare These",items:simScore.objections,color:"var(--amber)",icon:"🛡"},
+                          ].map((sec,i)=>sec.items?.length>0&&(
+                            <div key={i} style={{background:"var(--bg2)",border:"1px solid var(--border)",borderRadius:12,padding:"18px 20px",marginBottom:12}}>
+                              <div style={{fontSize:10,fontWeight:800,color:sec.color,textTransform:"uppercase",letterSpacing:"1px",marginBottom:12}}>{sec.icon} {sec.label}</div>
+                              {sec.items.map((item,j)=>(
+                                <div key={j} style={{display:"flex",gap:9,padding:"6px 0",borderBottom:j<sec.items.length-1?"1px solid rgba(26,31,58,.5)":"none",fontSize:12,color:"var(--text2)",lineHeight:1.65}}>
+                                  <span style={{color:sec.color,fontWeight:800,flexShrink:0}}>→</span>{item}
+                                </div>
+                              ))}
+                            </div>
+                          ))}
+                          <div style={{display:"flex",gap:10,marginTop:8}}>
+                            <button className="btn btn-teal" style={{flex:1,justifyContent:"center"}} onClick={()=>{setSimStep("setup");setSimScore(null);setSimMessages([]);}}>🔄 Run Another Simulation</button>
+                            <button className="btn btn-outline btn-sm" onClick={()=>setView("coach")}>Get Coaching →</button>
+                          </div>
+                        </>)}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+              ) : view === "practice" ? (
                 /* ── PRACTICE ── */
                 <div className="practice-wrap">
 
@@ -1518,8 +1862,84 @@ ONLY JSON: {"script":"..."}`,
                   </div>
                 </div>
 
+              ) : view === "readiness" ? (
+                /* ── RETAIL READINESS CENTER ── */
+                <div className="view-wrap">
+                  <div className="view-hd"><h2>Retail Readiness Center</h2><p>Assess how ready your brand is to land and keep retail shelf space.</p></div>
+                  {!readinessScore ? (
+                    <>
+                      <div style={{maxWidth:640}}>
+                        {READINESS_QUESTIONS.map(q => (
+                          <div key={q.id} style={{background:"var(--bg2)",border:"1px solid var(--border)",borderRadius:12,padding:"16px 18px",marginBottom:10}}>
+                            <div style={{fontSize:10,fontWeight:800,color:"var(--teal)",textTransform:"uppercase",letterSpacing:"1px",marginBottom:6}}>{q.cat} · {q.weight} pts</div>
+                            <div style={{fontSize:13,color:"var(--text)",marginBottom:12,lineHeight:1.6}}>{q.q}</div>
+                            <div style={{display:"flex",gap:8}}>
+                              {["yes","partial","no"].map(opt=>(
+                                <button key={opt} className={`btn btn-sm ${readinessAnswers[q.id]===opt?"btn-teal":"btn-outline"}`}
+                                  onClick={()=>setReadinessAnswers(p=>({...p,[q.id]:opt}))}>
+                                  {opt.charAt(0).toUpperCase()+opt.slice(1)}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                        ))}
+                        <button className="btn btn-teal" style={{width:"100%",justifyContent:"center",marginTop:8}}
+                          disabled={readinessBusy || Object.keys(readinessAnswers).length < READINESS_QUESTIONS.length}
+                          onClick={genReadinessReport}>
+                          {readinessBusy?<><span className="spin"/>Analyzing...</>:"⚡ Get My Readiness Score"}
+                        </button>
+                      </div>
+                    </>
+                  ) : (
+                    <div style={{maxWidth:580}}>
+                      <div style={{textAlign:"center",marginBottom:24,background:"var(--bg2)",border:"1px solid var(--border)",borderRadius:16,padding:"28px"}}>
+                        <div style={{fontSize:11,fontWeight:800,color:"var(--text3)",textTransform:"uppercase",letterSpacing:"1px",marginBottom:8}}>Retail Readiness Score</div>
+                        <div className="score-num" style={{fontSize:72,color:readinessScore.score>=75?"#4ade80":readinessScore.score>=50?"var(--amber)":"#f87171"}}>{readinessScore.score}<span style={{fontSize:28,color:"var(--text3)",fontWeight:600}}>/100</span></div>
+                        <div style={{fontSize:13,color:"var(--text2)",marginTop:8}}>{readinessScore.score>=75?"Strong retail readiness — ready to pitch major retailers.":readinessScore.score>=50?"Moderate readiness — address gaps before major pitches.":"Low readiness — focus on fundamentals first."}</div>
+                        <div className="score-bar-bg" style={{marginTop:16,height:12}}>
+                          <div className="score-bar-fill" style={{width:`${readinessScore.score}%`,background:readinessScore.score>=75?"linear-gradient(90deg,#4ade80,var(--teal))":readinessScore.score>=50?"linear-gradient(90deg,var(--amber),#fb923c)":"linear-gradient(90deg,#f87171,#ef4444)"}}/>
+                        </div>
+                      </div>
+                      {readinessScore.actions?.length>0 && (
+                        <div style={{background:"var(--bg2)",border:"1px solid var(--border)",borderRadius:12,padding:"18px 20px",marginBottom:14}}>
+                          <div style={{fontSize:10,fontWeight:800,color:"var(--teal)",textTransform:"uppercase",letterSpacing:"1px",marginBottom:12}}>💡 Priority Action Items</div>
+                          {readinessScore.actions.map((a,i)=>(
+                            <div key={i} style={{display:"flex",gap:9,padding:"7px 0",borderBottom:i<readinessScore.actions.length-1?"1px solid rgba(26,31,58,.5)":"none",fontSize:12,color:"var(--text2)",lineHeight:1.65}}>
+                              <span style={{color:"var(--teal)",fontWeight:800,flexShrink:0}}>{i+1}.</span>{a}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                      <button className="btn btn-outline btn-sm" onClick={()=>{setReadinessScore(null);setReadinessAnswers({});}}>Retake Assessment</button>
+                    </div>
+                  )}
+                </div>
+
+              ) : view === "documents" ? (
+                /* ── DOCUMENTS & PRESENTATIONS ── */
+                <div className="view-wrap">
+                  <div className="view-hd"><h2>Documents &amp; Presentations</h2><p>Build and store your retail sales assets — pitch decks, sell sheets, line sheets, and more.</p></div>
+                  <div className="card-grid">
+                    {[
+                      {icon:"📊",title:"Sell Sheet Builder",desc:"Generate all copy for a one-page sell sheet in seconds — headline, benefits, velocity stats, retailer value prop.",cta:"Build Sell Sheet",action:()=>{setView("coach");setTimeout(()=>setEnabTab("sellsheet"),50);}},
+                      {icon:"🎙",title:"Pitch Templates",desc:"Proven pitch structures for cold calls, trade shows, Zoom demos, broker intros, and follow-up meetings.",cta:"Get Templates",action:()=>{setView("coach");setTimeout(()=>setEnabTab("pitchtpl"),50);}},
+                      {icon:"📘",title:"Sales Playbook",desc:"AI-generated tactical playbook for landing shelf space at your target retailers.",cta:"Generate Playbook",action:()=>{setView("coach");setTimeout(()=>setEnabTab("playbook"),50);}},
+                      {icon:"📞",title:"Call Scripts",desc:"Cold call scripts tailored to your brand and the buyer's context.",cta:"Generate Script",action:()=>{setView("coach");setTimeout(()=>setAiTab("callscript"),50);}},
+                      {icon:"💡",title:"Value Propositions",desc:"Three buyer-focused value prop statements for your brand.",cta:"Generate Props",action:()=>{setView("coach");setTimeout(()=>setAiTab("value"),50);}},
+                      {icon:"⚡",title:"Outreach Sequences",desc:"Multi-step outreach sequences with emails and LinkedIn touches for any buyer type.",cta:"Build Sequence",action:()=>{setView("sequences");}},
+                    ].map((c,i)=>(
+                      <div key={i} className="feat-card" onClick={c.action}>
+                        <div className="feat-card-icon" style={{background:"var(--bg3)",border:"1px solid var(--border)"}}>{c.icon}</div>
+                        <h3>{c.title}</h3>
+                        <p>{c.desc}</p>
+                        <div className="feat-card-cta" style={{color:"var(--teal)"}}>{c.cta} →</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
               ) : view === "meetings" ? (
-                /* ── MEETINGS ── */
+                /* ── MEETING PREPARATION ── */
                 <div className="meet-layout">
                   {/* Contact entry */}
                   <div className="meet-list">
@@ -1543,7 +1963,7 @@ ONLY JSON: {"script":"..."}`,
                       </div>
                     ) : (<>
                       <div className="meet-tabs">
-                        {[{id:"brief",label:"📋 Brief"},{id:"agenda",label:"🗓 Agenda"},{id:"notes",label:"📝 Notes"},{id:"followup",label:"📤 Follow-up"}].map(t=>(
+                        {[{id:"brief",label:"📋 Brief"},{id:"research",label:"🔭 Research"},{id:"agenda",label:"🗓 Agenda"},{id:"notes",label:"📝 Notes"},{id:"followup",label:"📤 Follow-up"}].map(t=>(
                           <button key={t.id} className={`meet-tab ${meetTab===t.id?"on":""}`} onClick={()=>setMeetTab(t.id)}>{t.label}</button>
                         ))}
                         <div style={{marginLeft:"auto",display:"flex",alignItems:"center",padding:"0 4px"}}>
@@ -1551,6 +1971,30 @@ ONLY JSON: {"script":"..."}`,
                         </div>
                       </div>
                       <div className="meet-content">
+                        {meetTab==="research" && (<>
+                          <div style={{fontSize:10,fontWeight:800,color:"var(--text3)",textTransform:"uppercase",letterSpacing:"1px",marginBottom:10}}>🔭 Retailer Intelligence Research</div>
+                          <div style={{display:"flex",gap:10,marginBottom:14}}>
+                            <input className="ai-in" style={{flex:1}} placeholder={`Research ${meetContact.retailer||"this retailer"}...`}
+                              value={intelQuery} onChange={e=>setIntelQuery(e.target.value)}
+                              onKeyDown={e=>e.key==="Enter"&&runIntelResearch()} />
+                            <button className="btn btn-teal" disabled={intelBusy||!intelQuery.trim()} onClick={runIntelResearch}>
+                              {intelBusy?<><span className="spin"/>...</>:"Research"}
+                            </button>
+                          </div>
+                          {!intelResult && !intelBusy && meetContact.retailer && (
+                            <button className="btn btn-outline btn-sm" onClick={()=>{setIntelQuery(meetContact.retailer);setTimeout(runIntelResearch,100);}}>
+                              🔭 Auto-research {meetContact.retailer}
+                            </button>
+                          )}
+                          {intelBusy && <div className="empty" style={{minHeight:150}}><span className="spin spin-lg"/><p style={{marginTop:12}}>Researching {intelQuery}...</p></div>}
+                          {intelResult && !intelBusy && (
+                            <>
+                              <div className="intel-card" style={{borderColor:"rgba(0,229,192,.12)"}}><h3>Overview</h3><div style={{fontSize:12,color:"var(--text2)",lineHeight:1.75}}>{intelResult.summary}</div></div>
+                              {intelResult.priorities?.length>0 && <div className="intel-card"><h3>Buying Priorities</h3>{intelResult.priorities.map((p,i)=><div key={i} className="intel-item">{p}</div>)}</div>}
+                              {intelResult.tips?.length>0 && <div className="intel-card" style={{borderColor:"rgba(0,229,192,.12)"}}><h3>Tips for Getting the Meeting</h3>{intelResult.tips.map((t,i)=><div key={i} className="intel-item">{t}</div>)}</div>}
+                            </>
+                          )}
+                        </>)}
                         {meetTab==="brief" && (
                           meetBriefBusy ? <div className="empty" style={{minHeight:200}}><span className="spin spin-lg"/><p style={{marginTop:16}}>Generating brief...</p></div>
                           : meetBriefResult ? (<>
@@ -1597,6 +2041,293 @@ ONLY JSON: {"script":"..."}`,
                         </>)}
                       </div>
                     </>)}
+                  </div>
+                </div>
+
+              ) : view === "intelligence" ? null
+
+              : view === "coach" ? (
+                /* ── AI SALES COACH (merges AI Tools + Enablement) ── */
+                <div className="enab-view">
+                  <div className="ai-view-hd">
+                    <div className="ai-view-hd-top"><span style={{fontSize:15}}>🤖</span><h2>AI Sales Coach</h2></div>
+                    <p>AI trained to think like a retail sales executive. Improve pitches, pricing, and closing strategies.</p>
+                    <div className="ai-tabs">
+                      {[
+                        {id:"pitch",icon:"🎤",label:"Pitch Builder"},
+                        {id:"objection",icon:"🛡",label:"Objection Handler"},
+                        {id:"callscript",icon:"📞",label:"Call Script"},
+                        {id:"value",icon:"💡",label:"Value Props"},
+                        {id:"subject",icon:"✉",label:"Subject Tester"},
+                        {id:"playbook",icon:"📘",label:"Playbook"},
+                        {id:"pitchtpl",icon:"🎙",label:"Pitch Templates"},
+                        {id:"sellsheet",icon:"📊",label:"Sell Sheet"},
+                        {id:"objlib",icon:"🎯",label:"Objection Library"},
+                      ].map(t=>(
+                        <button key={t.id} className={`ai-tab ${aiTab===t.id?"on":""}`} onClick={()=>setAiTab(t.id)}>{t.icon} {t.label}</button>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="ai-panel">
+                    {aiTab === "pitch" && (<>
+                      <div className="ai-panel-title">🎤 Pitch Builder</div>
+                      <div className="ai-panel-sub">Generate a tailored pitch for any buyer</div>
+                      <div className="ai-field-label">Retail Context</div>
+                      <input className="ai-in" placeholder="e.g. grocery, mass, club" value={pitchCtx} onChange={e=>setPitchCtx(e.target.value)} onKeyDown={e=>e.key==="Enter"&&genPitch()} />
+                      <button className="btn btn-teal" style={{marginTop:14,width:"100%",justifyContent:"center"}} disabled={pitchBusy} onClick={genPitch}>
+                        {pitchBusy?<><span className="spin"/>Generating...</>:"⚡ Generate"}
+                      </button>
+                      {pitchRes && <><div className="ai-result-box">{pitchRes}</div><button className="btn btn-outline btn-sm" style={{marginTop:8}} onClick={()=>copy(pitchRes,"pitch")}>{copied==="pitch"?"✓ Copied":"Copy Pitch"}</button></>}
+                    </>)}
+                    {aiTab === "objection" && (<>
+                      <div className="ai-panel-title">🛡 Objection Handler</div>
+                      <div className="ai-panel-sub">Enter a buyer objection and get a confident, ready-to-use response</div>
+                      <textarea className="ai-in pitch-ta" placeholder='e.g. "Your margins are too thin for us to make money on this."' rows={3} value={objInput} onChange={e=>setObjInput(e.target.value)} />
+                      <button className="btn btn-teal" style={{marginTop:14,width:"100%",justifyContent:"center"}} disabled={objBusy||!objInput.trim()} onClick={genObjHandler}>
+                        {objBusy?<><span className="spin"/>Generating...</>:"⚡ Generate Response"}
+                      </button>
+                      {objRes && <><div className="ai-result-box">{objRes}</div><button className="btn btn-outline btn-sm" style={{marginTop:8}} onClick={()=>copy(objRes,"obj")}>{copied==="obj"?"✓ Copied":"Copy Response"}</button></>}
+                    </>)}
+                    {aiTab === "callscript" && (<>
+                      <div className="ai-panel-title">📞 Call Script</div>
+                      <div className="ai-panel-sub">Get a cold call script tailored to your brand and the buyer's context</div>
+                      <div className="ai-field-label">Call Context</div>
+                      <input className="ai-in" placeholder="e.g. club buyer, natural grocery, mass merchant" value={callCtx} onChange={e=>setCallCtx(e.target.value)} onKeyDown={e=>e.key==="Enter"&&genCallScript()} />
+                      <button className="btn btn-teal" style={{marginTop:14,width:"100%",justifyContent:"center"}} disabled={callBusy} onClick={genCallScript}>
+                        {callBusy?<><span className="spin"/>Generating...</>:"⚡ Generate Call Script"}
+                      </button>
+                      {callRes && <><div className="ai-result-box">{callRes}</div><button className="btn btn-outline btn-sm" style={{marginTop:8}} onClick={()=>copy(callRes,"call")}>{copied==="call"?"✓ Copied":"Copy Script"}</button></>}
+                    </>)}
+                    {aiTab === "value" && (<>
+                      <div className="ai-panel-title">💡 Value Proposition</div>
+                      <div className="ai-panel-sub">Generate 3 buyer-focused value prop statements for your brand</div>
+                      <button className="btn btn-teal" style={{width:"100%",justifyContent:"center"}} disabled={valBusy} onClick={genValueProp}>
+                        {valBusy?<><span className="spin"/>Generating...</>:"⚡ Generate Value Props"}
+                      </button>
+                      {valRes && (
+                        <div style={{marginTop:16,display:"flex",flexDirection:"column",gap:10}}>
+                          {valRes.map((v,i)=>(
+                            <div key={i} style={{background:"var(--bg3)",border:"1px solid var(--border)",borderRadius:10,padding:"14px 16px",display:"flex",alignItems:"flex-start",gap:12}}>
+                              <span style={{width:22,height:22,borderRadius:"50%",background:"var(--teal-dim)",border:"1px solid rgba(0,229,192,.2)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,fontWeight:800,color:"var(--teal)",flexShrink:0}}>{i+1}</span>
+                              <span style={{flex:1,fontSize:13,color:"var(--text2)",lineHeight:1.65,fontWeight:500}}>{v}</span>
+                              <button className="dp-copy" onClick={()=>copy(v,"val"+i)}>{copied==="val"+i?"✓":"Copy"}</button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </>)}
+                    {aiTab === "subject" && (<>
+                      <div className="ai-panel-title">✉ Subject Line Tester</div>
+                      <div className="ai-panel-sub">Score your subject line and get 3 stronger alternatives</div>
+                      <input className="ai-in" placeholder='e.g. "Quick question about your protein bar set"' value={subjInput} onChange={e=>setSubjInput(e.target.value)} onKeyDown={e=>e.key==="Enter"&&genSubjectTest()} />
+                      <button className="btn btn-teal" style={{marginTop:14,width:"100%",justifyContent:"center"}} disabled={subjBusy||!subjInput.trim()} onClick={genSubjectTest}>
+                        {subjBusy?<><span className="spin"/>Analyzing...</>:"⚡ Test Subject Line"}
+                      </button>
+                      {subjRes && (
+                        <div style={{marginTop:16}}>
+                          <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:10}}>
+                            <span className="ai-score-pill" style={{background:subjRes.score>=7?"rgba(74,222,128,.12)":subjRes.score>=5?"rgba(251,146,60,.12)":"rgba(248,113,113,.12)",color:subjRes.score>=7?"#4ade80":subjRes.score>=5?"#fb923c":"#f87171",border:`1px solid ${subjRes.score>=7?"rgba(74,222,128,.25)":subjRes.score>=5?"rgba(251,146,60,.25)":"rgba(248,113,113,.25)"}`}}>{subjRes.score}/10</span>
+                            <span style={{fontSize:12,color:"var(--text2)"}}>{subjRes.feedback}</span>
+                          </div>
+                          {(subjRes.alternatives||[]).map((a,i)=>(
+                            <div key={i} style={{display:"flex",alignItems:"center",gap:8,padding:"9px 12px",background:"var(--bg3)",border:"1px solid var(--border)",borderRadius:8,marginBottom:7,fontSize:12,color:"var(--text2)"}}>
+                              <span style={{flex:1}}>{a}</span>
+                              <button className="dp-copy" onClick={()=>copy(a,"subj"+i)}>{copied==="subj"+i?"✓":"Copy"}</button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </>)}
+                    {aiTab==="playbook" && (<>
+                      <div className="ai-panel-title">📘 Retail Sales Playbook</div>
+                      <div className="ai-panel-sub">Generate a tactical playbook for landing shelf space at your target retailers</div>
+                      <div className="ai-field-label">Target Retailers</div>
+                      <input className="ai-in" placeholder="e.g. Walmart, Target, Kroger" value={playbookTarget} onChange={e=>setPlaybookTarget(e.target.value)} />
+                      <button className="btn btn-teal" style={{marginTop:14,width:"100%",justifyContent:"center"}} disabled={playbookBusy} onClick={genPlaybook}>
+                        {playbookBusy?<><span className="spin"/>Generating Playbook...</>:"⚡ Generate Playbook"}
+                      </button>
+                      {playbookResult && (
+                        <div style={{marginTop:18}}>
+                          {(playbookResult.sections||[]).map((s,i)=>(
+                            <div key={i} style={{background:"var(--bg3)",border:"1px solid var(--border)",borderRadius:10,padding:"14px 16px",marginBottom:10}}>
+                              <div style={{fontFamily:"'Bricolage Grotesque',sans-serif",fontWeight:800,fontSize:13,color:"var(--text)",marginBottom:10}}>{i+1}. {s.title}</div>
+                              {(s.bullets||[]).map((b,j)=>(
+                                <div key={j} style={{display:"flex",gap:9,padding:"5px 0",borderBottom:j<s.bullets.length-1?"1px solid rgba(26,31,58,.5)":"none",fontSize:12,color:"var(--text2)",lineHeight:1.65}}>
+                                  <span style={{color:"var(--teal)",fontWeight:800,flexShrink:0}}>→</span>{b}
+                                </div>
+                              ))}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </>)}
+                    {aiTab==="pitchtpl" && (<>
+                      <div className="ai-panel-title">🎙 Pitch Templates</div>
+                      <div className="ai-panel-sub">Proven pitch structures for every sales scenario</div>
+                      <select className="ai-in" value={pitchTplScenario} onChange={e=>setPitchTplScenario(e.target.value)}>
+                        <option value="cold_call">Cold Phone Call</option>
+                        <option value="trade_show">Trade Show Meeting</option>
+                        <option value="broker">Broker Introduction</option>
+                        <option value="followup">Follow-up Meeting</option>
+                        <option value="zoom">Zoom Demo</option>
+                      </select>
+                      <button className="btn btn-teal" style={{marginTop:14,width:"100%",justifyContent:"center"}} disabled={pitchTplBusy} onClick={genPitchTemplate}>
+                        {pitchTplBusy?<><span className="spin"/>Generating...</>:"⚡ Generate Template"}
+                      </button>
+                      {pitchTplResult && <><div className="ai-result-box">{pitchTplResult}</div><button className="btn btn-outline btn-sm" style={{marginTop:8}} onClick={()=>copy(pitchTplResult,"pitchtpl")}>{copied==="pitchtpl"?"✓ Copied":"Copy Template"}</button></>}
+                    </>)}
+                    {aiTab==="sellsheet" && (<>
+                      <div className="ai-panel-title">📊 Sell Sheet Builder</div>
+                      <div className="ai-panel-sub">Generate all copy for a one-page sell sheet in seconds</div>
+                      <button className="btn btn-teal" style={{width:"100%",justifyContent:"center"}} disabled={sellSheetBusy} onClick={genSellSheet}>
+                        {sellSheetBusy?<><span className="spin"/>Building...</>:"⚡ Generate Sell Sheet"}
+                      </button>
+                      {sellSheetResult && (
+                        <div style={{marginTop:16}}>
+                          {[{label:"Headline",val:sellSheetResult.headline},{label:"Subheadline",val:sellSheetResult.subheadline},{label:"Product Description",val:sellSheetResult.productDescription},{label:"Target Consumer",val:sellSheetResult.targetConsumer},{label:"Velocity / Stats",val:sellSheetResult.velocityStats},{label:"Retailer Benefits",val:sellSheetResult.retailerBenefits},{label:"Call to Action",val:sellSheetResult.callToAction}].map((row,i)=>row.val&&(
+                            <div key={i} style={{background:"var(--bg3)",border:"1px solid var(--border)",borderRadius:9,padding:"12px 14px",marginBottom:9}}>
+                              <div style={{fontSize:9,fontWeight:800,color:"var(--text3)",textTransform:"uppercase",letterSpacing:"1px",marginBottom:5}}>{row.label}</div>
+                              <div style={{fontSize:13,color:"var(--text2)",lineHeight:1.65}}>{row.val}</div>
+                              <button className="dp-copy" style={{marginTop:6}} onClick={()=>copy(row.val,"ss"+i)}>{copied==="ss"+i?"✓":"Copy"}</button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </>)}
+                    {aiTab==="objlib" && (<>
+                      <div className="ai-panel-title">🎯 Objection Library</div>
+                      <div className="ai-panel-sub">Paste exactly what the buyer said — get a real, ready-to-use response</div>
+                      <textarea className="ai-in pitch-ta" rows={3} placeholder={'e.g. "Your margins are too thin, we need at least 40%."'} value={objLibSearch} onChange={e=>setObjLibSearch(e.target.value)} />
+                      <button className="btn btn-teal" style={{marginTop:14,width:"100%",justifyContent:"center"}} disabled={objLibBusy||!objLibSearch.trim()} onClick={genObjLibrary}>
+                        {objLibBusy?<><span className="spin"/>Generating...</>:"⚡ Get My Response"}
+                      </button>
+                      {objLibResult && (
+                        <div style={{marginTop:18}}>
+                          <div style={{background:"var(--bg3)",border:"1px solid rgba(0,229,192,.15)",borderRadius:11,padding:"16px 18px",marginBottom:12}}>
+                            <div style={{fontSize:9,fontWeight:800,color:"var(--teal)",textTransform:"uppercase",letterSpacing:"1px",marginBottom:10}}>Say This</div>
+                            <div style={{fontSize:13,color:"var(--text)",lineHeight:1.8,fontWeight:500}}>{objLibResult.response}</div>
+                            <button className="btn btn-teal btn-sm" style={{marginTop:12}} onClick={()=>copy(objLibResult.response,"objresp")}>{copied==="objresp"?"✓ Copied":"Copy Response"}</button>
+                          </div>
+                          {objLibResult.strategy && (
+                            <div style={{background:"var(--bg3)",border:"1px solid var(--border)",borderRadius:11,padding:"14px 16px"}}>
+                              <div style={{fontSize:9,fontWeight:800,color:"var(--text3)",textTransform:"uppercase",letterSpacing:"1px",marginBottom:7}}>Why This Works</div>
+                              <div style={{fontSize:12,color:"var(--text2)",lineHeight:1.7}}>{objLibResult.strategy}</div>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </>)}
+                  </div>
+                </div>
+
+              ) : view === "consulting" ? (
+                /* ── CONSULTING SERVICES ── */
+                (() => {
+                  const [wReady, setWReady] = useState(false);
+                  const [wErr, setWErr] = useState(false);
+                  useState(() => {
+                    if (document.getElementById("calendly-script")) { setWReady(true); return; }
+                    const s = document.createElement("script");
+                    s.id = "calendly-script"; s.src = "https://assets.calendly.com/assets/external/widget.js"; s.async = true;
+                    s.onload = () => setWReady(true); s.onerror = () => setWErr(true);
+                    document.head.appendChild(s);
+                  });
+                  return (
+                    <div className="sch-wrap">
+                      <div className="sch-hero">
+                        <div className="sch-hero-tag">🏆 Premium Advisory</div>
+                        <h1>Retail Growth Consulting</h1>
+                        <p>Work directly with our retail growth experts to land shelf space, win buyer meetings, and scale distribution across major retailers. Premium strategic advisory for brands serious about retail.</p>
+                        <div className="sch-stat-row" style={{maxWidth:420}}>
+                          {[["500+","Brands Helped"],["94%","Client Satisfaction"],["$2M+","Revenue Generated"]].map(([v,l])=>(
+                            <div key={l} className="sch-stat"><div className="sch-stat-val">{v}</div><div className="sch-stat-label">{l}</div></div>
+                          ))}
+                        </div>
+                      </div>
+                      <div className="sch-benefits">
+                        {[
+                          {icon:"🎯",title:"Retail Readiness Audits",desc:"Full review of packaging, pricing, compliance, and go-to-market strategy before your first buyer meeting."},
+                          {icon:"📅",title:"Buyer Meeting Prep",desc:"We prepare you for specific buyer meetings — retailer research, talking points, objection prep, and role-play."},
+                          {icon:"📈",title:"Strategic Advisory",desc:"Ongoing advisory for distribution strategy, category positioning, and retail expansion planning."},
+                          {icon:"🤖",title:"Live AI Demo + Onboarding",desc:"Full platform onboarding with a custom AI configuration for your brand and product line."},
+                        ].map(b=>(
+                          <div key={b.title} className="sch-benefit">
+                            <div className="sch-benefit-icon">{b.icon}</div>
+                            <div><div className="sch-benefit-title">{b.title}</div><div className="sch-benefit-desc">{b.desc}</div></div>
+                          </div>
+                        ))}
+                      </div>
+                      <div className="sch-main">
+                        <div className="sch-widget-box">
+                          <div className="sch-widget-hd"><div className="sch-widget-dot"/><div className="sch-widget-title">Book a Free 30-Min Strategy Call</div><div className="sch-widget-sub">Your local timezone</div></div>
+                          {wErr ? <div className="sch-error"><div className="sch-error-icon">⚠️</div><div>Could not load calendar. <a href="mailto:amaar@akronproductsinc.com" style={{color:"var(--teal)"}}>Email to schedule.</a></div></div>
+                          : !wReady ? <div className="sch-loading"><div className="sch-spinner"/>Loading calendar…</div>
+                          : <div className="calendly-inline-widget" data-url="https://calendly.com/amaar-akronproductsinc/30min" style={{minWidth:320,height:700}}/>}
+                        </div>
+                        <div className="sch-trust-col">
+                          <div className="sch-trust-card">
+                            <div className="sch-trust-hd">Client Results</div>
+                            {[
+                              {text:`"Strategy call alone gave me three ideas I implemented that week. Booked two meetings within days."`,author:"Marcus T. — CPG Sales Rep"},
+                              {text:`"Left completely sold on the strategy. Extremely valuable 30 minutes."`,author:"Priya S. — National Sales Manager"},
+                              {text:`"They reviewed my pitch before the call. I felt like they genuinely cared."`,author:"Jordan L. — Independent Sales Rep"},
+                            ].map((r,i)=><div key={i} className="sch-review"><div className="sch-stars">★★★★★</div><div className="sch-review-text">{r.text}</div><div className="sch-review-author">{r.author}</div></div>)}
+                          </div>
+                          <div className="sch-cta-banner">
+                            <h3>Ready to grow your retail sales?</h3>
+                            <p>Most brands see measurable improvement in their first 30 days of working with us.</p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })()
+
+              ) : view === "settings" ? (
+                /* ── SETTINGS ── */
+                <div className="view-wrap">
+                  <div className="view-hd"><h2>Settings</h2><p>Configure your account, brand profile, and integrations.</p></div>
+                  <div style={{maxWidth:520}}>
+                    <div style={{background:"var(--bg2)",border:"1px solid var(--border)",borderRadius:13,padding:"22px 24px",marginBottom:16}}>
+                      <div style={{fontSize:11,fontWeight:800,color:"var(--text3)",textTransform:"uppercase",letterSpacing:"1px",marginBottom:16}}>Brand Profile</div>
+                      {[{label:"Your Name",val:repName,set:setRepName,ph:"Jamie"},
+                        {label:"Brand Name",val:brandName,set:setBrandName,ph:"NutriBlend"},
+                        {label:"Product / Line Description",val:productDesc,set:setProductDesc,ph:"e.g. Protein bars with 20g protein, zero sugar"},
+                      ].map((f,i)=>(
+                        <div key={i} style={{marginBottom:14}}>
+                          <div className="ai-field-label">{f.label}</div>
+                          <input className="ai-in" placeholder={f.ph} value={f.val} onChange={e=>f.set(e.target.value)} />
+                        </div>
+                      ))}
+                    </div>
+                    <div style={{background:"var(--bg2)",border:"1px solid var(--border)",borderRadius:13,padding:"22px 24px",marginBottom:16}}>
+                      <div style={{fontSize:11,fontWeight:800,color:"var(--text3)",textTransform:"uppercase",letterSpacing:"1px",marginBottom:16}}>Integrations</div>
+                      <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(200px,1fr))",gap:10}}>
+                        {[
+                          {icon:"✨",name:"Claude AI",bg:"#c87533",live:true},
+                          {icon:"☁",name:"Salesforce",bg:"#00a1e0"},
+                          {icon:"🔶",name:"HubSpot",bg:"#ff7a59"},
+                          {icon:"📧",name:"Gmail",bg:"#ea4335"},
+                          {icon:"📮",name:"Outlook",bg:"#0078d4"},
+                          {icon:"📱",name:"LinkedIn Sales Nav",bg:"#0077b5"},
+                        ].map((t,i)=>(
+                          <div key={i} className="int-card" style={{padding:"12px 14px"}}>
+                            <div className="int-logo" style={{background:t.bg+"22",border:`1px solid ${t.bg}33`,fontSize:18,width:34,height:34}}>{t.icon}</div>
+                            <div style={{flex:1}}>
+                              <div style={{fontWeight:700,fontSize:12,color:"var(--text)",marginBottom:4}}>{t.name}</div>
+                              {t.live ? <span className="int-status int-live">● Live</span>
+                              : <button className="btn btn-outline btn-sm" style={{fontSize:10,padding:"2px 10px"}} onClick={()=>alert(`${t.name} coming soon.`)}>Connect</button>}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                    <div style={{background:"var(--bg2)",border:"1px solid var(--border)",borderRadius:13,padding:"22px 24px"}}>
+                      <div style={{fontSize:11,fontWeight:800,color:"var(--text3)",textTransform:"uppercase",letterSpacing:"1px",marginBottom:12}}>Access</div>
+                      {isSubscribed
+                        ? <div style={{fontSize:13,color:"#4ade80",fontWeight:700}}>✓ Pro access active</div>
+                        : <button className="btn btn-teal" onClick={()=>setShowPaywall(true)}>📆 Book a Consultation</button>}
+                    </div>
                   </div>
                 </div>
 

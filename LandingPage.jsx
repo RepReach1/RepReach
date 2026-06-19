@@ -845,23 +845,23 @@ export default function LandingPage({ onEnter }) {
 
         <div className="lp-hero-badge">
           <span className="lp-hero-badge-dot" />
-          The #1 Platform for High-Performance CPG Sales Reps
+          The Retail Sales Operating System
         </div>
 
         <h1 className="lp-hero-h1">
-          Where <span className="accent-blue">Closers</span><br />
-          Are <span className="accent-gold">Built.</span>
+          Win More <span className="accent-blue">Retail</span><br />
+          <span className="accent-gold">Business.</span>
         </h1>
 
         <p className="lp-hero-sub">
-          Find verified retail buyers, practice objections until you're unbeatable,
-          and use AI to personalize every pitch — so you show up to every meeting
-          ready to close.
+          Manage opportunities, prepare for buyer meetings, practice real-world
+          sales presentations, and execute winning retail growth strategies —
+          from a single platform built for brands selling into major retailers.
         </p>
 
         <div className="lp-hero-actions">
           <button className="btn-primary" onClick={onEnter}>
-            Start Closing Deals →
+            Prepare, Practice, Pitch &amp; Close →
           </button>
           <button className="btn-secondary" onClick={onEnter}>
             See It In Action
@@ -870,10 +870,10 @@ export default function LandingPage({ onEnter }) {
 
         <div className="lp-hero-stats">
           {[
-            { val: "92", suffix: "%", label: "Contact accuracy rate" },
-            { val: "500", suffix: "+", label: "Chains & retailers indexed" },
-            { val: "18", prefix: "$", suffix: "M+", label: "Pipeline generated this quarter" },
-            { val: "5000", suffix: "+", label: "Objections to practice" },
+            { val: "500", suffix: "+", label: "Brands using RepReach" },
+            { val: "94", suffix: "%", label: "Client satisfaction rate" },
+            { val: "18", prefix: "$", suffix: "M+", label: "Revenue growth tracked" },
+            { val: "5000", suffix: "+", label: "Pitch simulations completed" },
           ].map(s => (
             <div key={s.label} className="lp-hero-stat">
               <div className="lp-hero-stat-val">

@@ -4,16 +4,6 @@ import LandingPage from "./LandingPage.jsx";
 const PAYMENT_LINK = "https://buy.stripe.com/8x200j5GZaO9aYZb7A2Ji00";
 const ACCESS_CODE  = "Championsucks";
 
-async function apolloSearch(retailer, titles) {
-  const res = await fetch("/api/search", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ retailer, titleKeyword: titles || null }),
-  });
-  const d = await res.json();
-  return { leads: d.leads || [], total: d.apolloTotal || d.total || 0 };
-}
-
 async function generateText(prompt) {
   const res = await fetch("/api/generate", {
     method: "POST",
@@ -39,15 +29,6 @@ const STATUSES = [
 
 const AV_COLORS = ["#00c9a7","#06b6d4","#f59e0b","#10b981","#3b82f6","#8b5cf6","#ec4899","#00c9a7"];
 
-const TITLE_OPTIONS = [
-  "Buyer","Senior Buyer","Merchant","Senior Merchant",
-  "Category Manager","Senior Category Manager",
-  "Director of Merchandising","VP of Merchandising",
-  "Divisional Merchandise Manager","Head of Buying",
-  "Chief Merchant","Procurement Manager","Sourcing Manager",
-];
-
-const QUICK_COMPANIES = ["Walmart","Sam's Club","Kroger","Target","Costco","Home Depot","CVS","Tractor Supply","Amazon","Lowe's","Publix","Walgreens","Best Buy","Dollar General","Albertsons"];
 
 function CalendlyWidget() {
   const [ready, setReady] = useState(false);
@@ -96,18 +77,10 @@ export default function App() {
   const [productDesc, setProductDesc] = useState("");
   const [emailTone,   setEmailTone]   = useState("professional");
 
-  const [companyInput,   setCompanyInput]   = useState("");
-  const [titleSearch,    setTitleSearch]    = useState("");
-  const [selectedTitles, setSelectedTitles] = useState([]);
   const [leads,          setLeads]          = useState([]);
-  const [totalAvailable, setTotalAvailable] = useState(0);
-  const [searching,      setSearching]      = useState(false);
-  const [hasSearched,    setHasSearched]    = useState(false);
-  const [nextCursor,     setNextCursor]     = useState(null);
-  const [loadingMore,    setLoadingMore]    = useState(false);
-  const [searchMode,     setSearchMode]     = useState("company"); // "company" | "person"
-
-  const searchTimer = useRef(null);
+  const [statuses,   setStatuses]   = useState({});
+  const [notes,      setNotes]      = useState({});
+  const [view,       setView]       = useState("aitools");
 
   const [activeLead, setActiveLead] = useState(null);
   const [selected,   setSelected]   = useState(new Set());
@@ -120,13 +93,6 @@ export default function App() {
   const [emailTab,   setEmailTab]   = useState("cold");
   const [variant,    setVariant]    = useState("a");
   const [copied,     setCopied]     = useState(null);
-  const [enriching,  setEnriching]  = useState(new Set()); // contact IDs currently being enriched
-  const [enriched,   setEnriched]   = useState({}); // id -> {email, phone, linkedin}
-  const [statuses,   setStatuses]   = useState({});
-  const [notes,      setNotes]      = useState({});
-  const [view,       setView]       = useState("people");
-  const [departments, setDepartments] = useState({});
-  const [loadingDepts, setLoadingDepts] = useState(false);
 
   // Practice tab
   const [pitchText,          setPitchText]          = useState("");
@@ -202,157 +168,10 @@ export default function App() {
   // Forecasting
   const [dealValue,        setDealValue]        = useState("");
 
-  // fetchDepartments must be defined first — used by runSearch, runPersonSearch, loadMore
-  const fetchDepartments = useCallback(async (leadList) => {
-    if (!leadList || !leadList.length) return;
-    setLoadingDepts(true);
-    const needed = leadList
-      .filter(l => l && l.id)
-      .map(l => ({ id: l.id, firstName: l.firstName, lastName: l.lastName, title: l.title, retailer: l.retailer }))
-      .slice(0, 30);
-    if (!needed.length) { setLoadingDepts(false); return; }
-    try {
-      const res = await fetch("/api/department", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ contacts: needed }),
-      });
-      const data = await res.json();
-      if (data.departments) setDepartments(p => ({ ...p, ...data.departments }));
-    } catch(e) { console.error("Dept fetch failed:", e); }
-    setLoadingDepts(false);
-  }, []);
-
-  const runSearch = useCallback(async (company, titles) => {
-    if (!company.trim() || company.trim().length < 2) {
-      setLeads([]); setHasSearched(false); setNextCursor(null); return;
-    }
-    setSearching(true);
-    setLeads([]); setNextCursor(null); setDepartments({});
-    try {
-      const res = await fetch("/api/search", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ retailer: company, titleKeyword: titles || null, cursor: 1 }),
-      });
-      const data = await res.json();
-      const r = data.leads || [];
-      setLeads(r);
-      setTotalAvailable(data.apolloTotal || r.length);
-      setNextCursor(data.nextCursor || null);
-      setHasSearched(true);
-      setActiveLead(null);
-      if (r.length) setTimeout(() => fetchDepartments(r), 100);
-    } catch(e) { setLeads([]); setHasSearched(true); }
-    setSearching(false);
-  }, [fetchDepartments]);
-
-  const runPersonSearch = useCallback(async (name) => {
-    if (!name.trim() || name.trim().length < 3) return;
-    setSearching(true);
-    setLeads([]); setNextCursor(null); setDepartments({});
-    try {
-      const res = await fetch("/api/search", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ personName: name.trim(), cursor: 1 }),
-      });
-      const data = await res.json();
-      const r = data.leads || [];
-      setLeads(r);
-      setTotalAvailable(data.apolloTotal || r.length);
-      setNextCursor(data.nextCursor || null);
-      setHasSearched(true);
-      setActiveLead(null);
-      if (r.length) setTimeout(() => fetchDepartments(r), 100);
-    } catch(e) { setLeads([]); setHasSearched(true); }
-    setSearching(false);
-  }, [fetchDepartments]);
-
-  const loadMore = useCallback(async () => {
-    if (!nextCursor || loadingMore || !companyInput) return;
-    setLoadingMore(true);
-    try {
-      const res = await fetch("/api/search", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ retailer: companyInput, titleKeyword: selectedTitles.length ? selectedTitles.join(" ") : null, cursor: nextCursor }),
-      });
-      const data = await res.json();
-      const newLeads = data.leads || [];
-      setLeads(prev => {
-        const existing = new Set(prev.map(l => l.firstName + l.lastName));
-        const unique = newLeads.filter(l => !existing.has(l.firstName + l.lastName));
-        setTimeout(() => fetchDepartments(unique), 100);
-        return [...prev, ...unique];
-      });
-      setNextCursor(data.nextCursor || null);
-    } catch(e) { console.error("Load more failed:", e); }
-    setLoadingMore(false);
-  }, [nextCursor, loadingMore, companyInput, selectedTitles, fetchDepartments]);
-
-  const detectSearchMode = (val) => {
-    const trimmed = val.trim();
-    const words = trimmed.split(" ");
-    const companyKeywords = ["walmart","kroger","target","costco","amazon","cvs","depot","supply","publix","walgreens","dollar","best buy","sam","lowe","aldi","trader","whole foods","meijer","heb","sprouts","wegmans","rite","marshalls","ross","maxx","general"];
-    const isCompany = companyKeywords.some(k => trimmed.toLowerCase().includes(k));
-    if (words.length >= 2 && words.length <= 4 && !isCompany && !trimmed.match(/[0-9]/)) {
-      return "person";
-    }
-    return "company";
-  };
-
-  const enrichContact = useCallback(async (lead) => {
-    if (!isSubscribed) { setShowPaywall(true); return; }
-    setEnriching(prev => new Set([...prev, lead.id]));
-    try {
-      const res = await fetch("/api/enrich", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          apolloId:  lead.apolloId,
-          firstName: lead.firstName,
-          lastName:  lead.lastName,
-          retailer:  lead.retailer,
-          linkedin:  lead.linkedin,
-        }),
-      });
-      const data = await res.json();
-      setEnriched(prev => ({ ...prev, [lead.id]: data }));
-      // Also update the lead in the leads array with the revealed info
-      setLeads(prev => prev.map(l => l.id === lead.id
-        ? { ...l, email: data.email || l.email, phone: data.phone || l.phone }
-        : l
-      ));
-    } catch(e) { console.error("Enrich failed:", e); }
-    setEnriching(prev => { const n = new Set(prev); n.delete(lead.id); return n; });
-  }, [isSubscribed]);
-
-  const handleCompanyInput = (val) => {
-    setCompanyInput(val);
-    const mode = detectSearchMode(val);
-    setSearchMode(mode);
-    clearTimeout(searchTimer.current);
-    searchTimer.current = setTimeout(() => {
-      if (mode === "person") runPersonSearch(val);
-      else runSearch(val, selectedTitles.length ? selectedTitles.join(" ") : null);
-    }, 500);
-  };
-
-  const toggleTitle = (t) => {
-    const next = selectedTitles.includes(t) ? selectedTitles.filter(x=>x!==t) : [...selectedTitles, t];
-    setSelectedTitles(next);
-    if (companyInput.trim()) runSearch(companyInput, next.length ? next.join(" ") : null);
-  };
-
   const openLead = (lead) => {
     if (!isSubscribed) { setShowPaywall(true); return; }
     setActiveLead(activeLead?.id === lead.id ? null : lead);
     setEmailTab("cold");
-    // Auto-enrich to reveal contact info if not already done
-    if (!lead.email && !lead.phone && !enriching.has(lead.id)) {
-      enrichContact(lead);
-    }
   };
 
   const genEmail_ = async (lead) => {
@@ -528,7 +347,6 @@ ONLY JSON: {"response":"...","strategy":"..."}`
           `Generate a pre-meeting brief for a CPG sales rep.
 Rep: ${repName||"Sales Rep"}. Brand: ${brandName||"our brand"}. Product: ${productDesc||"our product"}.
 Buyer: ${lead.firstName} ${lead.lastName}, ${lead.title} at ${lead.retailer}.
-${departments[lead.id]?"Department: "+departments[lead.id]+".":""}
 Cover: talking points, objections to prepare for, questions to ask, and prep items to bring.
 ONLY JSON: {"talkingPoints":["...","...","..."],"objections":["...","..."],"questionsToAsk":["...","...","..."],"prepItems":["...","..."]}`
         }),
@@ -584,8 +402,8 @@ ONLY JSON: {"subject":"...","body":"..."}`
   // ── CSV EXPORT ──
   const exportCSV = () => {
     if (!leads.length) return alert("No contacts to export. Search a retailer first.");
-    const headers = ["First Name","Last Name","Title","Company","Email","Phone","LinkedIn","Department","Status","Notes"];
-    const rows = leads.map(l => [l.firstName,l.lastName,l.title,l.retailer,l.email||"",l.phone||"",l.linkedin||"",departments[l.id]||"",getStatus(l.id).label,(notes[l.id]||"").replace(/[\n,]/g," ")]);
+    const headers = ["First Name","Last Name","Title","Company","Email","Phone","LinkedIn","Status","Notes"];
+    const rows = leads.map(l => [l.firstName,l.lastName,l.title,l.retailer,l.email||"",l.phone||"",l.linkedin||"",getStatus(l.id).label,(notes[l.id]||"").replace(/[\n,]/g," ")]);
     const csv = [headers, ...rows].map(r=>r.map(v=>`"${v}"`).join(",")).join("\n");
     const a = document.createElement("a");
     a.href = URL.createObjectURL(new Blob([csv],{type:"text/csv"}));
@@ -1232,9 +1050,6 @@ ONLY JSON: {"script":"..."}`,
           </div>
 
           <div className="sb-nav">
-            <div className={`sb-item ${view==="people"?"on":""}`} onClick={() => setView("people")}>
-              <span className="sb-item-icon">🔍</span> People Finder
-            </div>
             <div className={`sb-item ${view==="pipeline"?"on":""}`} onClick={() => setView("pipeline")}>
               <span className="sb-item-icon">📊</span> Pipeline
             </div>
@@ -1267,63 +1082,13 @@ ONLY JSON: {"script":"..."}`,
             </div>
           </div>
 
-          {/* Company filter */}
-          <div className="sb-sec">
-            <div className="sb-sec-hd">Retailer</div>
-            <input className="sb-in" placeholder="Type retailer name..."
-              value={companyInput} onChange={e => handleCompanyInput(e.target.value)} />
-            {companyInput ? (
-              <span className="sb-tag">
-                {companyInput}
-                <span className="sb-tag-x" onClick={() => { setCompanyInput(""); setLeads([]); setHasSearched(false); }}>×</span>
-              </span>
-            ) : (
-              <div style={{display:"flex",flexWrap:"wrap",gap:3}}>
-                {QUICK_COMPANIES.map(c => (
-                  <span key={c} className="sb-tag" style={{fontSize:10,cursor:"pointer"}} onClick={() => handleCompanyInput(c)}>{c}</span>
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* Title filter */}
-          <div className="sb-sec">
-            <div className="sb-sec-hd">
-              Job Title
-              {selectedTitles.length > 0 && (
-                <button className="sb-sec-clear" onClick={() => { setSelectedTitles([]); if(companyInput) runSearch(companyInput, null); }}>Clear all</button>
-              )}
-            </div>
-            <input className="sb-in" placeholder="Search titles..."
-              value={titleSearch} onChange={e => setTitleSearch(e.target.value)} />
-            <div style={{maxHeight:190,overflowY:"auto"}}>
-              {TITLE_OPTIONS.filter(t => t.toLowerCase().includes(titleSearch.toLowerCase())).map(t => (
-                <div key={t} className="sb-check">
-                  <input type="checkbox" checked={selectedTitles.includes(t)} onChange={() => toggleTitle(t)} />
-                  <label onClick={() => toggleTitle(t)}>{t}</label>
-                </div>
-              ))}
-            </div>
-            {selectedTitles.length > 0 && (
-              <div style={{marginTop:8,display:"flex",flexWrap:"wrap",gap:3}}>
-                {selectedTitles.map(t => (
-                  <span key={t} className="sb-tag" style={{fontSize:10}} onClick={() => toggleTitle(t)}>
-                    {t} <span className="sb-tag-x">×</span>
-                  </span>
-                ))}
-              </div>
-            )}
-          </div>
         </div>
 
         {/* ══ RIGHT ══ */}
         <div className="right">
           <div className="topbar">
-            <div className="ts-wrap">
-              <span className="ts-icon">⚡</span>
-              <input autoFocus value={companyInput}
-                onChange={e => handleCompanyInput(e.target.value)}
-                placeholder="Search any retailer — or type a person's name..." />
+            <div style={{flex:1,display:"flex",alignItems:"center",gap:8}}>
+              <div style={{fontFamily:"'Bricolage Grotesque',sans-serif",fontWeight:800,fontSize:15,color:"var(--text)",letterSpacing:"-.2px"}}>RepReach</div>
             </div>
             <div className="topbar-right">
               {isSubscribed
@@ -1345,146 +1110,12 @@ ONLY JSON: {"script":"..."}`,
                 <option value="data-driven">Data-Driven</option>
               </select>
             </div>
-            {searching && <span style={{marginLeft:"auto",fontSize:11,color:"#00c9a7",fontWeight:700}} className="pulsing">Searching Apollo...</span>}
           </div>
 
           <div className="content">
             <div className="main">
 
-              {view === "people" ? (<>
-                <div className="toolbar">
-                  {searching ? (
-                    <><span className="spin"/><span style={{color:"#334155",marginLeft:8,fontWeight:600}}>
-                      {searchMode==="person" ? <>Searching for <span style={{color:"#00c9a7"}}>{companyInput}</span>...</> : <>Finding buyers at <span style={{color:"#00c9a7"}}>{companyInput}</span>...</>}
-                    </span></>
-                  ) : hasSearched ? (
-                    <>
-                      <span className="rc">{leads.length.toLocaleString()} buyers found</span>
-                      {totalAvailable > leads.length && <span className="rs" style={{marginLeft:6}}>of {totalAvailable.toLocaleString()} in Apollo</span>}
-                      {selected.size > 0 && <span style={{marginLeft:12,color:"#00c9a7",fontWeight:700,fontSize:12}}>{selected.size} selected</span>}
-                      {!isSubscribed && leads.length > 0 && (
-                        <button className="btn btn-teal btn-sm" style={{marginLeft:"auto"}} onClick={() => setShowPaywall(true)}>📆 Book a Consultation</button>
-                      )}
-                    </>
-                  ) : (
-                    <span style={{color:"#334155",fontWeight:600}}>Search a retailer to find buyers instantly</span>
-                  )}
-                </div>
-
-                {!hasSearched && !searching ? (
-                  <div className="empty">
-                    <div className="empty-icon">⚡</div>
-                    <h3>Find any buyer. Right now.</h3>
-                    <p>Type a retailer in the sidebar or search bar. Get every buyer, merchant, and category manager in seconds.</p>
-                    <div className="qpills">
-                      {QUICK_COMPANIES.map(c => (
-                        <button key={c} className="qp" onClick={() => handleCompanyInput(c)}>{c}</button>
-                      ))}
-                    </div>
-                  </div>
-                ) : searching ? (
-                  <div className="empty">
-                    <span className="spin-lg spin" style={{marginBottom:18}} />
-                    <h3>Hitting Apollo...</h3>
-                    <p style={{color:"#334155"}}>Pulling every buyer at <span style={{color:"#00c9a7",fontWeight:700}}>{companyInput}</span></p>
-                  </div>
-                ) : leads.length === 0 ? (
-                  <div className="empty">
-                    <div className="empty-icon">🔍</div>
-                    <h3>No contacts found for "{companyInput}"</h3>
-                    <p>Try the parent company name or remove title filters.</p>
-                  </div>
-                ) : (
-                  <div style={{display:"flex",flexDirection:"column",flex:1,overflow:"hidden"}}>
-                  <div className="tbl-wrap">
-                    <table className="pt">
-                      <thead>
-                        <tr>
-                          <th style={{width:36,paddingLeft:16}}>
-                            <input type="checkbox" checked={selected.size===leads.length&&leads.length>0}
-                              onChange={() => setSelected(selected.size===leads.length?new Set():new Set(leads.map(l=>l.id)))} />
-                          </th>
-                          <th style={{width:40}}></th>
-                          <th>Name</th>
-                          <th>Title</th>
-                          <th>Company</th>
-                          <th>Location</th>
-                          <th>Department</th>
-                          <th>Email</th>
-                          <th>Phone</th>
-                          <th>Status</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {leads.map((lead, i) => {
-                          const color  = AV_COLORS[i % AV_COLORS.length];
-                          const st     = getStatus(lead.id);
-                          const isSel  = selected.has(lead.id);
-                          const isAct  = activeLead?.id === lead.id;
-                          return (
-                            <tr key={lead.id} className={`${isSel?"sel":""} ${isAct?"act":""}`} onClick={() => openLead(lead)}>
-                              <td style={{paddingLeft:16}} onClick={e=>e.stopPropagation()}>
-                                <input type="checkbox" checked={isSel}
-                                  onChange={e => { e.stopPropagation(); setSelected(prev=>{const n=new Set(prev);n.has(lead.id)?n.delete(lead.id):n.add(lead.id);return n;}); }} />
-                              </td>
-                              <td><div className="av" style={{background:color}}>{(lead.firstName?.[0]||"")+(lead.lastName?.[0]||"")}</div></td>
-                              <td>
-                                <div style={{display:"flex",alignItems:"center",gap:4}}>
-                                  <span className="pname">{lead.firstName} {lead.lastName}</span>
-                                  {lead.linkedin && <a href={"https://"+lead.linkedin.replace(/^https?:\/\//,"")} target="_blank" rel="noreferrer" className="pli" onClick={e=>e.stopPropagation()}>in</a>}
-                                </div>
-                              </td>
-                              <td><span className="ptitle">{lead.title}</span></td>
-                              <td><span className="pco">{lead.retailer}</span></td>
-                              <td style={{color:"#334155",fontSize:12}}>{lead.location||"—"}</td>
-                              <td>
-                                {departments[lead.id]
-                                  ? <span style={{display:"inline-flex",alignItems:"center",gap:4,padding:"3px 9px",background:"rgba(0,201,167,.07)",border:"1px solid rgba(0,201,167,.15)",borderRadius:5,fontSize:11,fontWeight:700,color:"#00c9a7",whiteSpace:"nowrap"}}>{departments[lead.id]}</span>
-                                  : loadingDepts ? <span style={{fontSize:11,color:"#1e2d3d"}}>···</span> : <span style={{color:"#1e2d3d",fontSize:12}}>—</span>
-                                }
-                              </td>
-                              <td onClick={e=>e.stopPropagation()}>
-                                {!isSubscribed
-                                  ? <button className="cbtn cb-locked" onClick={()=>setShowPaywall(true)}>🔒 Unlock</button>
-                                  : lead.email
-                                    ? <button className="cbtn cb-email" onClick={()=>copy(lead.email,"e_"+lead.id)}>✉ {copied==="e_"+lead.id?"Copied!":lead.email.length>22?lead.email.slice(0,22)+"…":lead.email}</button>
-                                    : enriching.has(lead.id)
-                                      ? <span className="cbtn cb-gen"><span className="spin" style={{width:10,height:10}}/>Revealing...</span>
-                                      : <button className="cbtn cb-gen" onClick={()=>enrichContact(lead)}>⚡ Reveal</button>
-                                }
-                              </td>
-                              <td onClick={e=>e.stopPropagation()}>
-                                {!isSubscribed
-                                  ? <button className="cbtn cb-locked" onClick={()=>setShowPaywall(true)}>🔒</button>
-                                  : lead.phone
-                                    ? <button className="cbtn cb-phone" onClick={()=>copy(lead.phone,"p_"+lead.id)}>📞 {copied==="p_"+lead.id?"Copied!":lead.phone}</button>
-                                    : enriching.has(lead.id)
-                                      ? <span style={{color:"#334155",fontSize:11}}>···</span>
-                                      : <button className="cbtn cb-gen" style={{fontSize:10}} onClick={()=>enrichContact(lead)}>⚡ Reveal</button>
-                                }
-                              </td>
-                              <td onClick={e=>e.stopPropagation()}>
-                                <button className="spill" style={{background:st.color+"20",color:st.color}} onClick={()=>cycleStatus(lead.id)}>
-                                  ● {st.label}
-                                </button>
-                              </td>
-                            </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
-                  </div>
-                  {nextCursor && (
-                    <div style={{padding:"16px 20px",borderTop:"1px solid #0d1f2d",display:"flex",alignItems:"center",gap:14}}>
-                      <button className="btn btn-teal" disabled={loadingMore} onClick={loadMore} style={{justifyContent:"center"}}>
-                        {loadingMore ? <><span className="spin"/>Loading next 1,000...</> : "⚡ Load More Contacts"}
-                      </button>
-                      <span style={{fontSize:12,color:"#334155"}}>{leads.length.toLocaleString()} loaded · {(totalAvailable - leads.length).toLocaleString()} more in Apollo</span>
-                    </div>
-                  )}
-                  </div>
-                )}
-              </>) : view === "practice" ? (
+              {view === "practice" ? (
                 /* ── PRACTICE ── */
                 <div className="practice-wrap">
 
@@ -2240,7 +1871,6 @@ ONLY JSON: {"script":"..."}`,
                       {icon:"📊",name:"Google Sheets",desc:"Export your pipeline and lead data to Sheets for reporting.",bg:"#34a853"},
                       {icon:"🗓",name:"Calendly",desc:"Embed your booking link directly into outreach emails.",bg:"#006bff"},
                       {icon:"📱",name:"LinkedIn Sales Nav",desc:"Pull buyer data directly from Sales Navigator.",bg:"#0077b5"},
-                      {icon:"🔔",name:"Apollo.io",desc:"RepReach is already powered by Apollo's contact database.",bg:"#6c63ff",live:true},
                       {icon:"✨",name:"Claude AI",desc:"All AI generation, scoring, and research is powered by Claude.",bg:"#c87533",live:true},
                     ].map((t,i)=>(
                       <div key={i} className="int-card">
@@ -2392,7 +2022,7 @@ ONLY JSON: {"script":"..."}`,
                 <div style={{padding:"16px 20px",overflow:"auto",flex:1}}>
                   <div style={{marginBottom:16}}>
                     <div style={{fontFamily:"'Syne',sans-serif",fontWeight:800,fontSize:16,color:"#f1f5f9",marginBottom:3,letterSpacing:"-.2px"}}>Outreach Tracker</div>
-                    <div style={{fontSize:12,color:"#334155"}}>{leads.length} contacts · {companyInput||"no search"}</div>
+                    <div style={{fontSize:12,color:"#334155"}}>{leads.length} contacts</div>
                   </div>
                   {leads.length === 0
                     ? <div className="empty"><div className="empty-icon">📋</div><h3>No contacts yet</h3><p>Search a retailer in People view first.</p></div>
@@ -2425,9 +2055,6 @@ ONLY JSON: {"script":"..."}`,
                     <div className="dp-name">{activeLead.firstName} {activeLead.lastName}</div>
                     <div className="dp-role">{activeLead.title}</div>
                     <div className="dp-co">{activeLead.retailer}</div>
-                    {departments[activeLead.id] && (
-                      <span style={{display:"inline-flex",alignItems:"center",gap:4,padding:"3px 9px",background:"rgba(0,201,167,.08)",border:"1px solid rgba(0,201,167,.15)",borderRadius:5,fontSize:11,fontWeight:700,color:"#00c9a7",marginTop:5,width:"fit-content"}}>{departments[activeLead.id]}</span>
-                    )}
                   </div>
                   <button className="dp-x" onClick={()=>setActiveLead(null)}>×</button>
                 </div>
@@ -2437,9 +2064,7 @@ ONLY JSON: {"script":"..."}`,
                   {/* Email */}
                   {activeLead.email
                     ? <div className="dp-row"><span className="dp-icon">✉</span><span className="dp-val">{activeLead.email}{activeLead.emailStatus && <span style={{marginLeft:5,fontSize:10,color:"#4ade80",fontWeight:700}}>{activeLead.emailStatus}</span>}</span><button className="dp-copy" onClick={()=>copy(activeLead.email,"de")}>{copied==="de"?"✓":"Copy"}</button></div>
-                    : enriching.has(activeLead.id)
-                      ? <div className="dp-row"><span className="dp-icon">✉</span><span style={{color:"#00c9a7",fontSize:11,display:"flex",alignItems:"center",gap:6}}><span className="spin" style={{width:11,height:11}}/>Revealing...</span></div>
-                      : <div className="dp-row"><span className="dp-icon">✉</span><span style={{color:"#334155",fontSize:11,flex:1}}>Not revealed</span><button className="dp-copy" onClick={()=>enrichContact(activeLead)}>⚡ Reveal</button></div>
+                    : <div className="dp-row"><span className="dp-icon">✉</span><span style={{color:"#334155",fontSize:11,flex:1}}>No email</span></div>
                   }
                   {/* Personal emails */}
                   {(activeLead.personalEmails||[]).map((em,i) => (
@@ -2448,9 +2073,7 @@ ONLY JSON: {"script":"..."}`,
                   {/* Phone */}
                   {activeLead.phone
                     ? <div className="dp-row"><span className="dp-icon">📞</span><span className="dp-val">{activeLead.phone}</span><button className="dp-copy" onClick={()=>copy(activeLead.phone,"dp2")}>{copied==="dp2"?"✓":"Copy"}</button></div>
-                    : enriching.has(activeLead.id)
-                      ? <div className="dp-row"><span className="dp-icon">📞</span><span style={{color:"#00c9a7",fontSize:11}}>Revealing...</span></div>
-                      : null
+                    : null
                   }
                   {/* Extra phones */}
                   {(activeLead.allPhones||[]).slice(1).map((ph,i) => (

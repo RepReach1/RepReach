@@ -74,6 +74,10 @@ export default function App() {
   const [simBusy, setSimBusy]           = useState(false);
   const [simScore, setSimScore]         = useState(null);
   const [simTurns, setSimTurns]         = useState(0);
+  const [simIsRecording, setSimIsRecording] = useState(false);
+  const [simVoiceEnabled, setSimVoiceEnabled] = useState(true);
+  const simRecRef = useRef(null);
+  const simSynthRef = useRef(null);
 
   // Practice tab
   const [pitchText,          setPitchText]          = useState("");
@@ -511,6 +515,47 @@ ONLY JSON: {"script":"..."}`,
     setScoringResp(false);
   };
 
+  const speakBuyer = (text) => {
+    if (!simVoiceEnabled) return;
+    if (!window.speechSynthesis) return;
+    window.speechSynthesis.cancel();
+    const utt = new SpeechSynthesisUtterance(text);
+    utt.rate = 0.95;
+    utt.pitch = 0.9;
+    const voices = window.speechSynthesis.getVoices();
+    const preferred = voices.find(v => /Google US English|Samantha|Alex|Daniel/.test(v.name));
+    if (preferred) utt.voice = preferred;
+    simSynthRef.current = utt;
+    window.speechSynthesis.speak(utt);
+  };
+
+  const stopBuyerSpeech = () => { window.speechSynthesis?.cancel(); };
+
+  const startSimVoice = () => {
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SR) { alert("Voice input requires Chrome or Edge."); return; }
+    stopBuyerSpeech();
+    const r = new SR();
+    r.continuous = true; r.interimResults = true; r.lang = "en-US";
+    let final = "";
+    r.onresult = e => {
+      let interim = "";
+      for (let i = e.resultIndex; i < e.results.length; i++) {
+        if (e.results[i].isFinal) final += e.results[i][0].transcript + " ";
+        else interim += e.results[i][0].transcript;
+      }
+      setSimUserInput(final + interim);
+    };
+    r.onerror = () => { setSimIsRecording(false); simRecRef.current = null; };
+    r.onend   = () => { setSimIsRecording(false); simRecRef.current = null; };
+    r.start(); setSimIsRecording(true); simRecRef.current = r;
+  };
+
+  const stopSimVoice = () => {
+    if (simRecRef.current) { simRecRef.current.stop(); simRecRef.current = null; }
+    setSimIsRecording(false);
+  };
+
   const startSimulator = async () => {
     if (!simRetailer.trim() || !simCategory.trim()) return alert("Select a retailer and category.");
     setSimStep("running");
@@ -528,6 +573,7 @@ Be realistic and tough. Ask about margins (you need ${simDifficulty==="Expert"?"
       const d = await r.json();
       const msg = JSON.parse(d.result).message;
       setSimMessages([{role:"buyer", text:msg}]);
+      speakBuyer(msg);
     } catch(e) { alert("Simulator error: "+e.message); setSimStep("setup"); }
     setSimBusy(false);
   };
@@ -554,6 +600,7 @@ ONLY JSON: {"message":"..."}`;
       const buyerReply = JSON.parse(d.result).message;
       const final = [...newMsgs, {role:"buyer", text:buyerReply}];
       setSimMessages(final);
+      speakBuyer(buyerReply);
       if (shouldEnd) {
         setTimeout(() => scoreSimulation(final), 600);
       }
@@ -1278,7 +1325,7 @@ ONLY JSON: {"score":7,"summary":"...","weaknesses":["...","...","..."],"coaching
                         <span style={{color:"var(--text3)"}}>{simCategory}</span>
                         <span style={{color:"var(--text3)"}}>|</span>
                         <span className={`obj-badge obj-badge-${simDifficulty.toLowerCase()}`}>{simDifficulty}</span>
-                        <button className="btn btn-outline btn-sm" style={{marginLeft:"auto",fontSize:10}} onClick={()=>scoreSimulation(simMessages)}>End &amp; Score Session</button>
+                        <button className="btn btn-outline btn-sm" style={{marginLeft:"auto",fontSize:10}} onClick={()=>{stopBuyerSpeech();stopSimVoice();scoreSimulation(simMessages);}}>End &amp; Score Session</button>
                       </div>
                       <div style={{flex:1,overflowY:"auto",padding:"20px 24px",display:"flex",flexDirection:"column",gap:12}}>
                         {simMessages.map((m,i)=>(
@@ -1294,12 +1341,38 @@ ONLY JSON: {"score":7,"summary":"...","weaknesses":["...","...","..."],"coaching
                         ))}
                         {simBusy && <div style={{display:"flex",gap:10,alignItems:"center"}}><div className="spin"/><span style={{fontSize:12,color:"var(--text3)"}}>Buyer is responding...</span></div>}
                       </div>
-                      <div style={{padding:"14px 20px",borderTop:"1px solid var(--border)",background:"var(--bg2)",flexShrink:0,display:"flex",gap:10}}>
-                        <textarea className="ai-in" style={{flex:1,resize:"none",minHeight:44}} rows={2}
-                          placeholder="Respond to the buyer..." value={simUserInput}
-                          onChange={e=>setSimUserInput(e.target.value)}
-                          onKeyDown={e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();sendSimMessage();}}} />
-                        <button className="btn btn-teal" disabled={simBusy||!simUserInput.trim()} onClick={sendSimMessage} style={{alignSelf:"flex-end"}}>Send →</button>
+                      <div style={{padding:"12px 16px",borderTop:"1px solid var(--border)",background:"var(--bg2)",flexShrink:0}}>
+                        {/* Voice status bar */}
+                        <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:8}}>
+                          <button
+                            className={`rec-btn ${simIsRecording?"rec-active":"rec-idle"}`}
+                            style={{flex:"0 0 auto"}}
+                            onClick={simIsRecording ? stopSimVoice : startSimVoice}
+                            disabled={simBusy}>
+                            {simIsRecording
+                              ? <><span style={{width:8,height:8,borderRadius:"50%",background:"#f87171",display:"inline-block",flexShrink:0}}/>Stop Speaking</>
+                              : <>🎙 Speak Your Response</>}
+                          </button>
+                          <button
+                            title={simVoiceEnabled?"Mute buyer voice":"Unmute buyer voice"}
+                            className="btn btn-outline btn-sm"
+                            style={{fontSize:14,padding:"4px 10px"}}
+                            onClick={()=>{ setSimVoiceEnabled(v=>!v); if(simVoiceEnabled) stopBuyerSpeech(); }}>
+                            {simVoiceEnabled ? "🔊" : "🔇"}
+                          </button>
+                          {simIsRecording && <span className="pulsing" style={{fontSize:11,color:"#f87171",fontWeight:700}}>● Recording — speak now</span>}
+                        </div>
+                        {/* Text fallback */}
+                        <div style={{display:"flex",gap:8}}>
+                          <textarea className="ai-in" style={{flex:1,resize:"none",minHeight:40}} rows={2}
+                            placeholder="Or type your response here... (Enter to send)"
+                            value={simUserInput}
+                            onChange={e=>setSimUserInput(e.target.value)}
+                            onKeyDown={e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();if(simIsRecording)stopSimVoice();sendSimMessage();}}} />
+                          <button className="btn btn-teal" disabled={simBusy||!simUserInput.trim()} onClick={()=>{if(simIsRecording)stopSimVoice();sendSimMessage();}} style={{alignSelf:"flex-end"}}>
+                            Send →
+                          </button>
+                        </div>
                       </div>
                     </div>
                   )}
@@ -1330,7 +1403,7 @@ ONLY JSON: {"score":7,"summary":"...","weaknesses":["...","...","..."],"coaching
                             </div>
                           ))}
                           <div style={{display:"flex",gap:10,marginTop:8}}>
-                            <button className="btn btn-teal" style={{flex:1,justifyContent:"center"}} onClick={()=>{setSimStep("setup");setSimScore(null);setSimMessages([]);}}>🔄 Run Another Simulation</button>
+                            <button className="btn btn-teal" style={{flex:1,justifyContent:"center"}} onClick={()=>{stopBuyerSpeech();stopSimVoice();setSimStep("setup");setSimScore(null);setSimMessages([]);setSimUserInput("");}}>🔄 Run Another Simulation</button>
                             <button className="btn btn-outline btn-sm" onClick={()=>setView("coach")}>Get Coaching →</button>
                           </div>
                         </>)}

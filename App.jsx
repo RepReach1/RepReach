@@ -639,18 +639,18 @@ ONLY JSON: {"score":7,"summary":"...","weaknesses":["...","...","..."],"coaching
         @import url('https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,700;12..96,800&family=Inter:wght@400;500;600;700&display=swap');
 
         :root {
-          --bg:      #07080f;
-          --bg2:     #0c0e19;
-          --bg3:     #11152a;
-          --border:  #1a1f3a;
-          --border2: #242942;
-          --teal:    #00e5c0;
-          --teal2:   #00c9a7;
-          --teal-dim:rgba(0,229,192,.08);
-          --teal-glow:rgba(0,229,192,.25);
+          --bg:      #04060f;
+          --bg2:     #07091a;
+          --bg3:     #0b0e22;
+          --border:  #131830;
+          --border2: #1c2245;
+          --teal:    #2979ff;
+          --teal2:   #1a6fff;
+          --teal-dim:rgba(41,121,255,.09);
+          --teal-glow:rgba(41,121,255,.28);
           --text:    #f0f2ff;
-          --text2:   #8b91b8;
-          --text3:   #3d4468;
+          --text2:   #8b94c8;
+          --text3:   #3a4170;
           --amber:   #f5a623;
         }
 
@@ -670,10 +670,12 @@ ONLY JSON: {"score":7,"summary":"...","weaknesses":["...","...","..."],"coaching
         /* ─── SIDEBAR ─── */
         .sidebar{width:230px;background:var(--bg2);border-right:1px solid var(--border);display:flex;flex-direction:column;flex-shrink:0;overflow-y:auto}
 
-        .sb-logo{padding:16px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px}
-        .sb-logo-icon{width:32px;height:32px;background:linear-gradient(135deg,var(--teal),var(--teal2));border-radius:9px;display:flex;align-items:center;justify-content:center;font-family:'Bricolage Grotesque',sans-serif;font-weight:800;font-size:14px;color:#07080f;flex-shrink:0;box-shadow:0 0 16px var(--teal-glow)}
-        .sb-logo-text{font-family:'Bricolage Grotesque',sans-serif;font-weight:800;font-size:17px;color:var(--text);letter-spacing:-.4px}
-        .sb-logo-text em{font-style:normal;color:var(--teal)}
+        .sb-logo{padding:14px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px}
+        .sb-logo-icon{width:36px;height:36px;flex-shrink:0;filter:drop-shadow(0 0 10px rgba(41,121,255,.45))}
+        .sb-logo-text{font-family:'Bricolage Grotesque',sans-serif;font-weight:800;font-size:16px;letter-spacing:.5px}
+        .sb-logo-text .rep{color:#ffffff}
+        .sb-logo-text .reach{background:linear-gradient(135deg,#ffffff 0%,#2979ff 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+        .sb-logo-tagline{font-size:8px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.12em;margin-top:1px}
 
         .sb-nav{padding:8px;border-bottom:1px solid var(--border)}
         .sb-item{display:flex;align-items:center;gap:9px;padding:9px 11px;border-radius:9px;font-size:12px;font-weight:600;color:var(--text3);cursor:pointer;transition:.15s;margin-bottom:1px;letter-spacing:.01em}
@@ -699,7 +701,7 @@ ONLY JSON: {"score":7,"summary":"...","weaknesses":["...","...","..."],"coaching
         .right{flex:1;display:flex;flex-direction:column;overflow:hidden}
 
         /* ─── TOPBAR ─── */
-        .topbar{height:52px;background:var(--bg2);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 18px;gap:12px;flex-shrink:0}
+        .topbar{height:52px;background:var(--bg2);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 18px;gap:12px;flex-shrink:0;box-shadow:0 1px 0 rgba(41,121,255,.08)}
         .ts-wrap{flex:1;max-width:440px;position:relative}
         .ts-wrap input{width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:9px;padding:9px 13px 9px 36px;font-size:13px;color:var(--text);outline:none;transition:.15s;font-weight:500}
         .ts-wrap input::placeholder{color:var(--text3)}
@@ -796,8 +798,8 @@ ONLY JSON: {"score":7,"summary":"...","weaknesses":["...","...","..."],"coaching
         /* Buttons */
         .btn{padding:9px 20px;border-radius:9px;font-size:12px;font-weight:700;cursor:pointer;border:none;transition:.15s;display:inline-flex;align-items:center;gap:6px;font-family:'Inter',sans-serif;letter-spacing:.02em}
         .btn:disabled{opacity:.35;cursor:not-allowed}
-        .btn-teal{background:linear-gradient(135deg,var(--teal),var(--teal2));color:#07080f;box-shadow:0 4px 16px var(--teal-glow)}
-        .btn-teal:hover:not(:disabled){box-shadow:0 4px 24px rgba(0,229,192,.35);transform:translateY(-1px)}
+        .btn-teal{background:linear-gradient(135deg,#4a90ff,#2979ff);color:#ffffff;box-shadow:0 4px 16px var(--teal-glow)}
+        .btn-teal:hover:not(:disabled){box-shadow:0 4px 24px rgba(41,121,255,.45);transform:translateY(-1px)}
         .btn-outline{background:transparent;color:var(--text2);border:1px solid var(--border)}
         .btn-outline:hover:not(:disabled){border-color:var(--teal2);color:var(--teal)}
         .btn-amber{background:linear-gradient(135deg,var(--amber),#fbbf24);color:#07080f;box-shadow:0 4px 16px rgba(245,166,35,.2)}
@@ -1114,8 +1116,31 @@ ONLY JSON: {"score":7,"summary":"...","weaknesses":["...","...","..."],"coaching
         {/* ══ SIDEBAR ══ */}
         <div className="sidebar">
           <div className="sb-logo">
-            <div className="sb-logo-icon">R</div>
-            <div className="sb-logo-text">Rep<em>Reach</em></div>
+            {/* RR lettermark */}
+            <svg className="sb-logo-icon" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <defs>
+                <linearGradient id="rr-l" x1="0" y1="0" x2="36" y2="36" gradientUnits="userSpaceOnUse">
+                  <stop offset="0%" stopColor="#ffffff"/>
+                  <stop offset="100%" stopColor="#2979ff"/>
+                </linearGradient>
+                <linearGradient id="rr-r" x1="0" y1="0" x2="36" y2="36" gradientUnits="userSpaceOnUse">
+                  <stop offset="0%" stopColor="#6aaeff"/>
+                  <stop offset="100%" stopColor="#2979ff"/>
+                </linearGradient>
+              </defs>
+              {/* Left R */}
+              <path d="M4 7h8.5c2.8 0 4.5 1.8 4.5 4s-1.7 4-4.5 4H4V7z" fill="url(#rr-l)"/>
+              <rect x="4" y="7" width="2.5" height="22" rx="1" fill="url(#rr-l)"/>
+              <path d="M12.5 15l5.5 14" stroke="url(#rr-l)" strokeWidth="2.5" strokeLinecap="round"/>
+              {/* Right R */}
+              <path d="M20 7h8.5c2.8 0 4.5 1.8 4.5 4s-1.7 4-4.5 4H20V7z" fill="url(#rr-r)"/>
+              <rect x="20" y="7" width="2.5" height="22" rx="1" fill="url(#rr-r)"/>
+              <path d="M28.5 15l4.5 14" stroke="url(#rr-r)" strokeWidth="2.5" strokeLinecap="round"/>
+            </svg>
+            <div>
+              <div className="sb-logo-text"><span className="rep">REP</span><span className="reach">REACH</span></div>
+              <div className="sb-logo-tagline">Retail Sales OS</div>
+            </div>
           </div>
 
           <div className="sb-nav">
@@ -1513,7 +1538,7 @@ ONLY JSON: {"score":7,"summary":"...","weaknesses":["...","...","..."],"coaching
                               <div className="score-bar-bg">
                                 <div className="score-bar-fill" style={{
                                   width:`${scoringResult.score*10}%`,
-                                  background:scoringResult.score>=8?"linear-gradient(90deg,#4ade80,#00e5c0)":scoringResult.score>=6?"linear-gradient(90deg,#fb923c,#f59e0b)":"linear-gradient(90deg,#f87171,#ef4444)"
+                                  background:scoringResult.score>=8?"linear-gradient(90deg,#4ade80,#2979ff)":scoringResult.score>=6?"linear-gradient(90deg,#fb923c,#f59e0b)":"linear-gradient(90deg,#f87171,#ef4444)"
                                 }}/>
                               </div>
                             </div>

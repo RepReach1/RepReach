@@ -6,10 +6,10 @@ const CSS = `
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
   :root {
-    --black: #050508;
-    --charcoal: #0d0d14;
-    --graphite: #12121c;
-    --card: #16161f;
+    --black: #04060f;
+    --charcoal: #07091a;
+    --graphite: #0b0e22;
+    --card: #0f1228;
     --border: rgba(255,255,255,0.07);
     --blue: #2979ff;
     --blue-glow: #2979ffaa;
@@ -320,7 +320,7 @@ const CSS = `
   .lp-preview-bar-fill { height: 100%; border-radius: 4px; transition: width 1.5s cubic-bezier(0.23,1,0.32,1); }
   .lp-preview-bar-fill.blue { background: linear-gradient(90deg, var(--blue), #7ab3ff); }
   .lp-preview-bar-fill.gold { background: linear-gradient(90deg, var(--gold), var(--orange)); }
-  .lp-preview-bar-fill.teal { background: linear-gradient(90deg, #00c8c8, #4dfff3); }
+  .lp-preview-bar-fill.teal { background: linear-gradient(90deg, #2979ff, #7ab3ff); }
 
   /* ── SOCIAL PROOF TICKER ── */
   .lp-ticker {
@@ -829,7 +829,21 @@ export default function LandingPage({ onEnter }) {
 
       {/* NAV */}
       <nav className="lp-nav">
-        <div className="lp-nav-logo">RepReach</div>
+        <div className="lp-nav-logo" style={{display:"flex",alignItems:"center",gap:10}}>
+          <svg width="28" height="28" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg" style={{filter:"drop-shadow(0 0 8px rgba(41,121,255,.5))"}}>
+            <defs>
+              <linearGradient id="lp-rr-l" x1="0" y1="0" x2="36" y2="36" gradientUnits="userSpaceOnUse"><stop offset="0%" stopColor="#ffffff"/><stop offset="100%" stopColor="#2979ff"/></linearGradient>
+              <linearGradient id="lp-rr-r" x1="0" y1="0" x2="36" y2="36" gradientUnits="userSpaceOnUse"><stop offset="0%" stopColor="#6aaeff"/><stop offset="100%" stopColor="#2979ff"/></linearGradient>
+            </defs>
+            <path d="M4 7h8.5c2.8 0 4.5 1.8 4.5 4s-1.7 4-4.5 4H4V7z" fill="url(#lp-rr-l)"/>
+            <rect x="4" y="7" width="2.5" height="22" rx="1" fill="url(#lp-rr-l)"/>
+            <path d="M12.5 15l5.5 14" stroke="url(#lp-rr-l)" strokeWidth="2.5" strokeLinecap="round"/>
+            <path d="M20 7h8.5c2.8 0 4.5 1.8 4.5 4s-1.7 4-4.5 4H20V7z" fill="url(#lp-rr-r)"/>
+            <rect x="20" y="7" width="2.5" height="22" rx="1" fill="url(#lp-rr-r)"/>
+            <path d="M28.5 15l4.5 14" stroke="url(#lp-rr-r)" strokeWidth="2.5" strokeLinecap="round"/>
+          </svg>
+          <span style={{letterSpacing:"2px",fontSize:18}}><span style={{color:"#ffffff",fontWeight:800}}>REP</span><span style={{background:"linear-gradient(135deg,#ffffff,#2979ff)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent",backgroundClip:"text",fontWeight:800}}>REACH</span></span>
+        </div>
         <div className="lp-nav-links">
           <a href="#features">Features</a>
           <a href="#how">How It Works</a>
